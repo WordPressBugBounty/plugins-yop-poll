@@ -4,7 +4,7 @@ Donate Link: https://www.yop-poll.com
 Tags: create poll, poll plugin, poll, polls, WordPress poll
 Requires at least: 3.3
 Tested up to: 6.6
-Stable tag: 6.5.33
+Stable tag: 6.5.34
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.htm
 
@@ -118,6 +118,9 @@ You can have only one question per poll.
 12. Poll With Vertical Display Showing Results Before Vote
 
 == Changelog ==
+
+= 6.5.34 =
+* fixed issue with polls not displaying when switching from pro to free version
 
 = 6.5.33 =
 * removed h5 tag from question html structure

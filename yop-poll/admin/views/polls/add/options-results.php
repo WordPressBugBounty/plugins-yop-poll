@@ -26,7 +26,7 @@
 					</div>
 					<div class="checkbox-inline">
 						<label class="admin-label">
-							<input type="checkbox" name="show-results-moment" class="show-results-moment" value="after-vote">
+							<input type="checkbox" name="show-results-moment" class="show-results-moment" value="after-vote" checked>
 							<?php esc_html_e( 'After vote', 'yop-poll' ); ?>
 						</label>
 					</div>
@@ -63,14 +63,14 @@
 					</div>
 				</div>
 			</div>
-			<div class="form-group show-results-to-section hide">
+			<div class="form-group show-results-to-section">
 				<div class="col-md-3">
 					<?php esc_html_e( 'Show results to', 'yop-poll' ); ?>
 				</div>
 				<div class="col-md-9">
 					<div class="checkbox-inline">
 						<label class="admin-label">
-							<input type="checkbox" name="show-results-to" class="show-results-to" value="guest">
+							<input type="checkbox" name="show-results-to" class="show-results-to" value="guest" checked>
 							<?php esc_html_e( 'Guest', 'yop-poll' ); ?>
 						</label>
 					</div>

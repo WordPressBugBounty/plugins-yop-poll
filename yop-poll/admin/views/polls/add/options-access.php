@@ -20,7 +20,7 @@
 				<div class="col-md-9">
 					<div class="checkbox-inline">
 						<label class="admin-label">
-							<input type="checkbox" name="vote-permissions" class="vote-permissions" value="guest">
+							<input type="checkbox" name="vote-permissions" class="vote-permissions" value="guest" checked>
 							<?php esc_html_e( 'Guest', 'yop-poll' ); ?>
 						</label>
 					</div>

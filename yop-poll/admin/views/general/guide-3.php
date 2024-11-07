@@ -1,7 +1,7 @@
 <div class="row guide-section-header">
 	<div class="col-md-12 text-center">
 		<h3 class="main-headline">
-			"Boost your engagement and revenue with this <u>FREE</u> guide - usually $37, now yours at No Cost!"
+			"Boost your engagement with this <u>FREE</u> guide - usually $37, now yours at <u>No Cost</u>!"
 		</h3>
 	</div>
 </div>
@@ -12,21 +12,18 @@
 </div>
 <div class="row guide-section-header">
 	<div class="col-md-12 text-center yop-poll-guide-subheadline">
-		Get instant access to <b>Revenue - Boosting Polls: 10 Innovative Ways Creators Are Using Polls to Engage and Sell</b> - a must-have guide 
-		filled with powerful strategies that top creators use to skyrocket their engagement and maximize profits.
+		Get instant access to <b><u>Revenue - Boosting Polls: 10 Innovative Ways Creators Are Using Polls to Engage and Sell</u></b> - a must-have guide 
+		filled with powerful strategies that top creators use to skyrocket their engagement.
 	</div>
 </div>
 <div class="row guide-section">
 	<div class="col-md-12 text-left yop-poll-guide-text">
 		<ul>
 			<li>
-				<b>Increase conversions:</b> Learn how to craft polls that drive more sales and leads
+				<b>Boost engagement:</b> Discover techniques that keep your audience hooked and participating
 			</li>
 			<li>
 				<b>Save time:</b> Implement proven strategies without trial and error
-			</li>
-			<li>
-				<b>Boost engagement:</b> Discover techniques that keep your audience hooked and participating
 			</li>
 		</ul>
 	</div>

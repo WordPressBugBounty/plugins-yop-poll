@@ -283,6 +283,15 @@ class YOP_Poll_Public {
 							}
 							break;
 						}
+						default: {
+							if ( ( true === isset( $params['show_results'] ) ) && ( '1' == $params['show_results'] ) ) {
+								$params['show_thank_you_message'] = '0';
+								$poll_ready_for_output = YOP_Poll_Basic::create_poll_view_for_results( $poll, $params );
+							} else {
+								$params['show_thank_you_message'] = '1';
+								$poll_ready_for_output = YOP_Poll_Basic::create_poll_view( $poll, $params );
+							}
+						}
 					}
 				}
 				$content_for_output = "<div class='bootstrap-yop yop-poll-mc'>
@@ -311,6 +320,15 @@ class YOP_Poll_Public {
 							$poll_ready_for_output = YOP_Poll_Basic::create_poll_view( $poll, $params );
 						}
 						break;
+					}
+					default: {
+						if ( ( true === isset( $params['show_results'] ) ) && ( '1' == $params['show_results'] ) ) {
+							$params['show_thank_you_message'] = '0';
+							$poll_ready_for_output = YOP_Poll_Basic::create_poll_view_for_results( $poll, $params );
+						} else {
+							$params['show_thank_you_message'] = '1';
+							$poll_ready_for_output = YOP_Poll_Basic::create_poll_view( $poll, $params );
+						}
 					}
 				}
 			}
