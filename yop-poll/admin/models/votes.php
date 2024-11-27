@@ -214,6 +214,16 @@ class YOP_Poll_Votes {
 									);
 								}
 							}
+							if (
+								( intval( $element->meta_data['maxCharsAllowed'] ) > 0 ) &&
+								( strlen( $custom_field_cleaned ) > intval( $element->meta_data['maxCharsAllowed'] ) )
+							) {
+								self::$errors_present = true;
+								array_push(
+									self::$error_text,
+									str_replace( '{custom_field_name}', $element->etext, self::$settings_messages['voting']['too-many-chars-for-custom-field'] )
+								);
+							}
 						}
 					}
 					break;

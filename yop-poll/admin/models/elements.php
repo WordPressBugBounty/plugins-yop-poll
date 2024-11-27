@@ -186,12 +186,14 @@ class YOP_POLL_Elements {
 			    if ( property_exists( $element->options, 'old_id' ) ) {
                     $return_data = array(
                         'makeRequired' => sanitize_text_field( $element->options->makeRequired ),
+						'maxCharsAllowed' => sanitize_text_field( $element->options-> maxCharsAllowed ),
 						'old_id'       => sanitize_text_field( $element->options->old_id ),
 						'cType' => sanitize_text_field( $element->options->cType ),
                     );
                 } else {
                     $return_data = array(
 						'makeRequired' => sanitize_text_field( $element->options->makeRequired ),
+						'maxCharsAllowed' => sanitize_text_field( $element->options-> maxCharsAllowed ),
 						'cType' => sanitize_text_field( $element->options->cType ),
                     );
                 }

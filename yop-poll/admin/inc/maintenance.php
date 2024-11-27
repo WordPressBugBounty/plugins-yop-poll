@@ -254,6 +254,10 @@ class YOP_POLL_Maintenance {
 	public function update_to_version_6_5_34() {
 		update_option( 'yop_poll_version', '6.5.34' );
 	}
+	public function update_to_version_6_5_35() {
+		YOP_Poll_Settings::update_settings_to_version_6_5_35();
+		update_option( 'yop_poll_version', '6.5.35' );
+	}
     public function create_archive_page() {
         $poll_archive_page = get_page_by_path( 'yop-poll-archive', ARRAY_A );
         if ( ! $poll_archive_page ) {

@@ -515,6 +515,10 @@ class YOP_Poll_Admin {
 		        $maintenance  = new YOP_POLL_Maintenance();
 		        $maintenance->update_to_version_6_5_34();
 	        }
+			if ( true === version_compare( $installed_version, '6.5.35', '<' ) ) {
+		        $maintenance  = new YOP_POLL_Maintenance();
+		        $maintenance->update_to_version_6_5_35();
+	        }
         }
 	}
 	public function load_translations() {
@@ -835,6 +839,7 @@ class YOP_Poll_Admin {
 						'noTemplateSelected' => esc_html__( 'Template is missing', 'yop-poll' ),
 						'noSkinSelected' => esc_html__( 'Skin is missing', 'yop-poll' ),
 						'generalErrorMessage' => esc_html__( ' is missing', 'yop-poll' ),
+						'generalTextForMessages' => esc_html__( 'Text for ', 'yop-poll' ),
 						'noPollName' => esc_html__( 'Poll name is missing', 'yop-poll' ),
 						'noQuestion' => esc_html__( 'Question Text is missing', 'yop-poll' ),
 						'noAnswerText' => esc_html__( 'Answer Text is missing', 'yop-poll' ),
@@ -844,6 +849,7 @@ class YOP_Poll_Admin {
 						'noMinAnswers' => esc_html__( 'Minimum answers is missing', 'yop-poll' ),
 						'noMaxAnswers' => esc_html__( 'Maximum answers is missing', 'yop-poll' ),
 						'noCustomFieldName' => esc_html__( 'Custom Field Name is missing', 'yop-poll' ),
+						'noCustomFieldMaxChars' => esc_html__( 'Max Chars Allowed For Custom Field is missing', 'yop-poll' ),
 						'noStartDate' => esc_html__( 'Poll Start Date is missing', 'yop-poll' ),
 						'noEndDate' => esc_html__( 'Poll End Date is missing', 'yop-poll' ),
 						'noCustomDate' => esc_html__( 'Custom Date for displaying results is missing', 'yop-poll' ),

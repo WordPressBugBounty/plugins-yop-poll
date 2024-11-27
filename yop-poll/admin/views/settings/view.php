@@ -15,7 +15,7 @@
                             <div class="tabs-container">
                                 <!-- Nav tabs -->
                                 <ul class="main-settings nav nav-tabs settings-steps" role="tablist">
-                                    <li role="presentation" id="tab-notifications"  class="active">
+                                    <li role="presentation" id="tab-general"  class="active">
                                         <a href="#settings-general" aria-controls="general" role="tab" data-toggle="tab">
                                             <?php esc_html_e( 'General', 'yop-poll' ); ?>
                                         </a>
@@ -495,6 +495,13 @@
                                                     </label>
                                                     <input class="form-control settings-required-field" name="messages-voting-no-value-for-custom-field" id="messages-voting-no-value-for-custom-field"
                                                            value="<?php echo isset( $settings['messages']['voting']['no-value-for-custom-field'] ) ? esc_attr( $settings['messages']['voting']['no-value-for-custom-field'] ) : ''; ?>">
+                                                </div>
+												<div class="form-group messages-fields">
+                                                    <label for="messages-voting-too-many-chars-for-custom-field" class="input-caption">
+                                                        <?php esc_html_e( 'Too many chars for custom field', 'yop-poll' ); ?>
+                                                    </label>
+                                                    <input class="form-control settings-required-field" name="messages-voting-too-many-chars-for-custom-field" id="messages-voting-too-many-chars-for-custom-field"
+                                                           value="<?php echo isset( $settings['messages']['voting']['too-many-chars-for-custom-field'] ) ? esc_attr( $settings['messages']['voting']['too-many-chars-for-custom-field'] ) : ''; ?>">
                                                 </div>
                                                 <div class="form-group messages-fields">
                                                     <label for="messages-voting-consent-not-checked" class="input-caption">

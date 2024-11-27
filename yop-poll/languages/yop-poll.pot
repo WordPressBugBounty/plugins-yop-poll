@@ -2,9 +2,9 @@
 # This file is distributed under the GPL2.
 msgid ""
 msgstr ""
-"Project-Id-Version: YOP Poll 6.5.34\n"
+"Project-Id-Version: YOP Poll 6.5.35\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/yop-poll-free\n"
-"POT-Creation-Date: 2024-11-07 11:26:10+00:00\n"
+"POT-Creation-Date: 2024-11-27 09:20:47+00:00\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -87,11 +87,11 @@ msgstr ""
 msgid "Skip and Deactivate"
 msgstr ""
 
-#: admin/admin.php:537 admin/admin.php:538
+#: admin/admin.php:541 admin/admin.php:542
 msgid "Yop Poll"
 msgstr ""
 
-#: admin/admin.php:551 admin/admin.php:552 admin/admin.php:904
+#: admin/admin.php:555 admin/admin.php:556 admin/admin.php:910
 #: admin/models/bans-list.php:176 admin/views/bans/add.php:23
 #: admin/views/bans/edit.php:27 admin/views/bans/edit.php:35
 #: admin/views/polls/view.php:5 admin/views/results/view.php:24
@@ -99,444 +99,452 @@ msgstr ""
 msgid "All Polls"
 msgstr ""
 
-#: admin/admin.php:580 admin/admin.php:581 admin/views/bans/view.php:22
+#: admin/admin.php:584 admin/admin.php:585 admin/views/bans/view.php:22
 #: admin/views/polls/view.php:9
 msgid "Add New"
 msgstr ""
 
-#: admin/admin.php:591 admin/admin.php:592 admin/views/bans/view.php:4
+#: admin/admin.php:595 admin/admin.php:596 admin/views/bans/view.php:4
 msgid "Bans"
 msgstr ""
 
-#: admin/admin.php:605 admin/admin.php:606 admin/views/logs/view.php:4
+#: admin/admin.php:609 admin/admin.php:610 admin/views/logs/view.php:4
 msgid "Logs"
 msgstr ""
 
-#: admin/admin.php:621 admin/admin.php:622
+#: admin/admin.php:625 admin/admin.php:626
 msgid "Settings"
 msgstr ""
 
-#: admin/admin.php:633 admin/admin.php:634
+#: admin/admin.php:637 admin/admin.php:638
 msgid "Migrate old records"
 msgstr ""
 
-#: admin/admin.php:645 admin/admin.php:646
+#: admin/admin.php:649 admin/admin.php:650
 msgid "Upgrade to Pro"
 msgstr ""
 
-#: admin/admin.php:769
+#: admin/admin.php:773
 msgid "New Custom Field"
 msgstr ""
 
-#: admin/admin.php:770
+#: admin/admin.php:774
 msgid "Warning"
 msgstr ""
 
-#: admin/admin.php:771 admin/admin.php:772
+#: admin/admin.php:775 admin/admin.php:776
 msgid "Are you sure you want to delete this poll?"
 msgstr ""
 
-#: admin/admin.php:773
+#: admin/admin.php:777
 msgid "Are you sure you want to delete these polls?"
 msgstr ""
 
-#: admin/admin.php:774 admin/admin.php:775
+#: admin/admin.php:778 admin/admin.php:779
 msgid "Are you sure you want to clone this poll?"
 msgstr ""
 
-#: admin/admin.php:776
+#: admin/admin.php:780
 msgid "Are you sure you want to clone these polls?"
 msgstr ""
 
-#: admin/admin.php:777 admin/admin.php:778
+#: admin/admin.php:781 admin/admin.php:782
 msgid "Are you sure you want to reset votes for this poll?"
 msgstr ""
 
-#: admin/admin.php:779
+#: admin/admin.php:783
 msgid "Are you sure you want to reset votes for these polls?"
 msgstr ""
 
-#: admin/admin.php:780
+#: admin/admin.php:784
 msgid "No bulk action selected"
 msgstr ""
 
-#: admin/admin.php:781
+#: admin/admin.php:785
 msgid "No polls selected"
 msgstr ""
 
-#: admin/admin.php:782
+#: admin/admin.php:786
 msgid "No bans selected"
 msgstr ""
 
-#: admin/admin.php:783
+#: admin/admin.php:787
 msgid "No logs selected"
 msgstr ""
 
-#: admin/admin.php:784
+#: admin/admin.php:788
 msgid "No votes selected"
 msgstr ""
 
-#: admin/admin.php:785 admin/admin.php:858
+#: admin/admin.php:789 admin/admin.php:864
 msgid "Are you sure you want to delete this ban?"
 msgstr ""
 
-#: admin/admin.php:786
+#: admin/admin.php:790
 msgid "Are you sure you want to delete these bans?"
 msgstr ""
 
-#: admin/admin.php:787 admin/admin.php:859
+#: admin/admin.php:791 admin/admin.php:865
 msgid "Are you sure you want to delete this log?"
 msgstr ""
 
-#: admin/admin.php:788
+#: admin/admin.php:792
 msgid "Are you sure you want to delete these logs?"
 msgstr ""
 
-#: admin/admin.php:789
+#: admin/admin.php:793
 msgid "Are you sure you want to delete this vote?"
 msgstr ""
 
-#: admin/admin.php:790
+#: admin/admin.php:794
 msgid "Are you sure you want to delete these votes?"
 msgstr ""
 
-#: admin/admin.php:791
+#: admin/admin.php:795
 msgid "Are you sure you want to delete this answer?"
 msgstr ""
 
-#: admin/admin.php:792
+#: admin/admin.php:796
 msgid "Answer can't be deleted. At least one answer is required!"
 msgstr ""
 
-#: admin/admin.php:793
+#: admin/admin.php:797
 msgid "Are you sure you want to delete this custom field?"
 msgstr ""
 
-#: admin/admin.php:794 admin/views/polls/add/main.php:182
+#: admin/admin.php:798 admin/views/polls/add/main.php:182
 #: admin/views/polls/edit/main.php:207 admin/views/results/votes.php:127
 msgid "Cancel"
 msgstr ""
 
-#: admin/admin.php:795
+#: admin/admin.php:799
 msgid "Ok"
 msgstr ""
 
-#: admin/admin.php:796
+#: admin/admin.php:800
 msgid "Before generating the preview a template is required"
 msgstr ""
 
-#: admin/admin.php:797
+#: admin/admin.php:801
 msgid "Before generating the preview a skin is required"
 msgstr ""
 
-#: admin/admin.php:798
+#: admin/admin.php:802
 msgid "Number of columns is missing"
 msgstr ""
 
-#: admin/admin.php:799
+#: admin/admin.php:803
 msgid "Too many columns. Max 12 allowed"
 msgstr ""
 
-#: admin/admin.php:800
+#: admin/admin.php:804
 msgid "Click to select"
 msgstr ""
 
-#: admin/admin.php:801 admin/views/polls/add/main.php:188
+#: admin/admin.php:805 admin/views/polls/add/main.php:188
 msgid "Publish immediately"
 msgstr ""
 
-#: admin/admin.php:802
+#: admin/admin.php:806
 msgid "Schedule for"
 msgstr ""
 
-#: admin/admin.php:803
+#: admin/admin.php:807
 msgid "Code Copied To Clipboard"
 msgstr ""
 
-#: admin/admin.php:805
+#: admin/admin.php:809
 msgid "Press"
 msgstr ""
 
-#: admin/admin.php:806
+#: admin/admin.php:810
 msgid " to copy"
 msgstr ""
 
-#: admin/admin.php:807
+#: admin/admin.php:811
 msgid "No Support"
 msgstr ""
 
-#: admin/admin.php:809
+#: admin/admin.php:813
 msgid "Element added"
 msgstr ""
 
-#: admin/admin.php:821
+#: admin/admin.php:825
 msgid "Poll Preview"
 msgstr ""
 
-#: admin/admin.php:822
+#: admin/admin.php:826
 msgid "Show preview for"
 msgstr ""
 
-#: admin/admin.php:823 admin/views/settings/view.php:386
+#: admin/admin.php:827 admin/views/settings/view.php:386
 msgid "Voting"
 msgstr ""
 
-#: admin/admin.php:824 admin/models/polls-list.php:286
+#: admin/admin.php:828 admin/models/polls-list.php:286
 #: admin/views/polls/add/main.php:108 admin/views/polls/add/options-poll.php:40
 #: admin/views/polls/edit/main.php:124 admin/views/results/view.php:31
 #: admin/views/results/votes.php:47 admin/views/settings/view.php:391
 msgid "Results"
 msgstr ""
 
-#: admin/admin.php:835
+#: admin/admin.php:839
 msgid "Template is missing"
 msgstr ""
 
-#: admin/admin.php:836
+#: admin/admin.php:840
 msgid "Skin is missing"
 msgstr ""
 
-#: admin/admin.php:837
+#: admin/admin.php:841
 msgid " is missing"
 msgstr ""
 
-#: admin/admin.php:838
-msgid "Poll name is missing"
-msgstr ""
-
-#: admin/admin.php:839
-msgid "Question Text is missing"
-msgstr ""
-
-#: admin/admin.php:840
-msgid "Answer Text is missing"
-msgstr ""
-
-#: admin/admin.php:841
-msgid "Answer Link is missing"
-msgstr ""
-
 #: admin/admin.php:842
-msgid "Answer Embed is missing"
+msgid "Text for "
 msgstr ""
 
 #: admin/admin.php:843
-msgid "Label for Other is missing"
+msgid "Poll name is missing"
 msgstr ""
 
 #: admin/admin.php:844
-msgid "Minimum answers is missing"
+msgid "Question Text is missing"
 msgstr ""
 
 #: admin/admin.php:845
-msgid "Maximum answers is missing"
+msgid "Answer Text is missing"
 msgstr ""
 
 #: admin/admin.php:846
-msgid "Custom Field Name is missing"
+msgid "Answer Link is missing"
 msgstr ""
 
 #: admin/admin.php:847
-msgid "Poll Start Date is missing"
+msgid "Answer Embed is missing"
 msgstr ""
 
 #: admin/admin.php:848
-msgid "Poll End Date is missing"
+msgid "Label for Other is missing"
 msgstr ""
 
 #: admin/admin.php:849
-msgid "Custom Date for displaying results is missing"
+msgid "Minimum answers is missing"
 msgstr ""
 
 #: admin/admin.php:850
-msgid "Show Results Time is missing"
+msgid "Maximum answers is missing"
 msgstr ""
 
 #: admin/admin.php:851
-msgid "Show Results To is missing"
+msgid "Custom Field Name is missing"
 msgstr ""
 
 #: admin/admin.php:852
-msgid "Vote As WordPress User is missing"
+msgid "Max Chars Allowed For Custom Field is missing"
+msgstr ""
+
+#: admin/admin.php:853
+msgid "Poll Start Date is missing"
+msgstr ""
+
+#: admin/admin.php:854
+msgid "Poll End Date is missing"
 msgstr ""
 
 #: admin/admin.php:855
-msgid "Ban For is missing"
+msgid "Custom Date for displaying results is missing"
 msgstr ""
 
 #: admin/admin.php:856
+msgid "Show Results Time is missing"
+msgstr ""
+
+#: admin/admin.php:857
+msgid "Show Results To is missing"
+msgstr ""
+
+#: admin/admin.php:858
+msgid "Vote As WordPress User is missing"
+msgstr ""
+
+#: admin/admin.php:861
+msgid "Ban For is missing"
+msgstr ""
+
+#: admin/admin.php:862
 msgid "Ban Value is missing"
 msgstr ""
 
-#: admin/admin.php:860 admin/admin.php:1530 admin/admin.php:1780
+#: admin/admin.php:866 admin/admin.php:1536 admin/admin.php:1786
 msgid "Question"
 msgstr ""
 
-#: admin/admin.php:861 admin/admin.php:1527 admin/admin.php:1532
-#: admin/admin.php:1777 admin/admin.php:1782 admin/models/logs.php:463
+#: admin/admin.php:867 admin/admin.php:1533 admin/admin.php:1538
+#: admin/admin.php:1783 admin/admin.php:1788 admin/models/logs.php:463
 #: admin/models/logs.php:467 admin/views/polls/add/elements.php:115
 #: admin/views/polls/add/elements.php:189
 #: admin/views/polls/edit/elements.php:123
-#: admin/views/polls/elements-definitions.php:230
+#: admin/views/polls/elements-definitions.php:245
 msgid "Answer"
 msgstr ""
 
-#: admin/admin.php:862 admin/models/logs-list.php:221
+#: admin/admin.php:868 admin/models/logs-list.php:221
 #: admin/models/votes-list.php:106
 msgid "View Details"
 msgstr ""
 
-#: admin/admin.php:863
+#: admin/admin.php:869
 msgid "Hide Details"
 msgstr ""
 
-#: admin/admin.php:864
+#: admin/admin.php:870
 msgid "Number of Votes"
 msgstr ""
 
-#: admin/admin.php:866
+#: admin/admin.php:872
 msgid "vote"
 msgstr ""
 
-#: admin/admin.php:867
+#: admin/admin.php:873
 msgid "votes"
 msgstr ""
 
-#: admin/admin.php:870
+#: admin/admin.php:876
 msgid "Got It. Continue with the migration"
 msgstr ""
 
-#: admin/admin.php:871
+#: admin/admin.php:877
 msgid "Hold On. I want to change settings"
 msgstr ""
 
-#: admin/admin.php:872
+#: admin/admin.php:878
 msgid "Please review your settings before continue"
 msgstr ""
 
-#: admin/admin.php:873
+#: admin/admin.php:879
 msgid "Your selection"
 msgstr ""
 
-#: admin/admin.php:874
+#: admin/admin.php:880
 msgid ""
 "This setting will migrate all data from previous version without any "
 "anonymization"
 msgstr ""
 
-#: admin/admin.php:875
+#: admin/admin.php:881
 msgid ""
 "This setting will migrate all data from previous version but ips will be "
 "anonymized"
 msgstr ""
 
-#: admin/admin.php:876
+#: admin/admin.php:882
 msgid "This setting will migrate everything except ip addresses. "
 msgstr ""
 
-#: admin/admin.php:877
+#: admin/admin.php:883
 msgid "Response:"
 msgstr ""
 
-#: admin/admin.php:878
+#: admin/admin.php:884
 msgid "All done."
 msgstr ""
 
-#: admin/admin.php:879
+#: admin/admin.php:885
 msgid "Migration started"
 msgstr ""
 
-#: admin/admin.php:896 admin/views/polls/edit/main.php:14
+#: admin/admin.php:902 admin/views/polls/edit/main.php:14
 msgid "Edit Poll"
 msgstr ""
 
-#: admin/admin.php:900
+#: admin/admin.php:906
 msgid "View Poll Results"
 msgstr ""
 
-#: admin/admin.php:913
+#: admin/admin.php:919
 msgid "View Logs"
 msgstr ""
 
-#: admin/admin.php:922 admin/views/bans/add.php:4
+#: admin/admin.php:928 admin/views/bans/add.php:4
 msgid "Add Ban"
 msgstr ""
 
-#: admin/admin.php:926 admin/views/bans/edit.php:4
+#: admin/admin.php:932 admin/views/bans/edit.php:4
 msgid "Edit Ban"
 msgstr ""
 
-#: admin/admin.php:930
+#: admin/admin.php:936
 msgid "All Bans"
 msgstr ""
 
-#: admin/admin.php:1038 admin/admin.php:1631
+#: admin/admin.php:1044 admin/admin.php:1637
 msgid "You don't have sufficient permissions to access this page"
 msgstr ""
 
-#: admin/admin.php:1058
+#: admin/admin.php:1064
 msgid "Poll successfully added"
 msgstr ""
 
-#: admin/admin.php:1067 admin/admin.php:1094 admin/admin.php:1097
-#: admin/admin.php:1117 admin/admin.php:1120 admin/admin.php:1123
-#: admin/admin.php:1170 admin/admin.php:1184 admin/admin.php:1187
-#: admin/admin.php:1190 admin/admin.php:1232 admin/admin.php:1249
-#: admin/admin.php:1277 admin/admin.php:1489 admin/admin.php:1543
-#: admin/admin.php:1546 admin/admin.php:1549 admin/admin.php:1608
-#: admin/admin.php:1653 admin/admin.php:1656 admin/admin.php:1659
-#: admin/admin.php:1681 admin/admin.php:1684 admin/admin.php:1731
-#: admin/admin.php:1793 admin/admin.php:1796 admin/admin.php:1822
-#: admin/admin.php:1873 admin/admin.php:1893 admin/admin.php:1896
-#: admin/admin.php:1899 admin/admin.php:1946 admin/admin.php:1977
-#: admin/admin.php:1980 admin/inc/ClassYopPollImporter4x.php:851
+#: admin/admin.php:1073 admin/admin.php:1100 admin/admin.php:1103
+#: admin/admin.php:1123 admin/admin.php:1126 admin/admin.php:1129
+#: admin/admin.php:1176 admin/admin.php:1190 admin/admin.php:1193
+#: admin/admin.php:1196 admin/admin.php:1238 admin/admin.php:1255
+#: admin/admin.php:1283 admin/admin.php:1495 admin/admin.php:1549
+#: admin/admin.php:1552 admin/admin.php:1555 admin/admin.php:1614
+#: admin/admin.php:1659 admin/admin.php:1662 admin/admin.php:1665
+#: admin/admin.php:1687 admin/admin.php:1690 admin/admin.php:1737
+#: admin/admin.php:1799 admin/admin.php:1802 admin/admin.php:1828
+#: admin/admin.php:1879 admin/admin.php:1899 admin/admin.php:1902
+#: admin/admin.php:1905 admin/admin.php:1952 admin/admin.php:1983
+#: admin/admin.php:1986 admin/inc/ClassYopPollImporter4x.php:851
 #: admin/inc/ClassYopPollImporter4x.php:948
 #: admin/inc/ClassYopPollImporter5x.php:2787
 #: admin/inc/ClassYopPollImporter5x.php:2907
 msgid "You are not allowed to perform this action"
 msgstr ""
 
-#: admin/admin.php:1085
+#: admin/admin.php:1091
 msgid "Poll successfully updated"
 msgstr ""
 
-#: admin/admin.php:1112 admin/admin.php:1152
+#: admin/admin.php:1118 admin/admin.php:1158
 msgid "Poll successfully deleted"
 msgstr ""
 
-#: admin/admin.php:1161 admin/models/polls.php:645
+#: admin/admin.php:1167 admin/models/polls.php:645
 msgid "Error deleting poll"
 msgid_plural "Error deleting polls"
 msgstr[0] ""
 msgstr[1] ""
 
-#: admin/admin.php:1179 admin/admin.php:1214
+#: admin/admin.php:1185 admin/admin.php:1220
 msgid "Poll successfully cloned"
 msgstr ""
 
-#: admin/admin.php:1223 admin/models/polls.php:708
+#: admin/admin.php:1229 admin/models/polls.php:708
 msgid "Error cloning poll"
 msgid_plural "Error cloning polls"
 msgstr[0] ""
 msgstr[1] ""
 
-#: admin/admin.php:1241 admin/admin.php:1272
+#: admin/admin.php:1247 admin/admin.php:1278
 msgid "Votes successfully reset"
 msgstr ""
 
-#: admin/admin.php:1243 admin/admin.php:1274 admin/models/polls.php:727
+#: admin/admin.php:1249 admin/admin.php:1280 admin/models/polls.php:727
 msgid "Error resetting votes"
 msgstr ""
 
-#: admin/admin.php:1246
+#: admin/admin.php:1252
 msgid "You are not allowed to perform this actionn"
 msgstr ""
 
-#: admin/admin.php:1408 admin/admin.php:1440 admin/models/bans.php:411
+#: admin/admin.php:1414 admin/admin.php:1446 admin/models/bans.php:411
 msgid "Invalid poll"
 msgstr ""
 
-#: admin/admin.php:1526 admin/admin.php:1776 admin/models/logs.php:462
+#: admin/admin.php:1532 admin/admin.php:1782 admin/models/logs.php:462
 #: admin/views/custom-field.php:31 admin/views/polls/add/elements.php:17
 #: admin/views/polls/edit/elements.php:17
 #: admin/views/polls/edit/elements.php:504
@@ -545,84 +553,84 @@ msgstr ""
 msgid "Custom Field"
 msgstr ""
 
-#: admin/admin.php:1603
+#: admin/admin.php:1609
 msgid "Ban successfully added"
 msgstr ""
 
-#: admin/admin.php:1648 admin/admin.php:1713
+#: admin/admin.php:1654 admin/admin.php:1719
 msgid "Ban successfully deleted"
 msgstr ""
 
-#: admin/admin.php:1676
+#: admin/admin.php:1682
 msgid "Ban successfully updated"
 msgstr ""
 
-#: admin/admin.php:1722 admin/models/bans.php:388
+#: admin/admin.php:1728 admin/models/bans.php:388
 msgid "Error deleting ban"
 msgid_plural "Error deleting bans"
 msgstr[0] ""
 msgstr[1] ""
 
-#: admin/admin.php:1743
+#: admin/admin.php:1749
 msgid "Vote Recorded"
 msgstr ""
 
-#: admin/admin.php:1748 admin/admin.php:1998
+#: admin/admin.php:1754 admin/admin.php:2004
 msgid "Invalid data 1"
 msgstr ""
 
-#: admin/admin.php:1751 admin/admin.php:2001
+#: admin/admin.php:1757 admin/admin.php:2007
 msgid "Invalid data 2"
 msgstr ""
 
-#: admin/admin.php:1813 admin/admin.php:1855
+#: admin/admin.php:1819 admin/admin.php:1861
 msgid "Vote successfully deleted"
 msgstr ""
 
-#: admin/admin.php:1815 admin/admin.php:1819 admin/admin.php:1864
+#: admin/admin.php:1821 admin/admin.php:1825 admin/admin.php:1870
 msgid "Error deleting vote"
 msgstr ""
 
-#: admin/admin.php:1888 admin/admin.php:1928
+#: admin/admin.php:1894 admin/admin.php:1934
 msgid "Log successfully deleted"
 msgstr ""
 
-#: admin/admin.php:1937 admin/models/logs.php:517
+#: admin/admin.php:1943 admin/models/logs.php:517
 msgid "Error deleting log"
 msgid_plural "Error deleting logs"
 msgstr[0] ""
 msgstr[1] ""
 
-#: admin/admin.php:1972
+#: admin/admin.php:1978
 msgid "Settings updated"
 msgstr ""
 
-#: admin/admin.php:1993
+#: admin/admin.php:1999
 msgid "Votes Succesfully Added"
 msgstr ""
 
-#: admin/admin.php:2015
+#: admin/admin.php:2021
 msgid "Error generating poll"
 msgstr ""
 
-#: admin/admin.php:2022
+#: admin/admin.php:2028
 msgid "Setting Updated"
 msgstr ""
 
-#: admin/admin.php:2041
+#: admin/admin.php:2047
 msgid "Guide Sent"
 msgstr ""
 
-#: admin/admin.php:2110
+#: admin/admin.php:2116
 msgid "Wrong username/email or password."
 msgstr ""
 
-#: admin/admin.php:2125
+#: admin/admin.php:2131
 msgid "Login successful"
 msgstr ""
 
-#: admin/admin.php:2131 admin/admin.php:2134 admin/models/bans.php:435
-#: admin/models/polls.php:862 admin/models/settings.php:461
+#: admin/admin.php:2137 admin/admin.php:2140 admin/models/bans.php:435
+#: admin/models/polls.php:862 admin/models/settings.php:467
 msgid "Invalid data"
 msgstr ""
 
@@ -749,15 +757,15 @@ msgstr ""
 msgid "No logs table, skipping."
 msgstr ""
 
-#: admin/inc/maintenance.php:334
+#: admin/inc/maintenance.php:338
 msgid "Click <a href=\""
 msgstr ""
 
-#: admin/inc/maintenance.php:334
+#: admin/inc/maintenance.php:338
 msgid "here"
 msgstr ""
 
-#: admin/inc/maintenance.php:334
+#: admin/inc/maintenance.php:338
 msgid "to start the import."
 msgstr ""
 
@@ -780,7 +788,7 @@ msgstr ""
 #: admin/views/polls/edit/elements.php:488 admin/views/polls/edit/main.php:179
 #: admin/views/polls/edit/main.php:217
 #: admin/views/polls/elements-definitions.php:12
-#: admin/views/polls/elements-definitions.php:233
+#: admin/views/polls/elements-definitions.php:248
 msgid "Edit"
 msgstr ""
 
@@ -813,7 +821,7 @@ msgstr ""
 
 #: admin/models/bans-list.php:217 admin/models/logs-list.php:259
 #: admin/models/logs.php:439 admin/models/votes-list.php:141
-#: admin/models/votes.php:1605
+#: admin/models/votes.php:1615
 msgid "Date"
 msgstr ""
 
@@ -824,13 +832,13 @@ msgstr ""
 
 #: admin/models/bans.php:73 admin/models/list-table.php:947
 #: admin/models/logs.php:96 admin/models/polls.php:128
-#: admin/models/votes.php:1284
+#: admin/models/votes.php:1294
 msgid "Previous page"
 msgstr ""
 
 #: admin/models/bans.php:78 admin/models/list-table.php:977
 #: admin/models/logs.php:101 admin/models/polls.php:133
-#: admin/models/votes.php:1289
+#: admin/models/votes.php:1299
 msgid "Next page"
 msgstr ""
 
@@ -862,7 +870,7 @@ msgstr ""
 msgid "Data for \"Ban Value\" is invalid"
 msgstr ""
 
-#: admin/models/elements.php:41 admin/models/elements.php:270
+#: admin/models/elements.php:41 admin/models/elements.php:272
 msgid "Error adding element"
 msgstr ""
 
@@ -980,19 +988,19 @@ msgid "polls"
 msgstr ""
 
 #: admin/models/logs-list.php:255 admin/models/logs.php:435
-#: admin/models/votes-list.php:138 admin/models/votes.php:1601
+#: admin/models/votes-list.php:138 admin/models/votes.php:1611
 #: admin/views/bans/add.php:54 admin/views/bans/edit.php:106
 msgid "Username"
 msgstr ""
 
 #: admin/models/logs-list.php:256 admin/models/logs.php:436
-#: admin/models/votes-list.php:139 admin/models/votes.php:1602
+#: admin/models/votes-list.php:139 admin/models/votes.php:1612
 #: admin/views/bans/add.php:51 admin/views/bans/edit.php:103
 msgid "Email"
 msgstr ""
 
 #: admin/models/logs-list.php:257 admin/models/logs.php:437
-#: admin/models/votes-list.php:137 admin/models/votes.php:1603
+#: admin/models/votes-list.php:137 admin/models/votes.php:1613
 msgid "User Type"
 msgstr ""
 
@@ -1010,7 +1018,7 @@ msgstr ""
 msgid "Poll Name"
 msgstr ""
 
-#: admin/models/logs.php:438 admin/models/votes.php:1604
+#: admin/models/logs.php:438 admin/models/votes.php:1614
 #: admin/views/bans/add.php:48 admin/views/bans/edit.php:100
 msgid "IP"
 msgstr ""
@@ -1019,13 +1027,13 @@ msgstr ""
 msgid "Vote data"
 msgstr ""
 
-#: admin/models/logs.php:451 admin/models/votes.php:1654
-#: admin/models/votes.php:1687
+#: admin/models/logs.php:451 admin/models/votes.php:1664
+#: admin/models/votes.php:1697
 msgid "Can't open php://output!"
 msgstr ""
 
-#: admin/models/logs.php:453 admin/models/votes.php:1658
-#: admin/models/votes.php:1694
+#: admin/models/logs.php:453 admin/models/votes.php:1668
+#: admin/models/votes.php:1704
 msgid "Can't write header!"
 msgstr ""
 
@@ -1033,8 +1041,8 @@ msgstr ""
 msgid "Can't write logs!"
 msgstr ""
 
-#: admin/models/logs.php:487 admin/models/votes.php:1667
-#: admin/models/votes.php:1701
+#: admin/models/logs.php:487 admin/models/votes.php:1677
+#: admin/models/votes.php:1711
 msgid "Can't close php://output!"
 msgstr ""
 
@@ -1289,12 +1297,12 @@ msgid "Data for \"Allow multiple answers \" is invalid"
 msgstr ""
 
 #: admin/models/polls.php:1273 admin/models/polls.php:1288
-#: admin/models/settings.php:667
+#: admin/models/settings.php:673
 msgid "Data for \"Minimum answers required\" is invalid"
 msgstr ""
 
 #: admin/models/polls.php:1281 admin/models/polls.php:1305
-#: admin/models/settings.php:675
+#: admin/models/settings.php:681
 msgid "Data for \"Maximum answers required\" is invalid"
 msgstr ""
 
@@ -1454,145 +1462,149 @@ msgstr ""
 msgid "Invalid Poll"
 msgstr ""
 
-#: admin/models/settings.php:511
+#: admin/models/settings.php:517
 msgid "Data for \"Use Google reCaptcha\" is invalid"
 msgstr ""
 
-#: admin/models/settings.php:516 admin/models/settings.php:526
-#: admin/models/settings.php:536 admin/models/settings.php:550
+#: admin/models/settings.php:522 admin/models/settings.php:532
+#: admin/models/settings.php:542 admin/models/settings.php:556
 msgid "Data for \"Site Key\" is invalid"
 msgstr ""
 
-#: admin/models/settings.php:520 admin/models/settings.php:530
-#: admin/models/settings.php:540 admin/models/settings.php:554
+#: admin/models/settings.php:526 admin/models/settings.php:536
+#: admin/models/settings.php:546 admin/models/settings.php:560
 msgid "Data for \"Secret Key\" is invalid"
 msgstr ""
 
-#: admin/models/settings.php:544
+#: admin/models/settings.php:550
 msgid "Data for \"Min Allowed Score\" is invalid"
 msgstr ""
 
-#: admin/models/settings.php:563
+#: admin/models/settings.php:569
 msgid "Data for \"Use Facebook integration\" is invalid"
 msgstr ""
 
-#: admin/models/settings.php:568 admin/models/settings.php:582
+#: admin/models/settings.php:574 admin/models/settings.php:588
 msgid "Data for \"App ID\" is invalid"
 msgstr ""
 
-#: admin/models/settings.php:577
+#: admin/models/settings.php:583
 msgid "Data for \"Use Google integration\" is invalid"
 msgstr ""
 
-#: admin/models/settings.php:586
+#: admin/models/settings.php:592
 msgid "Data for \"App Secret\" is invalid"
 msgstr ""
 
-#: admin/models/settings.php:595
+#: admin/models/settings.php:601
 msgid "Data for \"Vote as anonymous\" is invalid"
 msgstr ""
 
-#: admin/models/settings.php:603
+#: admin/models/settings.php:609
 msgid "Data for \"Vote with your WordPress account\" is invalid"
 msgstr ""
 
-#: admin/models/settings.php:611
+#: admin/models/settings.php:617
 msgid "Data for \"Vote with your Facebook account\" is invalid"
 msgstr ""
 
-#: admin/models/settings.php:619
+#: admin/models/settings.php:625
 msgid "Data for \"Vote with your Google account\" is invalid"
 msgstr ""
 
-#: admin/models/settings.php:627
+#: admin/models/settings.php:633
 msgid "Data for \"Poll Ended\" is invalid"
 msgstr ""
 
-#: admin/models/settings.php:635
+#: admin/models/settings.php:641
 msgid "Data for \"Poll Not Started\" is invalid"
 msgstr ""
 
-#: admin/models/settings.php:643
+#: admin/models/settings.php:649
 msgid "Data for \"Already voted on poll\" is invalid"
 msgstr ""
 
-#: admin/models/settings.php:651
+#: admin/models/settings.php:657
 msgid "Data for \"Invalid Poll\" is invalid"
 msgstr ""
 
-#: admin/models/settings.php:659
+#: admin/models/settings.php:665
 msgid "Data for \"No Answer(s) selected\" is invalid"
 msgstr ""
 
-#: admin/models/settings.php:683
+#: admin/models/settings.php:689
 msgid "Data for \"No value for other\" is invalid"
 msgstr ""
 
-#: admin/models/settings.php:691
+#: admin/models/settings.php:697
 msgid "Data for \"No value for custom field\" is invalid"
 msgstr ""
 
-#: admin/models/settings.php:699
+#: admin/models/settings.php:705
+msgid "Data for \"Too many chars for custom field\" is invalid"
+msgstr ""
+
+#: admin/models/settings.php:713
 msgid "Data for \"Consent not checked\" is invalid"
 msgstr ""
 
-#: admin/models/settings.php:707
+#: admin/models/settings.php:721
 msgid "Data for \"Captcha missing\" is invalid"
 msgstr ""
 
-#: admin/models/settings.php:715
+#: admin/models/settings.php:729
 msgid "Data for \"Vote not allowed by ban setting\" is invalid"
 msgstr ""
 
-#: admin/models/settings.php:723
+#: admin/models/settings.php:737
 msgid "Data for \"Vote not allowed by block setting\" is invalid"
 msgstr ""
 
-#: admin/models/settings.php:731
+#: admin/models/settings.php:745
 msgid "Data for \"Vote not allowed by limit setting\" is invalid"
 msgstr ""
 
-#: admin/models/settings.php:739
+#: admin/models/settings.php:753
 msgid "Data for \"Thank you for your vote\" is invalid"
 msgstr ""
 
-#: admin/models/settings.php:747
+#: admin/models/settings.php:761
 msgid "Data for \"Single Vote\" is invalid"
 msgstr ""
 
-#: admin/models/settings.php:755
+#: admin/models/settings.php:769
 msgid "Data for \"Multiple Votes\" is invalid"
 msgstr ""
 
-#: admin/models/settings.php:763
+#: admin/models/settings.php:777
 msgid "Data for \"Single Answer\" is invalid"
 msgstr ""
 
-#: admin/models/settings.php:771
+#: admin/models/settings.php:785
 msgid "Data for \"Multiple Answers\" is invalid"
 msgstr ""
 
-#: admin/models/settings.php:779
+#: admin/models/settings.php:793
 msgid "Data for \"Accessibility Alt\" is invalid"
 msgstr ""
 
-#: admin/models/settings.php:787
+#: admin/models/settings.php:801
 msgid "Data for \"Accessibility Title\" is invalid"
 msgstr ""
 
-#: admin/models/settings.php:795
+#: admin/models/settings.php:809
 msgid "Data for \"Accessibility Description\" is invalid"
 msgstr ""
 
-#: admin/models/settings.php:803
+#: admin/models/settings.php:817
 msgid "Data for \"Accessibility Explanation\" is invalid"
 msgstr ""
 
-#: admin/models/settings.php:811
+#: admin/models/settings.php:825
 msgid "Data for \"Refresh Alt\" is invalid"
 msgstr ""
 
-#: admin/models/settings.php:819
+#: admin/models/settings.php:833
 msgid "Data for \"Refresh Title\" is invalid"
 msgstr ""
 
@@ -1618,7 +1630,7 @@ msgstr ""
 msgid "Ipaddress"
 msgstr ""
 
-#: admin/models/votes.php:1663 admin/models/votes.php:1698
+#: admin/models/votes.php:1673 admin/models/votes.php:1708
 msgid "Can't write votes!"
 msgstr ""
 
@@ -1651,9 +1663,9 @@ msgstr ""
 #: admin/views/custom-field.php:55 admin/views/polls/add/elements.php:178
 #: admin/views/polls/add/elements.php:252
 #: admin/views/polls/edit/elements.php:202
-#: admin/views/polls/edit/elements.php:575
-#: admin/views/polls/elements-definitions.php:70
-#: admin/views/polls/elements-definitions.php:293
+#: admin/views/polls/edit/elements.php:597
+#: admin/views/polls/elements-definitions.php:85
+#: admin/views/polls/elements-definitions.php:308
 msgid "Done"
 msgstr ""
 
@@ -1700,10 +1712,10 @@ msgstr ""
 #: admin/views/polls/edit/options-poll.php:432
 #: admin/views/polls/edit/options-poll.php:510
 #: admin/views/polls/edit/options-results.php:174
-#: admin/views/polls/elements-definitions.php:119
-#: admin/views/polls/elements-definitions.php:139
-#: admin/views/polls/elements-definitions.php:150
-#: admin/views/polls/elements-definitions.php:172 admin/views/polls/view.php:65
+#: admin/views/polls/elements-definitions.php:134
+#: admin/views/polls/elements-definitions.php:154
+#: admin/views/polls/elements-definitions.php:165
+#: admin/views/polls/elements-definitions.php:187 admin/views/polls/view.php:65
 #: admin/views/settings/view.php:56 admin/views/settings/view.php:76
 #: admin/views/settings/view.php:139 admin/views/settings/view.php:181
 #: admin/views/settings/view.php:223 admin/views/settings/view.php:273
@@ -1744,10 +1756,10 @@ msgstr ""
 #: admin/views/polls/edit/options-poll.php:433
 #: admin/views/polls/edit/options-poll.php:511
 #: admin/views/polls/edit/options-results.php:173
-#: admin/views/polls/elements-definitions.php:120
-#: admin/views/polls/elements-definitions.php:140
-#: admin/views/polls/elements-definitions.php:151
-#: admin/views/polls/elements-definitions.php:173 admin/views/polls/view.php:66
+#: admin/views/polls/elements-definitions.php:135
+#: admin/views/polls/elements-definitions.php:155
+#: admin/views/polls/elements-definitions.php:166
+#: admin/views/polls/elements-definitions.php:188 admin/views/polls/view.php:66
 #: admin/views/settings/view.php:57 admin/views/settings/view.php:77
 #: admin/views/settings/view.php:140 admin/views/settings/view.php:182
 #: admin/views/settings/view.php:224 admin/views/settings/view.php:274
@@ -2062,12 +2074,12 @@ msgid "Countdown Timer"
 msgstr ""
 
 #: admin/views/polls/add/elements.php:91 admin/views/polls/add/elements.php:108
-#: admin/views/polls/elements-definitions.php:103
+#: admin/views/polls/elements-definitions.php:118
 msgid "Do you have a question?"
 msgstr ""
 
 #: admin/views/polls/add/elements.php:94 admin/views/polls/edit/elements.php:99
-#: admin/views/polls/elements-definitions.php:89
+#: admin/views/polls/elements-definitions.php:104
 msgid "Add Answer"
 msgstr ""
 
@@ -2077,8 +2089,8 @@ msgstr ""
 #: admin/views/polls/edit/elements.php:129
 #: admin/views/polls/edit/elements.php:491
 #: admin/views/polls/elements-definitions.php:15
-#: admin/views/polls/elements-definitions.php:92
-#: admin/views/polls/elements-definitions.php:236
+#: admin/views/polls/elements-definitions.php:107
+#: admin/views/polls/elements-definitions.php:251
 msgid "Duplicate"
 msgstr ""
 
@@ -2089,14 +2101,14 @@ msgstr ""
 #: admin/views/polls/edit/elements.php:132
 #: admin/views/polls/edit/elements.php:494
 #: admin/views/polls/elements-definitions.php:18
-#: admin/views/polls/elements-definitions.php:95
-#: admin/views/polls/elements-definitions.php:239
+#: admin/views/polls/elements-definitions.php:110
+#: admin/views/polls/elements-definitions.php:254
 msgid "Delete"
 msgstr ""
 
 #: admin/views/polls/add/elements.php:108
 #: admin/views/polls/edit/elements.php:113
-#: admin/views/polls/elements-definitions.php:103
+#: admin/views/polls/elements-definitions.php:118
 msgid "Question text"
 msgstr ""
 
@@ -2104,45 +2116,45 @@ msgstr ""
 #: admin/views/polls/add/elements.php:224
 #: admin/views/polls/edit/elements.php:145
 #: admin/views/polls/edit/elements.php:165
-#: admin/views/polls/elements-definitions.php:252
-#: admin/views/polls/elements-definitions.php:265
+#: admin/views/polls/elements-definitions.php:267
+#: admin/views/polls/elements-definitions.php:280
 msgid "Set as default"
 msgstr ""
 
 #: admin/views/polls/add/elements.php:157
 #: admin/views/polls/add/elements.php:231
 #: admin/views/polls/edit/elements.php:181
-#: admin/views/polls/elements-definitions.php:272
+#: admin/views/polls/elements-definitions.php:287
 msgid "Make it a link"
 msgstr ""
 
 #: admin/views/polls/add/elements.php:164
 #: admin/views/polls/add/elements.php:238
 #: admin/views/polls/edit/elements.php:188
-#: admin/views/polls/elements-definitions.php:279
+#: admin/views/polls/elements-definitions.php:294
 msgid "Results color"
 msgstr ""
 
 #: admin/views/polls/add/elements.php:263
 #: admin/views/polls/edit/elements.php:216
-#: admin/views/polls/elements-definitions.php:110
+#: admin/views/polls/elements-definitions.php:125
 msgid "OPTIONS"
 msgstr ""
 
 #: admin/views/polls/add/elements.php:268
 #: admin/views/polls/edit/elements.php:221
-#: admin/views/polls/elements-definitions.php:115
+#: admin/views/polls/elements-definitions.php:130
 msgid "Allow other answers"
 msgstr ""
 
 #: admin/views/polls/add/elements.php:280
 #: admin/views/polls/edit/elements.php:244
-#: admin/views/polls/elements-definitions.php:127
+#: admin/views/polls/elements-definitions.php:142
 msgid "Label for Other Answers"
 msgstr ""
 
 #: admin/views/polls/add/elements.php:283
-#: admin/views/polls/elements-definitions.php:130
+#: admin/views/polls/elements-definitions.php:145
 #: admin/views/results/view.php:111 admin/views/results/view.php:230
 msgid "Other"
 msgstr ""
@@ -2154,78 +2166,78 @@ msgstr ""
 
 #: admin/views/polls/add/elements.php:295
 #: admin/views/polls/edit/elements.php:259
-#: admin/views/polls/edit/elements.php:554
-#: admin/views/polls/elements-definitions.php:49
+#: admin/views/polls/edit/elements.php:555
+#: admin/views/polls/elements-definitions.php:50
 msgid "Textfield"
 msgstr ""
 
 #: admin/views/polls/add/elements.php:296
 #: admin/views/polls/edit/elements.php:260
-#: admin/views/polls/edit/elements.php:557
-#: admin/views/polls/elements-definitions.php:52
+#: admin/views/polls/edit/elements.php:558
+#: admin/views/polls/elements-definitions.php:53
 msgid "Textarea"
 msgstr ""
 
 #: admin/views/polls/add/elements.php:302
 #: admin/views/polls/edit/elements.php:266
-#: admin/views/polls/elements-definitions.php:135
+#: admin/views/polls/elements-definitions.php:150
 msgid "Add other answers in answers list"
 msgstr ""
 
 #: admin/views/polls/add/elements.php:313
 #: admin/views/polls/edit/elements.php:286
-#: admin/views/polls/elements-definitions.php:146
+#: admin/views/polls/elements-definitions.php:161
 msgid "Display other answers in results list"
 msgstr ""
 
 #: admin/views/polls/add/elements.php:325
 #: admin/views/polls/edit/elements.php:314
-#: admin/views/polls/elements-definitions.php:158
+#: admin/views/polls/elements-definitions.php:173
 msgid "Results Color"
 msgstr ""
 
 #: admin/views/polls/add/elements.php:335
 #: admin/views/polls/edit/elements.php:324
-#: admin/views/polls/elements-definitions.php:168
+#: admin/views/polls/elements-definitions.php:183
 msgid "Allow multiple answers"
 msgstr ""
 
 #: admin/views/polls/add/elements.php:347
 #: admin/views/polls/edit/elements.php:347
-#: admin/views/polls/elements-definitions.php:180
+#: admin/views/polls/elements-definitions.php:195
 #: admin/views/settings/view.php:473
 msgid "Minimum answers required"
 msgstr ""
 
 #: admin/views/polls/add/elements.php:355
 #: admin/views/polls/edit/elements.php:355
-#: admin/views/polls/elements-definitions.php:188
+#: admin/views/polls/elements-definitions.php:203
 msgid "Maximum answers allowed"
 msgstr ""
 
 #: admin/views/polls/add/elements.php:364
 #: admin/views/polls/edit/elements.php:364
 #: admin/views/polls/edit/elements.php:407
-#: admin/views/polls/elements-definitions.php:197
-#: admin/views/polls/elements-definitions.php:215
+#: admin/views/polls/elements-definitions.php:212
+#: admin/views/polls/elements-definitions.php:230
 msgid "Display answers"
 msgstr ""
 
 #: admin/views/polls/add/elements.php:369
 #: admin/views/polls/edit/elements.php:394
-#: admin/views/polls/elements-definitions.php:202
+#: admin/views/polls/elements-definitions.php:217
 msgid "Vertical"
 msgstr ""
 
 #: admin/views/polls/add/elements.php:372
 #: admin/views/polls/edit/elements.php:397
-#: admin/views/polls/elements-definitions.php:205
+#: admin/views/polls/elements-definitions.php:220
 msgid "Horizontal"
 msgstr ""
 
 #: admin/views/polls/add/elements.php:375
 #: admin/views/polls/edit/elements.php:400
-#: admin/views/polls/elements-definitions.php:208
+#: admin/views/polls/elements-definitions.php:223
 msgid "Columns"
 msgstr ""
 
@@ -2235,7 +2247,7 @@ msgstr ""
 
 #: admin/views/polls/add/elements.php:385
 #: admin/views/polls/edit/elements.php:410
-#: admin/views/polls/elements-definitions.php:218
+#: admin/views/polls/elements-definitions.php:233
 msgid "columns"
 msgstr ""
 
@@ -2308,7 +2320,7 @@ msgstr ""
 
 #: admin/views/polls/add/main.php:139 admin/views/polls/add/main.php:204
 #: admin/views/polls/add/main.php:208 admin/views/polls/edit/main.php:213
-#: admin/views/settings/view.php:635
+#: admin/views/settings/view.php:642
 msgid "Publish"
 msgstr ""
 
@@ -2758,7 +2770,7 @@ msgid "Pie"
 msgstr ""
 
 #: admin/views/polls/edit/elements.php:142
-#: admin/views/polls/elements-definitions.php:249
+#: admin/views/polls/elements-definitions.php:264
 msgid "Answer text"
 msgstr ""
 
@@ -2767,8 +2779,8 @@ msgstr ""
 msgid "Set as required"
 msgstr ""
 
-#: admin/views/polls/edit/elements.php:527
-#: admin/views/polls/elements-definitions.php:44
+#: admin/views/polls/edit/elements.php:528
+#: admin/views/polls/elements-definitions.php:45
 msgid "Type"
 msgstr ""
 
@@ -2777,15 +2789,25 @@ msgstr ""
 msgid "Set as Required"
 msgstr ""
 
+#: admin/views/polls/edit/elements.php:577
+#: admin/views/polls/elements-definitions.php:72
+msgid "Max Chars Allowed"
+msgstr ""
+
+#: admin/views/polls/edit/elements.php:579
+#: admin/views/polls/elements-definitions.php:74
+msgid "0 For Unlimited"
+msgstr ""
+
 #: admin/views/polls/edit/main.php:9
 msgid "immediately"
 msgstr ""
 
-#: admin/views/polls/elements-definitions.php:86
+#: admin/views/polls/elements-definitions.php:101
 msgid "Do you have a question"
 msgstr ""
 
-#: admin/views/polls/elements-definitions.php:249
+#: admin/views/polls/elements-definitions.php:264
 msgid "New Answer"
 msgstr ""
 
@@ -2974,70 +2996,74 @@ msgid "No value for custom field"
 msgstr ""
 
 #: admin/views/settings/view.php:501
-msgid "Consent not checked"
+msgid "Too many chars for custom field"
 msgstr ""
 
 #: admin/views/settings/view.php:508
-msgid "Captcha missing"
+msgid "Consent not checked"
 msgstr ""
 
 #: admin/views/settings/view.php:515
-msgid "Vote not allowed by ban setting"
+msgid "Captcha missing"
 msgstr ""
 
 #: admin/views/settings/view.php:522
-msgid "Vote not allowed by block setting"
+msgid "Vote not allowed by ban setting"
 msgstr ""
 
 #: admin/views/settings/view.php:529
-msgid "Vote not allowed by limit setting"
+msgid "Vote not allowed by block setting"
 msgstr ""
 
 #: admin/views/settings/view.php:536
+msgid "Vote not allowed by limit setting"
+msgstr ""
+
+#: admin/views/settings/view.php:543
 msgid "Thank you for your vote"
 msgstr ""
 
-#: admin/views/settings/view.php:548
+#: admin/views/settings/view.php:555
 msgid "Single Vote"
 msgstr ""
 
-#: admin/views/settings/view.php:555
+#: admin/views/settings/view.php:562
 msgid "Multiple Votes"
 msgstr ""
 
-#: admin/views/settings/view.php:562
+#: admin/views/settings/view.php:569
 msgid "Single Answer"
 msgstr ""
 
-#: admin/views/settings/view.php:569
+#: admin/views/settings/view.php:576
 msgid "Multiple Answers"
 msgstr ""
 
-#: admin/views/settings/view.php:581
+#: admin/views/settings/view.php:588
 msgid "Accessibility Alt"
 msgstr ""
 
-#: admin/views/settings/view.php:588
+#: admin/views/settings/view.php:595
 msgid "Accessibility Title"
 msgstr ""
 
-#: admin/views/settings/view.php:595
+#: admin/views/settings/view.php:602
 msgid "Accessibility Description"
 msgstr ""
 
-#: admin/views/settings/view.php:602
+#: admin/views/settings/view.php:609
 msgid "Accessibility Explanation"
 msgstr ""
 
-#: admin/views/settings/view.php:609
+#: admin/views/settings/view.php:616
 msgid "Refresh Alt"
 msgstr ""
 
-#: admin/views/settings/view.php:616
+#: admin/views/settings/view.php:623
 msgid "Refresh Title"
 msgstr ""
 
-#: admin/views/settings/view.php:646
+#: admin/views/settings/view.php:653
 msgid "Save settings"
 msgstr ""
 

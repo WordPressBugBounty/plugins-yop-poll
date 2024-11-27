@@ -665,6 +665,11 @@ class YOP_Poll_Basic {
 	public static function do_custom_field( $element, $poll_meta_data, $params ) {
 		if ( ( true === isset( $params['show_results'] ) ) && ( '1' !== $params['show_results'] ) ) {
 			$element_html = '';
+			if ( true === isset( $element->meta_data['maxCharsAllowed'] ) ) {
+				$max_chars_allowed = $element->meta_data['maxCharsAllowed'];
+			} else {
+				$max_chars_allowed = '0';
+			}
 			if ( true === isset( $element->meta_data['cType'] ) ) {
 				switch ( $element->meta_data['cType'] ) {
 					case 'textfield': {
@@ -687,6 +692,7 @@ class YOP_Poll_Basic {
 								. ' data-id="' . esc_attr( $element->id ) . '"'
 								. ' data-type="custom-field"'
 								. ' data-required="' . esc_attr( $element->meta_data['makeRequired'] ) . '"'
+								. ' data-max-chars="' . esc_attr( $max_chars_allowed ) . '"'
 								. '>'
 								. '<div class="basic-custom-field-title" style="text-align: ' . esc_attr( $poll_meta_data['style']['questions']['textAlign'] ) . '">'
 									. '<label style="'

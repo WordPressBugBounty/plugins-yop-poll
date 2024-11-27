@@ -520,55 +520,77 @@ include YOP_POLL_PATH . 'admin/views/polls/elements-definitions.php';
 								</div>
 								<div class="custom-field-options">
 									<div class="form-group">
-										<div class="col-md-2">
-											<a href="#" class="upgrade-to-pro" data-screen="pie-results">
-												<img src="<?php echo esc_url( YOP_POLL_URL ); ?>admin/assets/images/pro-horizontal.svg" class="responsive" />
-											</a>
-											<?php esc_html_e( 'Type', 'yop-poll' ); ?>
-										</div>
-										<div class="col-md-10">
-											<?php
-											$custom_field_type_textfield = '';
-											$custom_field_type_textarea = '';
-											if ( true === isset( $element->meta_data['cType'] ) ) {
-												switch ( $element->meta_data['cType'] ) {
-													case 'textfield': {
-														$custom_field_type_textfield = 'selected';
-														break;
+										<div class="row">
+											<div class="col-md-2">
+												<a href="#" class="upgrade-to-pro" data-screen="pie-results">
+													<img src="<?php echo esc_url( YOP_POLL_URL ); ?>admin/assets/images/pro-horizontal.svg" class="responsive" />
+												</a>
+												<?php esc_html_e( 'Type', 'yop-poll' ); ?>
+											</div>
+											<div class="col-md-10">
+												<?php
+												$custom_field_type_textfield = '';
+												$custom_field_type_textarea = '';
+												if ( true === isset( $element->meta_data['cType'] ) ) {
+													switch ( $element->meta_data['cType'] ) {
+														case 'textfield': {
+															$custom_field_type_textfield = 'selected';
+															break;
+														}
+														case 'textarea': {
+															$custom_field_type_textarea = 'selected';
+															break;
+														}
+														default: {
+															$custom_field_type_textfield = 'selected';
+															break;
+														}
 													}
-													case 'textarea': {
-														$custom_field_type_textarea = 'selected';
-														break;
-													}
-													default: {
-														$custom_field_type_textfield = 'selected';
-														break;
-													}
+												} else {
+													$custom_field_type_textfield = 'selected';
 												}
-											} else {
-												$custom_field_type_textfield = 'selected';
-											}
-											?>
-											<select class="custom-field-type admin-select" style="width: 100%">
-												<option value="textfield" <?php echo esc_attr( $custom_field_type_textfield ); ?>>
-													<?php esc_html_e( 'Textfield', 'yop-poll' ); ?>
-												</option>
-												<option value="textarea" <?php echo esc_attr( $custom_field_type_textarea ); ?>>
-													<?php esc_html_e( 'Textarea', 'yop-poll' ); ?>
-												</option>
-											</select>
+												?>
+												<select class="custom-field-type admin-select" style="width: 100%">
+													<option value="textfield" <?php echo esc_attr( $custom_field_type_textfield ); ?>>
+														<?php esc_html_e( 'Textfield', 'yop-poll' ); ?>
+													</option>
+													<option value="textarea" <?php echo esc_attr( $custom_field_type_textarea ); ?>>
+														<?php esc_html_e( 'Textarea', 'yop-poll' ); ?>
+													</option>
+												</select>
+											</div>
 										</div>
 									</div>
 									<div class="form-group">
 										<div class="row">
-											<div class="col-md-4">
-												<div class="checkbox">
-													<label>
-													  <input type="checkbox" class="custom-field-make-required" <?php echo esc_attr( $element_custom_field_required ); ?>> <?php esc_html_e( 'Set as Required', 'yop-poll' ); ?>
-													</label>
-												  </div>
+											<div class="col-md-2">
+												<?php esc_html_e( 'Set as Required', 'yop-poll' ); ?>
+											</div>
+											<div class="col-md-10">
+												<input type="checkbox" class="custom-field-make-required" <?php echo esc_attr( $element_custom_field_required ); ?>>
 											</div>
 										</div>
+									</div>
+									<div class="form-group">
+										<div class="row">
+											<div class="col-md-2">
+												<?php esc_html_e( 'Max Chars Allowed', 'yop-poll' ); ?>
+												<br/>
+												<span style="font-size: 11px;">(<?php esc_html_e( '0 For Unlimited', 'yop-poll' );?>)</span>
+											</div>
+											<div class="col-md-10">
+												<?php
+												if ( true === isset( $element->meta_data['maxCharsAllowed']  ) ) {
+													$element_max_chars_allowed = $element->meta_data['maxCharsAllowed'];
+												} else {
+													$element_max_chars_allowed = '0';
+												}
+												?>
+												<input type="text" class="form-control custom-field-max-chars-allowed" style="width: 100%;" autocomplete="off" value="<?php echo $element_max_chars_allowed;?>">
+											</div>
+										</div>
+									</div>
+									<div class="form-group">
 										<div class="row">
 											<div class="col-md-12 text-right">
 												<button type="button" class="btn btn-default custom-field-edit-done">

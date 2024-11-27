@@ -107,6 +107,7 @@ class YOP_Poll_Settings {
 					'max-answers-required' => 'A max of {max_answers_allowed} answer(s) accepted',
 					'no-answer-for-other' => 'No other answer entered',
 					'no-value-for-custom-field' => '{custom_field_name} is required',
+					'too-many-chars-for-custom-field' => 'Text for {custom_field_name} is too long',
 					'consent-not-checked' => 'You must agree to our terms and conditions',
 					'no-captcha-selected' => 'Captcha is required',
 					'not-allowed-by-ban' => 'Vote not allowed',
@@ -348,6 +349,11 @@ class YOP_Poll_Settings {
 	public static function update_settings_to_version_6_4_3() {
 		$current_settings = unserialize( self::get_all_settings() );
 		$current_settings['general']['use-custom-headers-for-ip'] = 'no';
+		update_option( 'yop_poll_settings', serialize( $current_settings ) );
+	}
+	public static function update_settings_to_version_6_5_35() {
+		$current_settings = unserialize( self::get_all_settings() );
+		$current_settings['messages']['voting']['too-many-chars-for-custom-field'] = 'Text for {custom_field_name} is too long';
 		update_option( 'yop_poll_settings', serialize( $current_settings ) );
 	}
     public static function get_all_settings() {
@@ -690,6 +696,14 @@ class YOP_Poll_Settings {
                 self::$errors_present = true;
                 self::$error_text = esc_html__( 'Data for "No value for custom field" is invalid', 'yop-poll' );
             }
+			if (
+                ( false === self::$errors_present ) &&
+                ( ! isset( $settings->messages->voting->{'too-many-chars-for-custom-field'} ) ||
+                    ( '' === sanitize_text_field( $settings->messages->voting->{'too-many-chars-for-custom-field'} ) ) )
+            ) {
+                self::$errors_present = true;
+                self::$error_text = esc_html__( 'Data for "Too many chars for custom field" is invalid', 'yop-poll' );
+            }
             if (
                 ( false === self::$errors_present ) &&
                 ( ! isset( $settings->messages->voting->{'consent-not-checked'} ) ||
@@ -921,6 +935,7 @@ class YOP_Poll_Settings {
                         'max-answers-required' => sanitize_text_field( $settings->messages->voting->{'max-answers-required'} ),
                         'no-answer-for-other' => sanitize_text_field( $settings->messages->voting->{'no-answer-for-other'} ),
                         'no-value-for-custom-field' => sanitize_text_field( $settings->messages->voting->{'no-value-for-custom-field'} ),
+						'too-many-chars-for-custom-field' => sanitize_text_field( $settings->messages->voting->{'too-many-chars-for-custom-field'} ),
                         'consent-not-checked' => sanitize_text_field( $settings->messages->voting->{'consent-not-checked'} ),
                         'no-captcha-selected' => sanitize_text_field( $settings->messages->voting->{'no-captcha-selected'} ),
                         'not-allowed-by-ban' => sanitize_text_field( $settings->messages->voting->{'not-allowed-by-ban'} ),

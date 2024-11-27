@@ -3,8 +3,8 @@ Contributors: yourownprogrammer
 Donate Link: https://www.yop-poll.com
 Tags: create poll, poll plugin, poll, polls, WordPress poll
 Requires at least: 3.3
-Tested up to: 6.6
-Stable tag: 6.5.34
+Tested up to: 6.7
+Stable tag: 6.5.35
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.htm
 
@@ -76,7 +76,7 @@ Yes
 Current Active Poll:   [yop_poll id="-1"]
 Latest Poll:           [yop_poll id="-2"]
 Random Poll:           [yop_poll id="-3"]
-List with all polls:   [yop_poll_archive max=0 sort="date_added|num_votes" sort_dir="asc|desc"]
+List with all polls:   [yop_poll_archive max=0 sort="date_added|num_votes" sortdir="asc|desc"]
 
 = Can I have more than one poll active? =
 
@@ -118,6 +118,9 @@ You can have only one question per poll.
 12. Poll With Vertical Display Showing Results Before Vote
 
 == Changelog ==
+
+= 6.5.35 =
+* added max char limit to custom fields
 
 = 6.5.34 =
 * fixed issue with polls not displaying when switching from pro to free version

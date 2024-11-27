@@ -37,33 +37,48 @@
 				</div>
 				<div class="custom-field-options">
 					<div class="form-group">
-						<div class="col-md-2">
-							<a href="#" class="upgrade-to-pro" data-screen="pie-results">
-								<img src="<?php echo esc_url( YOP_POLL_URL ); ?>admin/assets/images/pro-horizontal.svg" class="responsive" />
-							</a>
-							<?php esc_html_e( 'Type', 'yop-poll' ); ?>
-						</div>
-						<div class="col-md-10">
-							<select class="custom-field-type admin-select" style="width: 100%">
-								<option value="textfield" selected>
-									<?php esc_html_e( 'Textfield', 'yop-poll' ); ?>
-								</option>
-								<option value="textarea">
-									<?php esc_html_e( 'Textarea', 'yop-poll' ); ?>
-								</option>
-							</select>
+						<div class="row">
+							<div class="col-md-2">
+								<a href="#" class="upgrade-to-pro" data-screen="pie-results">
+									<img src="<?php echo esc_url( YOP_POLL_URL ); ?>admin/assets/images/pro-horizontal.svg" class="responsive" />
+								</a>
+								<?php esc_html_e( 'Type', 'yop-poll' ); ?>
+							</div>
+							<div class="col-md-10">
+								<select class="custom-field-type admin-select" style="width: 100%">
+									<option value="textfield" selected>
+										<?php esc_html_e( 'Textfield', 'yop-poll' ); ?>
+									</option>
+									<option value="textarea">
+										<?php esc_html_e( 'Textarea', 'yop-poll' ); ?>
+									</option>
+								</select>
+							</div>
 						</div>
 					</div>
 					<div class="form-group">
 						<div class="row">
-							<div class="col-md-4">
-								<div class="checkbox">
-									<label>
-									  <input type="checkbox" class="custom-field-make-required"> <?php esc_html_e( 'Set as Required', 'yop-poll' ); ?>
-									</label>
-								  </div>
+							<div class="col-md-2">
+								<?php esc_html_e( 'Set as Required', 'yop-poll' ); ?>
+							</div>
+							<div class="col-md-10">
+								<input type="checkbox" class="custom-field-make-required">
 							</div>
 						</div>
+					</div>
+					<div class="form-group">
+						<div class="row">
+							<div class="col-md-2">
+								<?php esc_html_e( 'Max Chars Allowed', 'yop-poll' ); ?>
+								<br/>
+								<span style="font-size: 11px;">(<?php esc_html_e( '0 For Unlimited', 'yop-poll' );?>)</span>
+							</div>
+							<div class="col-md-10">
+								<input type="text" class="form-control custom-field-max-chars-allowed" style="width: 100%;" autocomplete="off" value="0">
+							</div>
+						</div>
+					</div>
+					<div class="form-group">
 						<div class="row">
 							<div class="col-md-12 text-right">
 								<button type="button" class="btn btn-default custom-field-edit-done">

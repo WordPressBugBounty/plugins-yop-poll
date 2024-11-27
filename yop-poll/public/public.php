@@ -161,6 +161,11 @@ class YOP_Poll_Public {
 							array( '<strong>', '</strong>', '<i>', '</i>', '<u>', '</u>', '</br>' ),
 							esc_html( $plugin_settings_decoded['messages']['voting']['no-value-for-custom-field'] )
 						),
+						'tooManyCharsForCustomField' => str_replace(
+							array( '[strong]', '[/strong]', '[i]', '[/i]', '[u]', '[/u]', '[br]' ),
+							array( '<strong>', '</strong>', '<i>', '</i>', '<u>', '</u>', '</br>' ),
+							esc_html( $plugin_settings_decoded['messages']['voting']['too-many-chars-for-custom-field'] )
+						),
 						'consentNotChecked' => str_replace(
 							array( '[strong]', '[/strong]', '[i]', '[/i]', '[u]', '[/u]', '[br]' ),
 							array( '<strong>', '</strong>', '<i>', '</i>', '<u>', '</u>', '</br>' ),
