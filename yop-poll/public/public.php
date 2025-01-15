@@ -93,6 +93,28 @@ class YOP_Poll_Public {
 			);
 			wp_enqueue_script( 'yop-hCaptcha' );
 		}
+		if (
+			( true === isset( $plugin_settings_decoded['integrations']['cloudflare-turnstile']['enabled'] ) ) &&
+			( 'yes' === $plugin_settings_decoded['integrations']['cloudflare-turnstile']['enabled'] ) &&
+			( '' !== $plugin_settings_decoded['integrations']['cloudflare-turnstile']['site-key'] ) &&
+			( '' !== $plugin_settings_decoded['integrations']['cloudflare-turnstile']['secret-key'] )
+		) {
+			/* add cloudflare-turnstile if enabled */
+			$args = array(
+				'render' => 'explicit'
+			);
+			wp_register_script(
+				'yop-cloudflare-turnstile',
+				add_query_arg(
+					$args,
+					'https://challenges.cloudflare.com/turnstile/v0/api.js'
+				),
+				'',
+				null
+			);
+			wp_enqueue_script( 'yop-cloudflare-turnstile' );
+			/* done adding cloudflare-turnstile */
+		}
 		$captcha_accessibility_description = str_replace( '[STRONG]', '<strong>', esc_html( $plugin_settings_decoded['messages']['captcha']['accessibility-description'] ) );
 		$captcha_accessibility_description = str_replace( '[/STRONG]', '</strong>', $captcha_accessibility_description );
 		$captcha_explanation = str_replace( '[STRONG]', '<strong>', esc_html( $plugin_settings_decoded['messages']['captcha']['explanation'] ) );
@@ -118,6 +140,9 @@ class YOP_Poll_Public {
 						),
 						'hCaptcha' => array(
 							'siteKey' => isset( $plugin_settings_decoded['integrations']['hCaptcha']['site-key'] ) ? $plugin_settings_decoded['integrations']['hCaptcha']['site-key'] : '',
+						),
+						'cloudflareTurnstile' => array(
+							'siteKey' => isset( $plugin_settings_decoded['integrations']['cloudflare-turnstile']['site-key'] ) ? $plugin_settings_decoded['integrations']['cloudflare-turnstile']['site-key'] : '',
 						),
 					),
 					'captchaParams' => array(

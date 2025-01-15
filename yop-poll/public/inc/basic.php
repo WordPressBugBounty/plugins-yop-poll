@@ -113,6 +113,12 @@ class YOP_Poll_Basic {
 					$use_captcha[2] = $uid;
 					break;
 				}
+				case 'yes-cloudflare-turnstile': {
+					$use_captcha[0] = '6';
+					$use_captcha[1] = '<div id="yop-poll-captcha-' . esc_attr( $uid ) . '" class="basic-captcha"></div>';
+					$use_captcha[2] = $uid;
+					break;
+				}
 				default: {
 					$use_captcha[0] = '0';
 					$use_captcha[1] = '';

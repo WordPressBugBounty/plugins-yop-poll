@@ -4,7 +4,7 @@ Donate Link: https://www.yop-poll.com
 Tags: create poll, poll plugin, poll, polls, WordPress poll
 Requires at least: 3.3
 Tested up to: 6.7
-Stable tag: 6.5.35
+Stable tag: 6.5.36
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.htm
 
@@ -118,6 +118,9 @@ You can have only one question per poll.
 12. Poll With Vertical Display Showing Results Before Vote
 
 == Changelog ==
+
+= 6.5.36 =
+* added support for Cloudflare Turnstile
 
 = 6.5.35 =
 * added max char limit to custom fields

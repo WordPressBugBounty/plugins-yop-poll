@@ -218,6 +218,7 @@
 							<option value="yes-recaptcha-invisible"><?php esc_html_e( 'Use reCaptcha v2 Invisible', 'yop-poll' ); ?></option>
 							<option value="yes-recaptcha-v3"><?php esc_html_e( 'Use reCaptcha v3', 'yop-poll' ); ?></option>
 							<option value="yes-hcaptcha"><?php esc_html_e( 'Use hCaptcha', 'yop-poll' ); ?></option>
+							<option value="yes-cloudflare-turnstile"><?php esc_html_e( 'Use Cloudflare Turnstile', 'yop-poll' );?></option>
 						</optgroup>
 			        </select>
 				</div>

@@ -57,6 +57,9 @@ class YOP_Poll_Votes {
 		if ( ( false === self::$errors_present ) && ( 'yes-hcaptcha' === $poll->meta_data['options']['poll']['useCaptcha'] ) ) {
 			self::validate_hcaptcha( $vote, $poll );
 		}
+		if ( ( false === self::$errors_present ) && ( 'yes-cloudflare-turnstile' === $poll->meta_data['options']['poll']['useCaptcha'] ) ) {
+			self::validate_cloudflare_turnstile( $vote, $poll );
+		}
 		if ( false === self::$errors_present ) {
 			if ( 'yes' === $poll->meta_data['options']['poll']['enableGdpr'] ) {
 				switch ( $poll->meta_data['options']['poll']['gdprSolution'] ) {
@@ -438,6 +441,47 @@ class YOP_Poll_Votes {
 				array_push(
 					self::$error_text,
                     self::$settings_messages['voting']['no-captcha-selected']
+				);
+			}
+		}
+	}
+	public static function validate_cloudflare_turnstile( $vote, $poll ) {
+		$captcha_result = false;
+		if ( 'yes-cloudflare-turnstile' === $poll->meta_data['options']['poll']['useCaptcha'] ) {
+			if ( '' !== $vote->reCaptcha ) {
+				$post_link = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
+				$integrations = YOP_Poll_Settings::get_integrations();
+				$data = array(
+					'body' => array(
+						'secret' => $integrations['cloudflare-turnstile']['secret-key'],
+						'response' => $vote->reCaptcha,
+					),
+				);
+				$response = wp_remote_post(
+					$post_link,
+					$data
+				);
+				if ( '200' === strval( wp_remote_retrieve_response_code( $response ) ) ) {
+					$response_decoded = json_decode( wp_remote_retrieve_body( $response ) );
+					if ( false === $response_decoded->success ) {
+						self::$errors_present = true;
+						array_push(
+							self::$error_text,
+							self::$settings_messages['voting']['no-captcha-selected']
+						);
+					}
+				} else {
+					self::$errors_present = true;
+					array_push(
+						self::$error_text,
+						self::$settings_messages['voting']['no-captcha-selected']
+					);
+				}
+			} else {
+				self::$errors_present = true;
+				array_push(
+					self::$error_text,
+					self::$settings_messages['voting']['no-captcha-selected']
 				);
 			}
 		}

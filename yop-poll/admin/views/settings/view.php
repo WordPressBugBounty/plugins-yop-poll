@@ -295,6 +295,48 @@
                                                     </div>
                                                 </div>
                                             </div>
+											<div class="row submenu" style="padding-top: 20px;">
+                                                <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3">
+                                                    <?php esc_html_e( 'Use Cloudflare Turnstile:', 'yop-poll' ); ?>
+                                                </div>
+                                                <div class="col-lg-9 col-md-9 col-sm-9 col-xs-9">
+                                                    <?php
+                                                    $cloudflare_turnstile_integration_yes = '';
+                                                    $cloudflare_turnstile_integration_no = '';
+                                                    $cloudflare_turnstile_data_section = '';
+                                                    if ( ( true === isset( $settings['integrations']['cloudflare-turnstile']['enabled'] ) ) && ( 'yes' === $settings['integrations']['cloudflare-turnstile']['enabled'] ) ) {
+                                                        $cloudflare_turnstile_integration_yes = 'selected';
+                                                    } else {
+                                                        $cloudflare_turnstile_integration_no = 'selected';
+                                                        $cloudflare_turnstile_data_section = 'hide';
+                                                    }
+                                                    ?>
+                                                    <select name="integrations-cloudflare-turnstile-enabled" id="integrations-cloudflare-turnstile-enabled" class="integrations-cloudflare-turnstile-enabled admin-select" style="width:100%">
+                                                        <option value="yes" <?php echo esc_attr( $cloudflare_turnstile_integration_yes ); ?>><?php esc_html_e( 'Yes', 'yop-poll' ); ?></option>
+                                                        <option value="no" <?php echo esc_attr( $cloudflare_turnstile_integration_no ); ?>><?php esc_html_e( 'No', 'yop-poll' ); ?></option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div class="row submenu integrations-cloudflare-turnstile-section <?php echo esc_attr( $cloudflare_turnstile_data_section ); ?>" style="padding-top: 20px; margin-left: 20px;">
+                                                <div class="col-md-12">
+                                                    <div class="row">
+                                                        <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3 input-caption">
+                                                            <?php esc_html_e( '- Site Key:', 'yop-poll' ); ?>
+                                                        </div>
+                                                        <div class="col-lg-9 col-md-9 col-sm-9 col-xs-9">
+                                                            <input name="integrations-cloudflare-turnstile-site-key" id ="integrations-cloudflare-turnstile-site-key" class="form-control settings-required-field" value="<?php echo isset( $settings['integrations']['cloudflare-turnstile']['site-key'] ) ? esc_attr( $settings['integrations']['cloudflare-turnstile']['site-key'] ) : ''; ?>">
+                                                        </div>
+                                                    </div>
+                                                    <div class="row" style="padding-top: 10px;">
+                                                        <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3 input-caption">
+                                                            <?php esc_html_e( '- Secret Key:', 'yop-poll' ); ?>
+                                                        </div>
+                                                        <div class="col-lg-9 col-md-9 col-sm-9 col-xs-9">
+                                                            <input name="integrations-cloudflare-turnstile-secret-key" id ="integrations-cloudflare-turnstile-secret-key" class="form-control settings-required-field" value="<?php echo isset( $settings['integrations']['cloudflare-turnstile']['secret-key'] ) ? esc_attr( $settings['integrations']['cloudflare-turnstile']['secret-key'] ) : ''; ?>">
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
                                             <div class="row submenu" style="padding-top: 20px;">
                                                 <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3">
                                                     <a href="#" class="upgrade-to-pro" data-screen="media-integration">

@@ -332,6 +332,7 @@
 					$use_reCaptcha_v2_invisible_yes = '';
 					$use_reCaptcha_v3_yes = '';
 					$use_h_captcha = '';
+					$use_cloudflare_turnstile = '';
 					$use_captcha_no = '';
 					switch ( $poll->meta_data['options']['poll']['useCaptcha'] ) {
 						case 'yes': {
@@ -354,6 +355,10 @@
 							$use_h_captcha = 'selected';
 							break;
 						}
+						case 'yes-cloudflare-turnstile': {
+							$use_cloudflare_turnstile = 'selected';
+							break;
+						}
 						case 'no': {
 							$use_captcha_no = 'selected';
 							break;
@@ -370,6 +375,7 @@
 							<option value="yes-recaptcha-invisible"  <?php echo esc_attr( $use_reCaptcha_v2_invisible_yes ); ?>><?php esc_html_e( 'Use reCaptcha v2 Invisible', 'yop-poll' ); ?></option>
 							<option value="yes-recaptcha-v3"  <?php echo esc_attr( $use_reCaptcha_v3_yes ); ?>><?php esc_html_e( 'Use reCaptcha v3', 'yop-poll' ); ?></option>
 							<option value="yes-hcaptcha"  <?php echo esc_attr( $use_h_captcha ); ?>><?php esc_html_e( 'Use hCaptcha', 'yop-poll' ); ?></option>
+							<option value="yes-cloudflare-turnstile"  <?php echo esc_attr( $use_cloudflare_turnstile ); ?>><?php esc_html_e( 'Use Cloudflare Turnstile', 'yop-poll' ); ?></option>
 						</optgroup>
 			        </select>
 				</div>

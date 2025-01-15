@@ -81,6 +81,11 @@ class YOP_Poll_Settings {
 					'site-key' => '',
 					'secret-key' => '',
 				),
+				'cloudflare-turnstile' => array(
+					'enabled' => 'no',
+					'site-key' => '',
+					'secret-key' => '',
+				),
 			),
 			'messages' => array(
 				'captcha' => array(
@@ -356,6 +361,16 @@ class YOP_Poll_Settings {
 		$current_settings['messages']['voting']['too-many-chars-for-custom-field'] = 'Text for {custom_field_name} is too long';
 		update_option( 'yop_poll_settings', serialize( $current_settings ) );
 	}
+	public static function update_settings_to_version_6_5_36() {
+		$current_settings = unserialize( self::get_all_settings() );
+		if ( false === isset( $current_settings['messages']['voting']['too-many-chars-for-custom-field'] ) ) {
+			$current_settings['messages']['voting']['too-many-chars-for-custom-field'] = 'Text for {custom_field_name} is too long';
+		}
+		$current_settings['integrations']['cloudflare-turnstile']['enabled'] = 'no';
+		$current_settings['integrations']['cloudflare-turnstile']['site-key'] = '';
+		$current_settings['integrations']['cloudflare-turnstile']['secret-key'] = '';
+		update_option( 'yop_poll_settings', serialize( $current_settings ) );
+	}
     public static function get_all_settings() {
         if ( ( false === isset( self::$settings ) ) || ( '' === self::$settings ) ) {
             self::$settings = get_option( 'yop_poll_settings' );
@@ -429,6 +444,11 @@ class YOP_Poll_Settings {
                     'enabled' => ( isset( $unserialized_settings['integrations'] ) && isset( $unserialized_settings['integrations']['hCaptcha'] ) && isset( $unserialized_settings['integrations']['hCaptcha']['enabled'] ) ) ? $unserialized_settings['integrations']['hCaptcha']['enabled'] : '',
 	                'site-key' => ( isset( $unserialized_settings['integrations'] ) && isset( $unserialized_settings['integrations']['hCaptcha'] ) && isset( $unserialized_settings['integrations']['hCaptcha']['site-key'] ) ) ? $unserialized_settings['integrations']['hCaptcha']['site-key'] : '',
 					'secret-key' => ( isset( $unserialized_settings['integrations'] ) && isset( $unserialized_settings['integrations']['hCaptcha'] ) && isset( $unserialized_settings['integrations']['hCaptcha']['secret-key'] ) ) ? $unserialized_settings['integrations']['hCaptcha']['secret-key'] : '',
+                ),
+				'cloudflare-turnstile' => array(
+                    'enabled' => ( isset( $unserialized_settings['integrations'] ) && isset( $unserialized_settings['integrations']['cloudflare-turnstile'] ) && isset( $unserialized_settings['integrations']['cloudflare-turnstile']['enabled'] ) ) ? $unserialized_settings['integrations']['cloudflare-turnstile']['enabled'] : '',
+	                'site-key' => ( isset( $unserialized_settings['integrations'] ) && isset( $unserialized_settings['integrations']['cloudflare-turnstile'] ) && isset( $unserialized_settings['integrations']['cloudflare-turnstile']['site-key'] ) ) ? $unserialized_settings['integrations']['cloudflare-turnstile']['site-key'] : '',
+					'secret-key' => ( isset( $unserialized_settings['integrations'] ) && isset( $unserialized_settings['integrations']['cloudflare-turnstile'] ) && isset( $unserialized_settings['integrations']['cloudflare-turnstile']['secret-key'] ) ) ? $unserialized_settings['integrations']['cloudflare-turnstile']['secret-key'] : '',
                 ),
                 'facebook' => array(
                     'enabled' => ( isset( $unserialized_settings['integrations'] ) && isset( $unserialized_settings['integrations']['facebook'] ) && isset( $unserialized_settings['integrations']['facebook']['enabled'] ) ) ? $unserialized_settings['integrations']['facebook']['enabled'] : '',
@@ -558,6 +578,24 @@ class YOP_Poll_Settings {
 				if ( ( false === isset( $settings->integrations->hCaptcha->{'secret-key'} ) ) || ( '' === sanitize_text_field( $settings->integrations->hCaptcha->{'secret-key'} ) ) ) {
 					self::$errors_present = true;
 					self::$error_text = esc_html__( 'Data for "Secret Key" is invalid', 'yop-poll' );
+                }
+            }
+			if (
+                ( false === self::$errors_present ) &&
+                ( ! isset( $settings->integrations->{'cloudflare-turnstile'}->{'enabled'} ) ||
+                    ( '' === sanitize_text_field( $settings->integrations->{'cloudflare-turnstile'}->{'enabled'} ) ) )
+            ) {
+                self::$errors_present = true;
+                self::$error_text = esc_html__( 'Data for "Use Cloudflare Turnstile" is invalid', 'yop-poll' );
+            }
+            if ( 'yes' === $settings->integrations->{'cloudflare-turnstile'}->{'enabled'} ) {
+                if ( ( false === isset( $settings->integrations->{'cloudflare-turnstile'}->{'site-key'} ) ) || ( '' === sanitize_text_field( $settings->integrations->{'cloudflare-turnstile'}->{'site-key'} ) ) ) {
+                    self::$errors_present = true;
+                    self::$error_text = esc_html__( 'Data for "Site Key" is invalid', 'yop-poll' );
+                }
+                if ( ( false === isset( $settings->integrations->{'cloudflare-turnstile'}->{'secret-key'} ) ) || ( '' === sanitize_text_field( $settings->integrations->{'cloudflare-turnstile'}->{'secret-key'} ) ) ) {
+                    self::$errors_present = true;
+                    self::$error_text = esc_html__( 'Data for "Secret Key" is invalid', 'yop-poll' );
                 }
             }
             if (
@@ -899,6 +937,11 @@ class YOP_Poll_Settings {
 						'enabled' => sanitize_text_field( $settings->integrations->hCaptcha->{'enabled'} ),
 						'site-key' => sanitize_text_field( $settings->integrations->hCaptcha->{'site-key'} ),
 						'secret-key' => sanitize_text_field( $settings->integrations->hCaptcha->{'secret-key'} ),
+                    ),
+					'cloudflare-turnstile' => array(
+						'enabled' => sanitize_text_field( $settings->integrations->{'cloudflare-turnstile'}->{'enabled'} ),
+						'site-key' => sanitize_text_field( $settings->integrations->{'cloudflare-turnstile'}->{'site-key'} ),
+						'secret-key' => sanitize_text_field( $settings->integrations->{'cloudflare-turnstile'}->{'secret-key'} ),
                     ),
                     'facebook' => array(
                         'enabled' => sanitize_text_field( $settings->integrations->facebook->{'enabled'} ),

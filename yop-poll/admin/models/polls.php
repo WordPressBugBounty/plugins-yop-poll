@@ -6,7 +6,7 @@ class YOP_Poll_Polls {
 			$text_weight_allowed = array( 'normal', 'bold' ),
 			$text_align_allowed = array( 'left', 'center', 'right' ),
 			$yes_no_allowed = array( 'yes', 'no' ),
-			$captcha_allowed = array( 'yes', 'yes-recaptcha', 'yes-recaptcha-invisible', 'yes-recaptcha-v3', 'yes-hcaptcha', 'no' ),
+			$captcha_allowed = array( 'yes', 'yes-recaptcha', 'yes-recaptcha-invisible', 'yes-recaptcha-v3', 'yes-hcaptcha', 'yes-cloudflare-turnstile', 'no' ),
 			$answers_display_allowed = array( 'vertical', 'horizontal', 'columns' ),
 			$answers_sort_allowed = array( 'as-defined' ),
 			$date_values_allowed = array( 'now', 'custom', 'never', 'custom-date' ),
