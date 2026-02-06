@@ -523,6 +523,18 @@ class YOP_Poll_Admin {
 		        $maintenance  = new YOP_POLL_Maintenance();
 		        $maintenance->update_to_version_6_5_36();
 	        }
+			if ( true === version_compare( $installed_version, '6.5.37', '<' ) ) {
+		        $maintenance  = new YOP_POLL_Maintenance();
+		        $maintenance->update_to_version_6_5_37();
+	        }
+			if ( true === version_compare( $installed_version, '6.5.38', '<' ) ) {
+		        $maintenance  = new YOP_POLL_Maintenance();
+		        $maintenance->update_to_version_6_5_38();
+	        }
+			if ( true === version_compare( $installed_version, '6.5.39', '<' ) ) {
+		        $maintenance  = new YOP_POLL_Maintenance();
+		        $maintenance->update_to_version_6_5_39();
+	        }
         }
 	}
 	public function load_translations() {
@@ -1762,7 +1774,7 @@ class YOP_Poll_Admin {
 		}
 	}
 	public function record_wordpress_vote() {
-		if ( isset( $_GET['poll_id'] ) && ( 0 < intval( $_GET['poll_id'] ) ) ) {
+		if ( isset( $_GET['poll_id'] ) && ( true === ctype_alnum( $_GET['poll_id'] ) ) ) {
 			$template = YOP_POLL_PATH . 'admin/views/general/addnewwordpressvote.php';
 			echo YOP_Poll_View::render(
 				$template,

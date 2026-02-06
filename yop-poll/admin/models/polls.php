@@ -1903,7 +1903,7 @@ class YOP_Poll_Polls {
 	}
 	public static function get_info( $poll_id ) {
 		$query = $GLOBALS['wpdb']->prepare(
-			"SELECT * FROM {$GLOBALS['wpdb']->yop_poll_polls} WHERE `id` = %s AND `status` != 'deleted'",
+			"SELECT * FROM {$GLOBALS['wpdb']->yop_poll_polls} WHERE `id` = %s AND `status` = 'published'",
 			$poll_id
 		);
 		$poll = $GLOBALS['wpdb']->get_row( $query );
