@@ -535,6 +535,10 @@ class YOP_Poll_Admin {
 		        $maintenance  = new YOP_POLL_Maintenance();
 		        $maintenance->update_to_version_6_5_39();
 	        }
+			if ( true === version_compare( $installed_version, '6.5.40', '<' ) ) {
+		        $maintenance  = new YOP_POLL_Maintenance();
+		        $maintenance->update_to_version_6_5_40();
+	        }
         }
 	}
 	public function load_translations() {
@@ -2060,7 +2064,7 @@ class YOP_Poll_Admin {
             $response = null;
 		}
 		YOP_Poll_Settings::update_show_guide( 'no' );
-		wp_send_json_success( esc_html__( 'Guide Sent', 'yop-poll' ) );
+		wp_send_json_success( esc_html__( 'Your Playbook has been sent', 'yop-poll' ) );
 	}
 	public function show_upgrade_to_pro() {
 		$upgrade_page = rand( 1, 2 );

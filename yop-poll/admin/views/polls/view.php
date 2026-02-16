@@ -109,16 +109,7 @@
                 </div>
                 <div class="modal-body">
                     <?php
-					include YOP_POLL_PATH . 'admin/views/general/guide-3.php';
-					/*
-					$guide_page = rand( 1, 2 );
-					//$guide_page = 2;
-					if ( 1 === $guide_page ) {
-						include YOP_POLL_PATH . 'admin/views/general/guide-1.php';
-					} else {
-						include YOP_POLL_PATH . 'admin/views/general/guide-2.php';
-					}
-					*/
+					include YOP_POLL_PATH . 'admin/views/general/guide.php';
                     ?>
                 </div>
             </div>

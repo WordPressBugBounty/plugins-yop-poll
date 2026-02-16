@@ -4,7 +4,7 @@ Donate Link: https://www.yop-poll.com
 Tags: create poll, poll plugin, poll, polls, WordPress poll
 Requires at least: 3.3
 Tested up to: 6.9
-Stable tag: 6.5.39
+Stable tag: 6.5.40
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.htm
 
@@ -123,6 +123,9 @@ The Patchstack team will assist you with verification, CVE assignment, and notif
 12. Poll With Vertical Display Showing Results Before Vote
 
 == Changelog ==
+
+= 6.5.40 =
+* fixed broken link on the poll guide
 
 = 6.5.39 =
 * fixed bug with draft polls showing on the frontend

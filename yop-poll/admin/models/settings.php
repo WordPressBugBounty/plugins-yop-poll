@@ -404,6 +404,7 @@ class YOP_Poll_Settings {
         if ( '' !== $settings ) {
             $unserialized_settings = unserialize( $settings );
             $unserialized_settings['general']['show-guide'] = $show_guide;
+			error_log( print_r( $unserialized_settings, true ) );
             $serialized_settings = serialize( $unserialized_settings );
             update_option( 'yop_poll_settings', $serialized_settings );
             self::$settings = $serialized_settings;
