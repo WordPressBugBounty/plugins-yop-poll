@@ -1,128 +1,136 @@
 === YOP Poll ===
 Contributors: yourownprogrammer
 Donate Link: https://www.yop-poll.com
-Tags: create poll, poll plugin, poll, polls, WordPress poll
-Requires at least: 3.3
+Tags: create poll, poll plugin, poll, voting, WordPress poll
+Requires at least: 6.5
 Tested up to: 6.9
-Stable tag: 6.5.40
+Stable tag: 7.0.0
 License: GPLv2 or later
-License URI: http://www.gnu.org/licenses/gpl-2.0.htm
+License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Use a full option polling solution to get the answers you need.
-
-YOP Poll is the perfect, easy to use poll plugin for your WordPress site.
+The flexible WordPress poll plugin — rebuilt for speed, security, and ease of use.
 
 == Description ==
 
-YOP Poll plugin allows you to easily integrate a survey in your blog post/page and to manage the polls from within your WordPress dashboard but if offers so much more than other similar products.  Simply put, it doesn't lose sight of your needs and ensures that no detail is left unaccounted for.
+YOP Poll is back — completely rebuilt from the ground up.
 
-To name just a few improvements, you can create polls to include both single or multiple answers, work with a wide variety of options and settings to decide how you wish to sort your poll information, how to manage the results, what details to display and what to keep private, whether you want to view the total votes or the total voters, to set vote permissions or block voters etc.
+After more than a decade of powering polls on WordPress sites, YOP Poll has been rewritten from scratch using modern web technologies. The result is a faster, more secure, and dramatically easier-to-use plugin — without losing any of the flexibility that made YOP Poll the go-to polling solution for WordPress.
 
-Scheduling your polls is no longer a problem. YOP Poll can simultaneously run multiple polls (no limit included) or you can schedule your polls to start one after another. Also, keeping track of your polls is easy, you have various sorting functions and you can access older versions at any time.
+**Faster, end to end.** The new admin interface responds instantly to your actions. Creating a poll, editing answers, switching templates, viewing results — everything happens in real time, with no full-page reloads slowing you down.
 
-Designed to intuitive and easy to use, this plugin allows shortcodes and includes a widget functionality that fits perfectly with your WordPress website. For more details on the included features, please refer to the description below.
+**More secure by design.** Internal data handling has been modernized to follow current security best practices.
 
-Current poll features:
+**Easier for everyone.** The admin has been redesigned around how people actually build polls. Clear flows, sensible defaults, and fewer clicks to go from idea to published poll — whether you're running a single quick poll or managing dozens of campaigns at once.
 
-   *  Create/ Edit / Clone/Delete poll - allows you to create or intervene in your poll at any time, if you consider it necessary.
+**Safe to upgrade.** All your existing polls, votes, templates, and settings migrate automatically. Nothing to export, nothing to rebuild — just install the new version and pick up where you left off.
 
-   *  Poll scheduling:  programs each poll to start/end on a certain date. You can simultaneously run multiple polls. This option can be used to schedule your polls one after another.
+= Everything you can do with YOP Poll =
 
-   *  Display polls: you can choose to display one or more polls on your website by simply adding the corresponding poll ID. You can also decide for a random display of your active polls.
-
-   *  View all polls: lists all your polls that you can sort by number of votes or voters, by question or by date. It also includes a search option.
-
-   *  Poll answers - allows other answers, multiple answers and includes a sorting module by various criteria: in exact order, in alphabetical order, by number of votes, ascending, descending etc.
-
-   *  Poll results - offers a great flexibility when displaying the results: before/after vote, after poll's end date, on a custom date or never. The results can also be displayed by vote numbers, percentages or both. You can choose to include a view results link, view number of votes or number of voters.
-
-   *  Add custom fields - is a complex option that you can use to ask for additional information from your voters, information that you can then export and use for.
-
-   *  Reset stats - proves useful when you wish to restart a poll.
-
-   *  Vote permissions: - limits the voting accessibility to guests, registered users or both, or blocks user access by cookie, IP and username.
-
-   *  Archive options - allows the users of the website to access former polls statistics. You can choose which polls to display according to their start/end date.
-
-   *  Display Options - displays answers and results tabulated, vertically or horizontally.
-
-   *  Logs and bans - user logs and bans can be seen in the admin section. You can ban users by email, username and IP and you can set the limitation preferences for all your polls or for just one of them.
+* Run unlimited polls at the same time, with no artificial limits
+* Schedule polls to start and end automatically — perfect for time-bound campaigns
+* Choose between single-choice and multiple-choice questions
+* Allow voters to add their own "Other" answers
+* Sort answers in any order — exact, alphabetical, by votes, ascending, or descending
+* Display results before voting, after voting, on a custom date, after the poll ends, or never
+* Show results as numbers, percentages, or both
+* Collect extra information from voters with custom fields (name, email, age, anything you need)
+* Set who can vote: guests, registered users, or both
+* Block voters by cookie, IP, or username
+* Display polls anywhere with shortcodes, widgets, or by poll ID
+* Show a random active poll, the latest poll, or any specific poll
+* Browse a full archive of past polls with statistics
+* View detailed logs of every vote, with sorting, search, and export
+* Manage bans by email, username, or IP — globally or per poll
+* Built-in protection against spam votes, including Cloudflare Turnstile support
 
 == Installation ==
 
-1. Upload 'plugin-name.php' to the '/wp-content/plugins/' directory
-2. Activate the plugin through the 'Plugins' menu in WordPress
+= Automatic installation (recommended) =
+
+1. In your WordPress admin, go to **Plugins → Add New**
+2. Search for "YOP Poll"
+3. Click **Install Now**, then **Activate**
+4. You'll find the new **YOP Poll** menu in your dashboard sidebar
+
+= Manual installation =
+
+1. Download the YOP Poll plugin .zip file from WordPress.org
+2. In your WordPress admin, go to **Plugins → Add New → Upload Plugin**
+3. Choose the .zip file and click **Install Now**, then **Activate**
+4. You'll find the new **YOP Poll** menu in your dashboard sidebar
+
+= Upgrading from an earlier version =
+
+If you're upgrading from YOP Poll 6.x, all your existing polls, votes, templates, and settings will migrate automatically the first time you activate version 7.0. No manual export or import is needed.
+
+We strongly recommend backing up your database before any major plugin update — but the migration is designed to be safe and reversible.
 
 == Frequently Asked Questions ==
 
-This plugin was especially designed for flexibility and it is very easy to use. We don't expect you to encounter serious issues, but we included a list with some logical questions that you may find useful.
+= How do I create a poll? =
 
-= How can I create a poll? =
+Go to **YOP Poll → Add New** in your WordPress admin. Fill in the question and answers, choose your start and end dates, and adjust the settings for results, vote permissions, and display however you like. Click **Save** and your poll is ready to use.
 
-Go to your YOP Poll menu and select the "Add New" option.
-Fill the required information according to the examples we included: name, question, answers (add additional ones if you need), select the start/end date for your poll, and decide on the advanced settings for results, votes, voters, accessibility etc.
-Once you decided on all your poll details, click on "Save".
-To view your new poll access "All Polls" from your main menu and choose the corresponding entry from the list.
+= How do I add a poll to a page or post? =
 
-= How can I link a poll to my webpage? =
+Every poll has a shortcode you can copy and paste anywhere on your site — pages, posts, widgets, or template files. You'll find the shortcode for each poll on the **All Polls** page, in the dedicated shortcode column.
 
-Under "All Polls", each poll has an option called "Get Code".
-Clicking on that will display a popup that generates the code you need to place in your page or post.
-This is it. Check your page or post now.
+= Are there shortcuts for displaying polls? =
 
-= Do you have some predefined shortcodes that I can use? =
+Yes. You can use these built-in shortcodes anywhere on your site:
 
-Yes
-Current Active Poll:   [yop_poll id="-1"]
-Latest Poll:           [yop_poll id="-2"]
-Random Poll:           [yop_poll id="-3"]
-List with all polls:   [yop_poll_archive max=0 sort="date_added|num_votes" sortdir="asc|desc"]
+* `[yop_poll id="-1"]` — displays the current active poll
+* `[yop_poll id="-2"]` — displays the most recent poll
+* `[yop_poll id="-3"]` — displays a random active poll
+* `[yop_poll_archive max=0 sort="date_added|num_votes" sortdir="asc|desc"]` — displays a full archive of polls
 
-= Can I have more than one poll active? =
+= Can I run more than one poll at the same time? =
 
-Yes, you can run multiple polls at the same time, or you can schedule them to begin one after another using the "Select start/end date" option.
+Yes. YOP Poll has no limit on the number of polls you can run simultaneously. You can also schedule polls to start and end on specific dates, so you can queue up campaigns to run one after another.
 
-= Can I ask for additional information from my voters? =
+= Can I collect extra information from voters? =
 
-Yes, you can customize your poll to request additional information. Eg. name, email, age, profession.
-To include this, when you create your poll using the “Add New” form, on Questions&Answers tab drag and drop “Custom Field” element and include as many requests as you need.
+Yes. When creating or editing a poll, add Custom Field elements to ask voters for things like name, email, age, or anything else you need. You can export this data from the votes page later.
 
-= How do I check the results? =
+= How do I see the results of a poll? =
 
-Locate the poll you want to evaluate by accessing "All Polls".
-Below the name of the poll you have several options.
-Use the "View Results" option to track the results of the poll,
-or access the "Logs" for a more detailed evaluation.
+On the **All Polls** page, each poll has a **View Results** option that shows the full results — vote counts, percentages, and any custom field responses collected from voters.
 
-= How can I see the results after the poll ends? =
+The **Logs** option is separate: it records every voting attempt on your site (successful or not), which is useful for auditing, troubleshooting, or investigating suspicious activity. It's not where you go to see poll results.
 
-Edit your poll and in "View Results:" choose "After Poll End Date" and save.
+= How do I show results only after the poll ends? =
 
-= Can I add more than one question to a poll? =
+Edit the poll, find the **View Results** setting, choose **After Poll End Date**, and save. Voters will see only the question until the poll closes.
 
-You can have only one question per poll.
+= Can I have more than one question per poll? =
 
-= Where do I report security bugs found in this plugin? =
+No — each poll has a single question. If you need multiple questions, create a separate poll for each one.
 
-Please report security bugs found in the source code of the YOP Poll plugin through the [Patchstack Vulnerability Disclosure Program](https://patchstack.com/database/vdp/68604c4b-5842-4926-b580-d14926a1a458).
-The Patchstack team will assist you with verification, CVE assignment, and notify the developers of this plugin.
+= My existing polls — will they still work after upgrading to 7.0? =
+
+Yes. Version 7.0 is a complete rewrite, but it's a drop-in upgrade. All your polls, votes, templates, custom fields, and settings migrate automatically the first time you activate the new version. Your existing shortcodes will continue to work without any changes.
+
+= Where do I report a security issue? =
+
+Please report security issues through the [Patchstack Vulnerability Disclosure Program](https://patchstack.com/database/vdp/68604c4b-5842-4926-b580-d14926a1a458). The Patchstack team will help with verification, CVE assignment, and notifying us of the issue.
 
 == Screenshots ==
 
-1. Choose Template
-2. Choose Skin
-3. Available Skins
-4. Available skins
-5. Customize Style
-6. Add Question and Answers
-7. Define Poll Settings
-8. Define Poll Access Settings
-9. Define Poll Results Settings
-10. View Results
-11. Poll With Vertical Display
-12. Poll With Vertical Display Showing Results Before Vote
+1. A live YOP Poll on the front end — clean, colorful, and mobile-friendly
+2. Choose from multiple poll designs
+3. Add your question and answers with a real-time preview as you type
+4. Configure poll behavior — scheduling, statistics, and notifications
+5. Decide who can vote and how to prevent duplicates
+6. Control exactly when and how results are shown
+7. Run multiple polls at the same time — track votes, status, and schedules at a glance
 
 == Changelog ==
+
+= 7.0.0 =
+* Major release: complete rewrite using React and a modern REST API
+* Faster, redesigned admin experience with no full-page reloads
+* All existing polls, votes, and settings migrate automatically
+* Modernized foundation, ready for what's coming next
 
 = 6.5.40 =
 * fixed broken link on the poll guide

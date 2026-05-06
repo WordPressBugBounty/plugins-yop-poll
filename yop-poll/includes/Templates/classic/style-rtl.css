@@ -1,0 +1,9 @@
+.yop-poll-answer {
+	flex-direction: row-reverse;
+	justify-content: flex-end;
+}
+
+.yop-poll-answer input[type="radio"],
+.yop-poll-answer input[type="checkbox"] {
+	outline: none;
+}
