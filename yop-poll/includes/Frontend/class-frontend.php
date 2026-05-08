@@ -13,5 +13,7 @@ class Frontend {
 
 		$block = new Block();
 		$block->init();
+
+		Widget::init();
 	}
 }

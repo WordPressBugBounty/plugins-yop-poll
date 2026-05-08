@@ -3,7 +3,7 @@
  * Plugin Name:       YOP Poll
  * Plugin URI:        https://yop-poll.com
  * Description:       The flexible WordPress poll plugin — rebuilt for speed, security, and ease of use.
- * Version:           7.0.0
+ * Version:           7.0.1
  * Requires at least: 6.5
  * Requires PHP:      7.4
  * Author:            YOP
@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'YOP_POLL_VERSION', '7.0.0' ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- YOP_POLL_ is the established plugin prefix; distribution slug is yop-poll.
+define( 'YOP_POLL_VERSION', '7.0.1' ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- YOP_POLL_ is the established plugin prefix; distribution slug is yop-poll.
 define( 'YOP_POLL_FILE', __FILE__ ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- YOP_POLL_ is the established plugin prefix; distribution slug is yop-poll.
 define( 'YOP_POLL_DIR', plugin_dir_path( __FILE__ ) ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- YOP_POLL_ is the established plugin prefix; distribution slug is yop-poll.
 define( 'YOP_POLL_URL', plugin_dir_url( __FILE__ ) ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- YOP_POLL_ is the established plugin prefix; distribution slug is yop-poll.

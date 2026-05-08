@@ -4,7 +4,7 @@ Donate Link: https://www.yop-poll.com
 Tags: create poll, poll plugin, poll, voting, WordPress poll
 Requires at least: 6.5
 Tested up to: 6.9
-Stable tag: 7.0.0
+Stable tag: 7.0.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -125,6 +125,13 @@ Please report security issues through the [Patchstack Vulnerability Disclosure P
 7. Run multiple polls at the same time — track votes, status, and schedules at a glance
 
 == Changelog ==
+
+= 7.0.1 =
+* restored YOP Poll widget so polls can be added through Appearance → Widgets again
+* fixed result percentages summing to 101% on some polls; default decimal places restored to 1 (e.g. 33.3%)
+* fixed migration from 6.x for "Show results only" polls
+* removed Back to vote button when "Show results only" is enabled
+* fixed voting failing on sites where performance/optimizer plugins strip the WordPress REST API setup script
 
 = 7.0.0 =
 * Major release: complete rewrite using React and a modern REST API
