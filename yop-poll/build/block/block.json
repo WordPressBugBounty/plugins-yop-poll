@@ -2,19 +2,30 @@
   "$schema": "https://schemas.wp.org/trunk/block.json",
   "apiVersion": 3,
   "name": "yop-poll/poll",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "title": "YOP Poll",
   "category": "widgets",
   "icon": "chart-bar",
   "description": "Display a YOP Poll on your page.",
+  "keywords": [
+    "poll",
+    "vote",
+    "yop",
+    "survey"
+  ],
   "supports": {
     "html": false
   },
   "textdomain": "yop-poll",
+  "editorScript": "file:./index.js",
   "attributes": {
     "pollId": {
       "type": "number",
       "default": 0
+    },
+    "showResultsOnly": {
+      "type": "boolean",
+      "default": false
     }
   }
 }

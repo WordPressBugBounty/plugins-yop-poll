@@ -320,6 +320,7 @@ class Admin_Page_Polls {
 		echo '</div>';
 
 		$this->render_shortcode_copy_script();
+		Guide::render();
 	}
 
 	private function delete_poll( $poll_id ) {

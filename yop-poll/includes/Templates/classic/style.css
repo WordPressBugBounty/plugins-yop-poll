@@ -1,8 +1,8 @@
 .yop-poll[data-template="classic"] {
 	font-size: 14px;
-	max-width: 400px;
 	padding: 20px;
 	background: #fff;
+	box-sizing: border-box;
 }
 
 .yop-poll-question {
@@ -135,6 +135,29 @@
 .yop-poll-answers--columns-3,
 .yop-poll-answers--columns-4 {
 	gap: 12px;
+}
+
+/* Answers block alignment (default left = no override) */
+.yop-poll-answers--align-center {
+	align-items: center;
+}
+
+.yop-poll-answers--align-right {
+	align-items: flex-end;
+}
+
+.yop-poll-answers--horizontal.yop-poll-answers--align-center,
+.yop-poll-answers--columns-2.yop-poll-answers--align-center,
+.yop-poll-answers--columns-3.yop-poll-answers--align-center,
+.yop-poll-answers--columns-4.yop-poll-answers--align-center {
+	justify-content: center;
+}
+
+.yop-poll-answers--horizontal.yop-poll-answers--align-right,
+.yop-poll-answers--columns-2.yop-poll-answers--align-right,
+.yop-poll-answers--columns-3.yop-poll-answers--align-right,
+.yop-poll-answers--columns-4.yop-poll-answers--align-right {
+	justify-content: flex-end;
 }
 
 /* Image answers */

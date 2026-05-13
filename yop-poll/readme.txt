@@ -4,7 +4,7 @@ Donate Link: https://www.yop-poll.com
 Tags: create poll, poll plugin, poll, voting, WordPress poll
 Requires at least: 6.5
 Tested up to: 6.9
-Stable tag: 7.0.1
+Stable tag: 7.0.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -73,7 +73,11 @@ Go to **YOP Poll → Add New** in your WordPress admin. Fill in the question and
 
 = How do I add a poll to a page or post? =
 
-Every poll has a shortcode you can copy and paste anywhere on your site — pages, posts, widgets, or template files. You'll find the shortcode for each poll on the **All Polls** page, in the dedicated shortcode column.
+You have two options:
+
+**Using the block editor (Gutenberg):** When editing a page or post, click the "+" button to add a new block, search for "YOP Poll", and select it. Choose which poll to display from the dropdown — that's it.
+
+**Using shortcodes:** Every poll has a shortcode you can copy and paste anywhere on your site — pages, posts, widgets, or template files. You'll find the shortcode for each poll on the **All Polls** page, in the dedicated shortcode column.
 
 = Are there shortcuts for displaying polls? =
 
@@ -125,6 +129,12 @@ Please report security issues through the [Patchstack Vulnerability Disclosure P
 7. Run multiple polls at the same time — track votes, status, and schedules at a glance
 
 == Changelog ==
+
+= 7.0.2 =
+* fixed text fields (Name, Email, etc.) being un-typeable when "Max characters allowed" was left at 0
+* added Gutenberg block so polls can be inserted from the block editor
+* added per-question answer alignment (left, center, right) in the poll builder
+* fixed classic-template polls being capped at 400px wide; they now fill their parent container
 
 = 7.0.1 =
 * restored YOP Poll widget so polls can be added through Appearance → Widgets again

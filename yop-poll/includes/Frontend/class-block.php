@@ -16,37 +16,18 @@ class Block {
 	}
 
 	public function register_block() {
-		$asset_file = YOP_POLL_DIR . 'build/block/index.asset.php';
-		$asset      = file_exists( $asset_file )
-			? require $asset_file
-			: array(
-				'dependencies' => array(),
-				'version'      => YOP_POLL_VERSION,
-			);
-
-		wp_register_script(
-			'yop-poll-block-editor',
-			YOP_POLL_URL . 'build/block/index.js',
-			$asset['dependencies'],
-			$asset['version'],
-			true
+		register_block_type(
+			YOP_POLL_DIR . 'build/block',
+			array(
+				'render_callback' => array( $this, 'render_block' ),
+				'uses_context'    => array( 'postId' ),
+			)
 		);
-
-		register_block_type( 'yop-poll/poll', array(
-			'editor_script'   => 'yop-poll-block-editor',
-			'render_callback' => array( $this, 'render_block' ),
-			'uses_context'    => array( 'postId' ),
-			'attributes'      => array(
-				'pollId' => array(
-					'type'    => 'number',
-					'default' => 0,
-				),
-			),
-		) );
 	}
 
 	public function render_block( $attributes, $content = '', $block = null ) {
-		$poll_id = (int) ( $attributes['pollId'] ?? 0 );
+		$poll_id           = (int) ( $attributes['pollId'] ?? 0 );
+		$show_results_only = ! empty( $attributes['showResultsOnly'] );
 		if ( ! $poll_id ) {
 			return '';
 		}
@@ -86,10 +67,14 @@ class Block {
 			wp_enqueue_style( $handle . '-rtl' );
 		}
 
-		$poll_data            = REST_Polls::sanitize_for_public( REST_Polls::get_cached_poll_data( $poll_id ) );
+		$poll_data            = REST_Polls::sanitize_for_public( REST_Polls::get_cached_poll_data( $poll_id ), $show_results_only );
 		$poll_data['nonce']   = wp_create_nonce( 'yop_poll_vote_' . $poll_id );
 		$block_post_id        = $block instanceof \WP_Block ? (int) ( $block->context['postId'] ?? 0 ) : 0;
 		$poll_data['page_id'] = $block_post_id ?: get_the_ID() ?: get_queried_object_id() ?: 0;
+
+		if ( $show_results_only ) {
+			$poll_data['show_results'] = true;
+		}
 
 		global $wp;
 		$poll_data['tracking_id'] = home_url( $wp->request );

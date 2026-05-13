@@ -35,6 +35,9 @@ class Plugin {
 		if ( is_admin() ) {
 			$admin = new Admin\Admin();
 			$admin->init();
+
+			$guide = new Admin\Guide();
+			$guide->init();
 		}
 
 		// Frontend.
