@@ -77,7 +77,10 @@
 }
 
 .yop-poll-vote-button:hover {
-	background: #f5f5f5;
+	/* Darken whatever color the user picked instead of forcing #f5f5f5,
+	   which previously made colored buttons (e.g. orange) almost invisible
+	   on white page backgrounds. */
+	filter: brightness(0.92);
 }
 
 /* Results bar */
@@ -100,6 +103,7 @@
 	color: var(--yop-ans-tc, inherit);
 	display: flex;
 	justify-content: space-between;
+	gap: 0.5em;
 	margin-block-start: 4px;
 }
 

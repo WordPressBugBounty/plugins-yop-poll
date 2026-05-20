@@ -150,7 +150,7 @@ class Model_Vote extends Model_Base {
 		}
 
 		$poll_id   = (int) $vote['poll_id'];
-		$vote_data = Migrator::decode_meta( $vote['vote_data'] ?? '' );
+		$vote_data = Migrator::normalize_vote_data( Migrator::decode_meta( $vote['vote_data'] ?? '' ) );
 
 		$sub_model    = new Model_Subelement();
 		$answer_count = 0;

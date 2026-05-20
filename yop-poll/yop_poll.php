@@ -3,7 +3,7 @@
  * Plugin Name:       YOP Poll
  * Plugin URI:        https://yop-poll.com
  * Description:       The flexible WordPress poll plugin — rebuilt for speed, security, and ease of use.
- * Version:           7.0.2
+ * Version:           7.0.3
  * Requires at least: 6.5
  * Requires PHP:      7.4
  * Author:            YOP
@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'YOP_POLL_VERSION', '7.0.2' ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- YOP_POLL_ is the established plugin prefix; distribution slug is yop-poll.
+define( 'YOP_POLL_VERSION', '7.0.3' ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- YOP_POLL_ is the established plugin prefix; distribution slug is yop-poll.
 define( 'YOP_POLL_FILE', __FILE__ ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- YOP_POLL_ is the established plugin prefix; distribution slug is yop-poll.
 define( 'YOP_POLL_DIR', plugin_dir_path( __FILE__ ) ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- YOP_POLL_ is the established plugin prefix; distribution slug is yop-poll.
 define( 'YOP_POLL_URL', plugin_dir_url( __FILE__ ) ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- YOP_POLL_ is the established plugin prefix; distribution slug is yop-poll.
@@ -67,6 +67,7 @@ register_deactivation_hook( __FILE__, function () {
 // v6 → v7 migration (runs before Plugin::instance() so data is ready on first request).
 add_action( 'plugins_loaded', function () {
 	\YopPoll\Database\Migrator::maybe_setup();
+	\YopPoll\Database\Migrator::maybe_resume_background_migration();
 }, 5 );
 
 add_action( 'yop_poll_run_migration', function () {

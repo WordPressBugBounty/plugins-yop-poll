@@ -47,6 +47,23 @@ class Migrator {
 		self::setup();
 	}
 
+	/**
+	 * Re-arm the background migration cron when an install is mid-migration
+	 * but the scheduled event has been lost (e.g. a prior crash unscheduled
+	 * it before the callback could reschedule itself). Safe to call on every
+	 * page load: a no-op once the migration reaches 'done'.
+	 */
+	public static function maybe_resume_background_migration(): void {
+		$status = get_option( 'yop_poll_migration_status', '' );
+		if ( ! in_array( $status, array( 'votes', 'logs' ), true ) ) {
+			return;
+		}
+		if ( wp_next_scheduled( 'yop_poll_run_migration' ) ) {
+			return;
+		}
+		wp_schedule_single_event( time() + 30, 'yop_poll_run_migration' );
+	}
+
 	// ─── Phase 1: synchronous ─────────────────────────────────────────────────
 
 	private static function setup(): void {
@@ -358,28 +375,52 @@ class Migrator {
 	}
 
 	private static function map_vote_data( array $old ): array {
-		if ( ! isset( $old['user']['weight'] ) ) {
-			if ( ! isset( $old['user'] ) ) {
-				$old['user'] = array();
-			}
-			$old['user']['weight'] = 1;
+		return self::normalize_vote_data( $old );
+	}
+
+	/**
+	 * Normalize a decoded vote_data array to the canonical v7 shape.
+	 *
+	 * v6 stored items inside $el['data'] heterogeneously: question items were
+	 * arrays of {id, data}, but custom-field/text items were bare strings.
+	 * v7 expects every item to be {id: string, data: array}. This helper
+	 * coerces both legacy shapes to the canonical form and is safe to call
+	 * on already-v7 data (idempotent).
+	 *
+	 * @param array $vd Decoded vote_data.
+	 * @return array    Vote_data with normalized item shape.
+	 */
+	public static function normalize_vote_data( array $vd ): array {
+		if ( ! isset( $vd['user'] ) || ! is_array( $vd['user'] ) ) {
+			$vd['user'] = array();
+		}
+		if ( ! isset( $vd['user']['weight'] ) ) {
+			$vd['user']['weight'] = 1;
 		}
 
-		if ( isset( $old['elements'] ) && is_array( $old['elements'] ) ) {
-			foreach ( $old['elements'] as &$el ) {
-				if ( isset( $el['data'] ) && is_array( $el['data'] ) ) {
-					foreach ( $el['data'] as &$item ) {
-						if ( array_key_exists( 'data', $item ) && ! is_array( $item['data'] ) ) {
-							$item['data'] = array( $item['data'] );
-						}
-					}
-					unset( $item );
+		if ( isset( $vd['elements'] ) && is_array( $vd['elements'] ) ) {
+			foreach ( $vd['elements'] as &$el ) {
+				if ( ! is_array( $el ) || ! isset( $el['data'] ) || ! is_array( $el['data'] ) ) {
+					continue;
 				}
+				foreach ( $el['data'] as &$item ) {
+					if ( ! is_array( $item ) ) {
+						$item = array(
+							'id'   => '0',
+							'data' => array( (string) $item ),
+						);
+						continue;
+					}
+					if ( array_key_exists( 'data', $item ) && ! is_array( $item['data'] ) ) {
+						$item['data'] = array( $item['data'] );
+					}
+				}
+				unset( $item );
 			}
 			unset( $el );
 		}
 
-		return $old;
+		return $vd;
 	}
 
 	// ─── Dual-format reader ───────────────────────────────────────────────────

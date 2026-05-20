@@ -2,6 +2,7 @@
 namespace YopPoll\Frontend;
 
 use YopPoll\Models\Model_Poll;
+use YopPoll\Models\Model_Vote;
 use YopPoll\Templates\Template_Engine;
 use YopPoll\REST\REST_Polls;
 use YopPoll\Database\Migrator;
@@ -127,6 +128,32 @@ class Shortcode {
 		$poll_data['tracking_id'] = '' !== $tracking_id
 			? $tracking_id
 			: home_url( $wp->request );
+
+		// For logged-in users we can compute already_voted server-side using by-ip and
+		// by-user-id blocks — embedding it in initialData lets React show results on
+		// first paint instead of flashing the voting form before Effect 2 resolves.
+		// by-cookie blocks still require the client-side check (voter_id is in
+		// localStorage), and are mitigated by the yop_poll_voted_at_<id> hint.
+		if ( is_user_logged_in() ) {
+			$meta   = Migrator::decode_meta( $poll['meta_data'] ?? '' );
+			$access = $meta['options']['access'] ?? array();
+			$rest   = new REST_Polls();
+			$wp_user = wp_get_current_user();
+			$blocked = ! $rest->check_blocks(
+				$access,
+				new Model_Vote(),
+				$poll_id,
+				$rest->get_client_ip(),
+				get_current_user_id(),
+				'', // voter_id — only known on the client
+				'', // tracking_id
+				'', // fingerprint — pro-only
+				$wp_user ? sanitize_email( $wp_user->user_email ) : ''
+			);
+			if ( $blocked ) {
+				$poll_data['already_voted'] = true;
+			}
+		}
 
 		return sprintf(
 			'<div class="yop-poll-container" data-yop-poll-id="%d">'

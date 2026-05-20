@@ -4,7 +4,7 @@ Donate Link: https://www.yop-poll.com
 Tags: create poll, poll plugin, poll, voting, WordPress poll
 Requires at least: 6.5
 Tested up to: 6.9
-Stable tag: 7.0.2
+Stable tag: 7.0.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -73,11 +73,7 @@ Go to **YOP Poll → Add New** in your WordPress admin. Fill in the question and
 
 = How do I add a poll to a page or post? =
 
-You have two options:
-
-**Using the block editor (Gutenberg):** When editing a page or post, click the "+" button to add a new block, search for "YOP Poll", and select it. Choose which poll to display from the dropdown — that's it.
-
-**Using shortcodes:** Every poll has a shortcode you can copy and paste anywhere on your site — pages, posts, widgets, or template files. You'll find the shortcode for each poll on the **All Polls** page, in the dedicated shortcode column.
+Every poll has a shortcode you can copy and paste anywhere on your site — pages, posts, widgets, or template files. You'll find the shortcode for each poll on the **All Polls** page, in the dedicated shortcode column.
 
 = Are there shortcuts for displaying polls? =
 
@@ -130,9 +126,23 @@ Please report security issues through the [Patchstack Vulnerability Disclosure P
 
 == Changelog ==
 
+= 7.0.3 =
+* added "Round percentage" option in Display settings: results can now be shown as whole numbers (e.g. 33% / 67%) instead of with decimals
+* fixed limited-time "Block Voters" not working correctly on sites set to a timezone other than UTC: blocks now use the site's local time, so a 1-hour block no longer appears to expire early and let visitors vote again on refresh
+* fixed brief flash of the voting form when revisiting a poll you had already voted on: the correct view (results) is now shown immediately instead of appearing for a moment before switching
+* fixed Answers drag-handle in the poll builder being inactive: text answers can again be reordered by dragging the handle on the left of each answer row
+* fixed Vote/Results buttons becoming almost invisible on hover when a custom button color was set: the hover state now darkens your chosen color instead of fading to near-white
+* fixed vote details and CSV export for polls with custom fields after migrating from 6.x: older vote entries are now read correctly so vote rows and exports display as expected
+* fixed background vote/log migration stalling on some sites: the migration now restarts itself automatically until it completes
+* fixed missing space between the answer text and the percentage on the after-vote results rows
+* fixed error when deleting a vote (one at a time or in bulk): vote deletion now works correctly and updates per-answer counts as expected
+* fixed "View votes" links on the Results page not filtering by answer: clicking an answer's vote count (or exporting the CSV) now correctly shows only the voters who picked that answer, instead of every voter on the poll
+* improved accessibility: form fields (Name, Email, etc.) and radio/checkbox answer groups are now properly labelled for screen readers, and the total-votes/answers counter uses a darker gray for better contrast (WCAG AA)
+
 = 7.0.2 =
 * fixed text fields (Name, Email, etc.) being un-typeable when "Max characters allowed" was left at 0
-* added Gutenberg block so polls can be inserted from the block editor
+* restored Gutenberg block so polls can be inserted from the block editor again
+* restored the in-admin Playbook guide page
 * added per-question answer alignment (left, center, right) in the poll builder
 * fixed classic-template polls being capped at 400px wide; they now fill their parent container
 

@@ -44,7 +44,7 @@ abstract class REST_Base extends \WP_REST_Controller {
 		return is_string( $val ) ? sanitize_text_field( $val ) : $default;
 	}
 
-	protected function get_client_ip() {
+	public function get_client_ip() {
 		$ip = '';
 		if ( ! empty( $_SERVER['HTTP_CLIENT_IP'] ) ) {
 			$ip = sanitize_text_field( wp_unslash( $_SERVER['HTTP_CLIENT_IP'] ) );
@@ -73,7 +73,7 @@ abstract class REST_Base extends \WP_REST_Controller {
 		}
 	}
 
-	protected function check_blocks(
+	public function check_blocks(
 		array $access,
 		Model_Vote $vote_model,
 		int $poll_id,
@@ -141,14 +141,17 @@ abstract class REST_Base extends \WP_REST_Controller {
 				return false; // Unrecognised unit → block forever to be safe.
 			}
 
-			$vote_time = \DateTime::createFromFormat( 'Y-m-d H:i:s', $last_vote['added_date'] );
+			// added_date is written by current_time('mysql'), which returns site-local
+			// time with no timezone marker. Parse it in wp_timezone() so the +interval
+			// comparison against "now" lines up regardless of the WP timezone setting.
+			$vote_time = \DateTime::createFromFormat( 'Y-m-d H:i:s', $last_vote['added_date'], wp_timezone() );
 			if ( ! $vote_time ) {
 				return false;
 			}
 			$expiry = clone $vote_time;
 			$expiry->add( $interval );
 
-			if ( new \DateTime() < $expiry ) {
+			if ( new \DateTime( 'now', wp_timezone() ) < $expiry ) {
 				return false;
 			}
 			// Elapsed — this block type is cleared; continue checking other types.

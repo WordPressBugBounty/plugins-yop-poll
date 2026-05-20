@@ -147,7 +147,7 @@ class Votes_List_Table extends \WP_List_Table {
 			return '';
 		}
 
-		$vote_data = Migrator::decode_meta( $vote['vote_data'] ?? '' );
+		$vote_data = Migrator::normalize_vote_data( Migrator::decode_meta( $vote['vote_data'] ?? '' ) );
 		$elements  = $vote_data['elements'] ?? [];
 		if ( empty( $elements ) ) {
 			return '';
@@ -216,8 +216,9 @@ class Votes_List_Table extends \WP_List_Table {
 		global $wpdb;
 
 		// phpcs:ignore WordPress.Security.NonceVerification -- Read-only list-table filter.
-		$poll_id = isset( $_GET['poll_id'] ) ? absint( wp_unslash( $_GET['poll_id'] ) ) : 0;
-		$search  = isset( $_REQUEST['s'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['s'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification
+		$poll_id   = isset( $_GET['poll_id'] ) ? absint( wp_unslash( $_GET['poll_id'] ) ) : 0;
+		$answer_id = isset( $_GET['answer_id'] ) ? (int) $_GET['answer_id'] : 0; // phpcs:ignore WordPress.Security.NonceVerification
+		$search    = isset( $_REQUEST['s'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['s'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification
 
 		// phpcs:disable WordPress.Security.NonceVerification -- Read-only list-table sort params.
 		$allowed_orderby = [ 'user_type', 'user_email', 'ipaddress', 'added_date' ];
@@ -256,16 +257,43 @@ class Votes_List_Table extends \WP_List_Table {
 		}
 
 		$where_sql = 'WHERE ' . implode( ' AND ', $where );
-		$count_sql = "SELECT COUNT(*) FROM {$votes_table} {$where_sql}";
-		$items_sql = "SELECT id, user_email, user_type, ipaddress, added_date FROM {$votes_table} {$where_sql} ORDER BY {$orderby} {$order} LIMIT %d OFFSET %d"; // phpcs:ignore WordPress.DB.PreparedSQL
 
 		// phpcs:disable WordPress.DB.PreparedSQL, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- $votes_table built from $wpdb->prefix; list-table query with dynamic WHERE.
-		if ( $values ) {
-			$total       = (int) $wpdb->get_var( $wpdb->prepare( $count_sql, $values ) );
-			$this->items = $wpdb->get_results( $wpdb->prepare( $items_sql, array_merge( $values, [ $per_page, $offset ] ) ), ARRAY_A );
+		if ( $answer_id > 0 ) {
+			// Answer filter: vote_data is a JSON blob, so we fetch all rows matching
+			// the other WHERE clauses, decode in PHP, then paginate the filtered set.
+			$all_sql  = "SELECT id, user_email, user_type, ipaddress, added_date, vote_data FROM {$votes_table} {$where_sql} ORDER BY {$orderby} {$order}"; // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$all_rows = $values
+				? $wpdb->get_results( $wpdb->prepare( $all_sql, $values ), ARRAY_A )
+				: $wpdb->get_results( $all_sql, ARRAY_A );
+
+			$filtered = [];
+			foreach ( (array) $all_rows as $row ) {
+				$vd = Migrator::normalize_vote_data( Migrator::decode_meta( $row['vote_data'] ?? '' ) );
+				foreach ( $vd['elements'] ?? [] as $el ) {
+					foreach ( $el['data'] ?? [] as $item ) {
+						if ( (int) $item['id'] === $answer_id ) {
+							unset( $row['vote_data'] );
+							$filtered[] = $row;
+							continue 3;
+						}
+					}
+				}
+			}
+
+			$total       = count( $filtered );
+			$this->items = array_slice( $filtered, $offset, $per_page );
 		} else {
-			$total       = (int) $wpdb->get_var( $count_sql );
-			$this->items = $wpdb->get_results( $wpdb->prepare( $items_sql, [ $per_page, $offset ] ), ARRAY_A );
+			$count_sql = "SELECT COUNT(*) FROM {$votes_table} {$where_sql}";
+			$items_sql = "SELECT id, user_email, user_type, ipaddress, added_date FROM {$votes_table} {$where_sql} ORDER BY {$orderby} {$order} LIMIT %d OFFSET %d"; // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+
+			if ( $values ) {
+				$total       = (int) $wpdb->get_var( $wpdb->prepare( $count_sql, $values ) );
+				$this->items = $wpdb->get_results( $wpdb->prepare( $items_sql, array_merge( $values, [ $per_page, $offset ] ) ), ARRAY_A );
+			} else {
+				$total       = (int) $wpdb->get_var( $count_sql );
+				$this->items = $wpdb->get_results( $wpdb->prepare( $items_sql, [ $per_page, $offset ] ), ARRAY_A );
+			}
 		}
 		// phpcs:enable WordPress.DB.PreparedSQL, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter
 
@@ -349,10 +377,25 @@ class Admin_Page_Votes {
 		), ARRAY_A );
 		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
 
+		// Apply answer filter: keep only votes whose vote_data contains the chosen answer.
+		if ( $answer_id > 0 ) {
+			$rows = array_values( array_filter( (array) $rows, static function ( $row ) use ( $answer_id ) {
+				$vd = Migrator::normalize_vote_data( Migrator::decode_meta( $row['vote_data'] ?? '' ) );
+				foreach ( $vd['elements'] ?? [] as $el ) {
+					foreach ( $el['data'] ?? [] as $item ) {
+						if ( (int) $item['id'] === $answer_id ) {
+							return true;
+						}
+					}
+				}
+				return false;
+			} ) );
+		}
+
 		// Build subelement text map from all sub IDs referenced in vote_data.
 		$all_sub_ids = [];
 		foreach ( $rows as $row ) {
-			$vd = Migrator::decode_meta( $row['vote_data'] ?? '' );
+			$vd = Migrator::normalize_vote_data( Migrator::decode_meta( $row['vote_data'] ?? '' ) );
 			foreach ( $vd['elements'] ?? [] as $el ) {
 				foreach ( $el['data'] ?? [] as $item ) {
 					if ( (int) $item['id'] > 0 ) {
@@ -376,7 +419,7 @@ class Admin_Page_Votes {
 		// Build vote details index: vote_id → [ element_id => answer_text ]
 		$detail_map = [];
 		foreach ( $rows as $row ) {
-			$vd = Migrator::decode_meta( $row['vote_data'] ?? '' );
+			$vd = Migrator::normalize_vote_data( Migrator::decode_meta( $row['vote_data'] ?? '' ) );
 			foreach ( $vd['elements'] ?? [] as $el ) {
 				$eid     = (int) $el['id'];
 				$answers = [];

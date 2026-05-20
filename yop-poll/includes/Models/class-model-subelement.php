@@ -41,6 +41,15 @@ class Model_Subelement extends Model_Base {
 		$wpdb->query( $wpdb->prepare( "UPDATE {$table} SET total_submits = total_submits + 1 WHERE id = %d", $id ) ); // phpcs:ignore WordPress.DB.PreparedSQL, WordPress.DB.DirectDatabaseQuery, PluginCheck.Security.DirectDB.UnescapedDBParameter -- $table built from $wpdb->prefix . YOP_POLL_TABLE_PREFIX; counter write, no cache layer applicable.
 	}
 
+	public function decrement_submits( int $id ): void {
+		global $wpdb;
+		$table = $this->get_table();
+		$wpdb->query( $wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery, PluginCheck.Security.DirectDB.UnescapedDBParameter -- $table built from $wpdb->prefix . YOP_POLL_TABLE_PREFIX; counter write, no cache layer applicable.
+			"UPDATE {$table} SET total_submits = GREATEST(0, total_submits - 1) WHERE id = %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$id
+		) );
+	}
+
 	/**
 	 * Find an existing "other" subelement with matching text (case-insensitive), or create one.
 	 * Returns the subelement ID.

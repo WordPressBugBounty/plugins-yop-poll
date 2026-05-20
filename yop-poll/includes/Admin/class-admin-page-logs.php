@@ -149,7 +149,7 @@ class Logs_List_Table extends \WP_List_Table {
 	private function get_log_details_html( array $item ): string {
 		global $wpdb;
 
-		$vote_data = Migrator::decode_meta( (string) ( $item['vote_data'] ?? '' ) );
+		$vote_data = Migrator::normalize_vote_data( Migrator::decode_meta( (string) ( $item['vote_data'] ?? '' ) ) );
 		if ( empty( $vote_data['elements'] ) || ! is_array( $vote_data['elements'] ) ) {
 			return '<div class="yop-log-details" style="margin-top:6px;padding-left:4px"><em>' . esc_html__( 'No details available.', 'yop-poll' ) . '</em></div>';
 		}
