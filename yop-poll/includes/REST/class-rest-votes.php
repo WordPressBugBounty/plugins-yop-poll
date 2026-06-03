@@ -334,6 +334,15 @@ class REST_Votes extends REST_Base {
 			}
 		}
 
+		// ── 8b. Validate end date ─────────────────────────────────────────────
+		$end_date_option = $meta_data['options']['poll']['endDateOption'] ?? 'never';
+		$end_date_custom = $meta_data['options']['poll']['endDateCustom'] ?? '';
+		if ( 'custom' === $end_date_option && ! empty( $end_date_custom ) ) {
+			if ( ( new \DateTime( $end_date_custom ) ) < ( new \DateTime() ) ) {
+				return $this->error( __( 'This poll is no longer accepting votes.', 'yop-poll' ), 422 );
+			}
+		}
+
 		// ── 9. Validate required fields ───────────────────────────────────────
 		$element_model = new Model_Element();
 		$poll_elements = $element_model->get_by_poll( $poll_id );
@@ -499,7 +508,10 @@ class REST_Votes extends REST_Base {
 				if ( 'yes' === ( $el_meta['addOtherAnswers'] ?? 'no' ) ) {
 					$sub_id = $sub_model->find_or_create_other( $poll_id, $element_id, $answer_value, $poll_author );
 					$sub_model->increment_submits( $sub_id );
-				} elseif ( 'yes' === ( $el_meta['displayOtherAnswersInResults'] ?? 'no' ) ) {
+				} elseif ( 'yes' === ( $el_meta['allowOtherAnswers'] ?? 'no' ) ) {
+					// Record the "Other" submission whenever Other answers are allowed, so
+					// the vote is always counted. displayOtherAnswersInResults only controls
+					// whether the individual texts are listed in results, not the tally.
 					$other_model->insert( array(
 						'poll_id'    => $poll_id,
 						'element_id' => $element_id,

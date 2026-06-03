@@ -347,20 +347,11 @@ class Guide {
 			var dismissRow  = overlay.querySelector( '.yop-poll-guide-dismiss-row' );
 			var GENERIC_ERROR = <?php echo wp_json_encode( __( 'Something went wrong. Please try again.', 'yop-poll' ) ); ?>;
 
-			var autoCloseTimer = null;
-			function cancelAutoClose() {
-				if ( autoCloseTimer ) {
-					clearTimeout( autoCloseTimer );
-					autoCloseTimer = null;
-				}
-			}
 			function open() {
 				overlay.classList.add( 'is-open' );
 				try { localStorage.setItem( STORAGE_KEY, today ); } catch ( e ) {}
-				autoCloseTimer = setTimeout( close, 5000 );
 			}
 			function close() {
-				cancelAutoClose();
 				overlay.classList.remove( 'is-open' );
 			}
 
@@ -380,8 +371,6 @@ class Guide {
 			overlay.addEventListener( 'click', function( e ) {
 				if ( e.target === overlay ) close();
 			} );
-			emailIn.addEventListener( 'focus', cancelAutoClose );
-			emailIn.addEventListener( 'input', cancelAutoClose );
 			dismiss.addEventListener( 'click', function( e ) {
 				e.preventDefault();
 				postForm( { action: 'yop_poll_stop_showing_guide', nonce: nonce } )

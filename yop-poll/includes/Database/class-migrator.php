@@ -64,6 +64,25 @@ class Migrator {
 		wp_schedule_single_event( time() + 30, 'yop_poll_run_migration' );
 	}
 
+	/**
+	 * Run lightweight schema column fixes after a plain version update (v7 → v7).
+	 *
+	 * needs_migration() only fires for the v6 → v7 data migration, and WordPress
+	 * does not run the activation hook on a plugin update — so column tweaks added
+	 * in a later release would otherwise never run for existing v7 installs. Gated
+	 * on yop_poll_db_version so it runs once per release.
+	 */
+	public static function maybe_upgrade_schema(): void {
+		if ( get_option( 'yop_poll_db_version', '' ) === YOP_POLL_VERSION ) {
+			return;
+		}
+		// Bump immediately to avoid a double-run on concurrent requests.
+		update_option( 'yop_poll_db_version', YOP_POLL_VERSION );
+		$schema = new Schema();
+		$schema->create_tables();
+		$schema->upgrade();
+	}
+
 	// ─── Phase 1: synchronous ─────────────────────────────────────────────────
 
 	private static function setup(): void {

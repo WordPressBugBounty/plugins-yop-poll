@@ -152,5 +152,15 @@ CREATE TABLE {$prefix}templates (
 			$wpdb->query( "ALTER TABLE {$prefix}elements MODIFY etype varchar(50) NOT NULL" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL, PluginCheck.Security.DirectDB.UnescapedDBParameter -- $prefix is $wpdb->prefix . YOP_POLL_TABLE_PREFIX, both safe identifiers.
 		}
 
+		// other_answers.total_submits_with_weight: a paid edition (platinum) shares this
+		// table and may have created it with this column NOT NULL and no default, which
+		// makes the free version's "Other" answer inserts fail. The column is unused by the
+		// free version; if we find it without a default, add one so inserts succeed. (We do
+		// not drop it, so a paid edition keeps working if it is re-activated.)
+		$oa_col = $wpdb->get_row( "SHOW COLUMNS FROM {$prefix}other_answers LIKE 'total_submits_with_weight'" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL, PluginCheck.Security.DirectDB.UnescapedDBParameter -- $prefix is $wpdb->prefix . YOP_POLL_TABLE_PREFIX, both safe identifiers.
+		if ( $oa_col && 'NO' === $oa_col->Null && null === $oa_col->Default ) {
+			$wpdb->query( "ALTER TABLE {$prefix}other_answers MODIFY total_submits_with_weight int NOT NULL DEFAULT 0" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL, PluginCheck.Security.DirectDB.UnescapedDBParameter -- $prefix is $wpdb->prefix . YOP_POLL_TABLE_PREFIX, both safe identifiers.
+		}
+
 	}
 }

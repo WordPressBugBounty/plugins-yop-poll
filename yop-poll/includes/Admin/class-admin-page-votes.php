@@ -368,10 +368,11 @@ class Admin_Page_Votes {
 			$poll_id
 		), ARRAY_A );
 
-		// Fetch question elements (for column headers).
+		// IN list covers answerable custom-field types whose values live in vote_data
+		// but don't match the question-* prefix; mirrors REST_Votes::$required_types.
 		$like = 'question-%';
 		$elements = $wpdb->get_results( $wpdb->prepare(
-			"SELECT id, etext FROM {$els_table} WHERE poll_id = %d AND status = 'active' AND etype LIKE %s ORDER BY sorder ASC",
+			"SELECT id, etext FROM {$els_table} WHERE poll_id = %d AND status = 'active' AND ( etype LIKE %s OR etype IN ( 'standard-single-line-text', 'standard-multi-line-text', 'advanced-email' ) ) ORDER BY sorder ASC",
 			$poll_id,
 			$like
 		), ARRAY_A );
@@ -424,10 +425,11 @@ class Admin_Page_Votes {
 				$eid     = (int) $el['id'];
 				$answers = [];
 				foreach ( $el['data'] ?? [] as $item ) {
-					$aid = (int) $item['id'];
-					$answers[] = $aid > 0
+					$aid  = (int) $item['id'];
+					$text = $aid > 0
 						? ( $sub_text_map[ $aid ] ?? "#{$aid}" )
 						: ( (string) ( $item['data'][0] ?? '' ) );
+					$answers[] = wp_strip_all_tags( $text );
 				}
 				$detail_map[ (int) $row['id'] ][ $eid ] = implode( ', ', array_filter( $answers ) );
 			}

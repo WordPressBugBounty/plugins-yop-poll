@@ -521,25 +521,31 @@ class REST_Polls extends REST_Base {
 			$has_other          = ( $el_meta['allowOtherAnswers'] ?? 'no' ) === 'yes';
 			$show_other_results = $has_other && ( $el_meta['displayOtherAnswersInResults'] ?? 'no' ) === 'yes';
 
-			if ( $show_other_results ) {
+			if ( $has_other ) {
 				$eid = (int) $element['id'];
 
+				// Count every "Other" submission whenever Other answers are allowed, so the
+				// aggregate "Other" result reflects the real total.
 				$element['other_votes_count'] = (int) $wpdb->get_var( $wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery, PluginCheck.Security.DirectDB.UnescapedDBParameter -- $oa_table built from $wpdb->prefix and a hardcoded suffix; poll-results aggregate, covered by the transient cache around prepare_poll_response().
 					"SELECT COUNT(*) FROM {$oa_table} WHERE poll_id = %d AND element_id = %d AND status = 'active'", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name
 					$poll_id, $eid
 				) );
 
-				$rows = $wpdb->get_results( $wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery, PluginCheck.Security.DirectDB.UnescapedDBParameter -- $oa_table built from $wpdb->prefix and a hardcoded suffix; poll-results aggregate, covered by the transient cache around prepare_poll_response().
-					// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name
-					"SELECT answer, COUNT(*) AS count FROM {$oa_table}
-					 WHERE poll_id = %d AND element_id = %d AND status = 'active'
-					 GROUP BY answer
-					 ORDER BY count DESC, answer ASC",
-					$poll_id, $eid
-				), ARRAY_A );
-				$element['other_answers_list'] = array_map( function( $r ) {
-					return [ 'answer' => $r['answer'], 'count' => (int) $r['count'] ];
-				}, $rows );
+				// Only expose the per-answer breakdown when the poll opts to list individual
+				// Other answers in the results — otherwise the texts stay private.
+				if ( $show_other_results ) {
+					$rows = $wpdb->get_results( $wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery, PluginCheck.Security.DirectDB.UnescapedDBParameter -- $oa_table built from $wpdb->prefix and a hardcoded suffix; poll-results aggregate, covered by the transient cache around prepare_poll_response().
+						// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name
+						"SELECT answer, COUNT(*) AS count FROM {$oa_table}
+						 WHERE poll_id = %d AND element_id = %d AND status = 'active'
+						 GROUP BY answer
+						 ORDER BY count DESC, answer ASC",
+						$poll_id, $eid
+					), ARRAY_A );
+					$element['other_answers_list'] = array_map( function( $r ) {
+						return [ 'answer' => $r['answer'], 'count' => (int) $r['count'] ];
+					}, $rows );
+				}
 			}
 		}
 		unset( $element );

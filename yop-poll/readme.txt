@@ -3,8 +3,8 @@ Contributors: yourownprogrammer
 Donate Link: https://www.yop-poll.com
 Tags: create poll, poll plugin, poll, voting, WordPress poll
 Requires at least: 6.5
-Tested up to: 6.9
-Stable tag: 7.0.3
+Tested up to: 7.0
+Stable tag: 7.0.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -125,6 +125,17 @@ Please report security issues through the [Patchstack Vulnerability Disclosure P
 7. Run multiple polls at the same time — track votes, status, and schedules at a glance
 
 == Changelog ==
+
+= 7.0.4 =
+* added an "Always show the Other text box" option for Other answers (in the poll builder, under "Label for Other Answers"): it's on by default, so the Other text box keeps showing as before; turn it off and the box stays hidden until a visitor selects "Other"
+* fixed not being able to edit answer text in the poll builder: clicking an answer no longer traps the cursor at the start, so labels can be typed, selected, and deleted normally (and the drag handle still reorders answers)
+* fixed the YOP Poll admin menu icon appearing light gray in the new default WordPress color scheme: it now matches the other menu icons in every color scheme
+* fixed the block editor preview not showing the "Other" answer option and its text box: the preview now matches what visitors see
+* fixed polls with a past end date still showing the voting form after upgrading from 6.x: ended polls now hide the Vote button and show your "Poll Ended" message (set under Settings → Messages), so old polls in blog posts stop accepting new votes
+* fixed ended polls still accepting late vote submissions: votes are now also rejected on the server, in case a visitor tries to get around the disabled button
+* fixed CSV export of votes leaving out the custom-field columns (Name, Email, etc.): the exported file now includes a column for each custom field, matching what's shown under each vote in View votes
+* fixed CSV export of votes showing raw HTML tags (like <b>...</b>) in answer cells and triggering an Excel "file format doesn't match the extension" warning: answer text is now exported as plain text, so the file opens cleanly and shows the formatted text without markup
+* fixed "Other" votes not showing up in results: when a question allowed an "Other" answer, those votes were saved but appeared as 0% (and could make the total read 0). Other votes are now counted and shown as an "Other" bar on both the admin Results page and the live poll, with no extra setting required
 
 = 7.0.3 =
 * added "Round percentage" option in Display settings: results can now be shown as whole numbers (e.g. 33% / 67%) instead of with decimals

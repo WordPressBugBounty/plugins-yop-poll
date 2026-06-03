@@ -1,3 +1,4 @@
+<?php if ( ! defined( 'ABSPATH' ) ) exit; ?>
 <div id="yop-main-area" class="yop-poll-upgrade-page">
                 <div class="row">
                     <div class="col-md-1"></div>

@@ -9,7 +9,6 @@ class Admin {
 
 	public function init() {
 		add_action( 'admin_menu', array( $this, 'register_menu' ) );
-		add_action( 'admin_head', array( $this, 'print_menu_icon_styles' ) );
 		add_filter( 'submenu_file', array( $this, 'get_active_submenu' ) );
 		add_filter( 'set_screen_option_yop_poll_polls_per_page', array( $this, 'save_screen_option' ), 10, 3 );
 		add_filter( 'set_screen_option_yop_poll_bans_per_page', array( $this, 'save_screen_option' ), 10, 3 );
@@ -21,22 +20,31 @@ class Admin {
 		return (int) $value;
 	}
 
-	public function print_menu_icon_styles() {
-		$icon = esc_url( YOP_POLL_URL . 'admin/assets/images/menu-icon-20.svg' );
-		// phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped -- $icon is escaped above.
-		echo '<style>'
-			. '#adminmenu #toplevel_page_yop-poll .wp-menu-image img{display:none;}'
-			. '#adminmenu #toplevel_page_yop-poll .wp-menu-image{'
-			.     'background-color:#a7aaad;'
-			.     '-webkit-mask:url(' . $icon . ') no-repeat center/20px;'
-			.     'mask:url(' . $icon . ') no-repeat center/20px;'
-			. '}'
-			. '#adminmenu #toplevel_page_yop-poll:hover .wp-menu-image{background-color:#72aee6;}'
-			. '#adminmenu #toplevel_page_yop-poll.current .wp-menu-image,'
-			. '#adminmenu #toplevel_page_yop-poll.wp-has-current-submenu .wp-menu-image,'
-			. '#adminmenu #toplevel_page_yop-poll.wp-menu-open .wp-menu-image{background-color:#fff;}'
-			. '</style>';
-		// phpcs:enable WordPress.Security.EscapeOutput.OutputNotEscaped
+	/**
+	 * Build the admin-menu icon as a base64-encoded SVG data URI.
+	 *
+	 * Passing the icon this way lets WordPress's core svg-painter.js recolor it to
+	 * match the active admin color scheme — white in the "Default" (modern) scheme,
+	 * gray in "Classic", and so on — exactly like the native dashicons. This avoids
+	 * hardcoding colors, which previously locked the icon to the old Classic gray and
+	 * made it stand out against the white icons in the WordPress default scheme.
+	 *
+	 * Falls back to a dashicon if the bundled SVG can't be read.
+	 *
+	 * @return string
+	 */
+	private function get_menu_icon() {
+		$file = YOP_POLL_DIR . 'admin/assets/images/menu-icon-20.svg';
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reading a bundled static asset, not a remote resource.
+		$svg = is_readable( $file ) ? file_get_contents( $file ) : '';
+
+		if ( '' === $svg ) {
+			return 'dashicons-chart-bar';
+		}
+
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- Required to build the inline SVG data URI WordPress recolors via svg-painter.js.
+		return 'data:image/svg+xml;base64,' . base64_encode( $svg );
 	}
 
 	public function register_menu() {
@@ -46,7 +54,7 @@ class Admin {
 			'yop_poll_results_own',
 			'yop-poll',
 			'',
-			YOP_POLL_URL . 'admin/assets/images/menu-icon-20.svg',
+			$this->get_menu_icon(),
 			30
 		);
 
