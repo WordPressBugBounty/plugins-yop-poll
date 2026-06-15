@@ -37,18 +37,15 @@ class REST_Settings extends REST_Base {
 					'from-email' => 'Your Email Address Here',
 					'recipients' => '',
 					'subject'    => 'New vote for %POLL-NAME% on %VOTE-DATE%',
-					'message'    => "There is a new vote for %POLL-NAME%
-
-Here are the details
-
-[QUESTION]
-Question - %QUESTION-TEXT%
-Answer - %ANSWER-VALUE%
-[/QUESTION]
-
-[CUSTOM_FIELDS]
-%CUSTOM_FIELD_NAME% - %CUSTOM_FIELD_VALUE%
-[/CUSTOM_FIELDS]",
+					'message'    => '<p>There is a new vote for %POLL-NAME%</p>'
+						. '<p>Here are the details</p>'
+						. '<p>[QUESTION]</p>'
+						. '<p>Question - %QUESTION-TEXT%</p>'
+						. '<p>Answer - %ANSWER-VALUE%</p>'
+						. '<p>[/QUESTION]</p>'
+						. '<p>[CUSTOM_FIELDS]</p>'
+						. '<p>%CUSTOM_FIELD_NAME% - %CUSTOM_FIELD_VALUE%</p>'
+						. '<p>[/CUSTOM_FIELDS]</p>',
 				),
 				'automatically-reset-votes' => array(
 					'from-name'  => 'Your Name Here',

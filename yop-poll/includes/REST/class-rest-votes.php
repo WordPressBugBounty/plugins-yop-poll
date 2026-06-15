@@ -736,9 +736,14 @@ class REST_Votes extends REST_Base {
 			array( $poll['name'], $vote_date ),
 			$subject
 		);
-		$message = $this->expand_new_vote_template( $message, $poll, $elements, $answers, $vote_date );
+		$message_is_html = (bool) preg_match( '/<[a-z][\s\S]*>/i', $message );
+		$message         = $this->expand_new_vote_template( $message, $poll, $elements, $answers, $vote_date );
+		if ( ! $message_is_html ) {
+			// Legacy plain-text template: preserve line breaks now that we send HTML.
+			$message = nl2br( $message );
+		}
 
-		$headers = array( 'Content-Type: text/plain; charset=UTF-8' );
+		$headers = array( 'Content-Type: text/html; charset=UTF-8' );
 		if ( $from_name && $from_email ) {
 			$headers[] = 'From: ' . $from_name . ' <' . $from_email . '>';
 		} elseif ( $from_email ) {
@@ -755,6 +760,20 @@ class REST_Votes extends REST_Base {
 		$tpl = str_replace(
 			array( '%POLL-NAME%', '%VOTE-DATE%' ),
 			array( $poll['name'], $vote_date ),
+			$tpl
+		);
+
+		// Quill wraps each block marker in its own <p>. Strip those wrappers down to
+		// bare markers so the block parser below works for both plain-text and HTML
+		// messages (and so no empty <p></p> leaks into the email).
+		$tpl = preg_replace(
+			array(
+				'/<p>\s*\[QUESTION\]\s*<\/p>/i',
+				'/<p>\s*\[\/QUESTION\]\s*<\/p>/i',
+				'/<p>\s*\[CUSTOM_FIELDS\]\s*<\/p>/i',
+				'/<p>\s*\[\/CUSTOM_FIELDS\]\s*<\/p>/i',
+			),
+			array( '[QUESTION]', '[/QUESTION]', '[CUSTOM_FIELDS]', '[/CUSTOM_FIELDS]' ),
 			$tpl
 		);
 

@@ -51,6 +51,19 @@ class Assets {
 		wp_style_add_data( 'yop-poll-admin', 'rtl', 'replace' );
 		wp_style_add_data( 'yop-poll-admin', 'suffix', '' );
 
+		// JS-imported third-party CSS (Quill snow theme) is extracted by wp-scripts
+		// into build/admin.css, separate from the style.css-derived style-admin.css.
+		if ( file_exists( YOP_POLL_DIR . 'build/admin.css' ) ) {
+			wp_enqueue_style(
+				'yop-poll-admin-vendor',
+				YOP_POLL_URL . 'build/admin.css',
+				array( 'yop-poll-admin' ),
+				$asset['version']
+			);
+			wp_style_add_data( 'yop-poll-admin-vendor', 'rtl', 'replace' );
+			wp_style_add_data( 'yop-poll-admin-vendor', 'suffix', '' );
+		}
+
 		$wp_roles = wp_roles();
 		$roles    = array();
 		foreach ( $wp_roles->roles as $slug => $role ) {

@@ -4,7 +4,7 @@ Donate Link: https://www.yop-poll.com
 Tags: create poll, poll plugin, poll, voting, WordPress poll
 Requires at least: 6.5
 Tested up to: 7.0
-Stable tag: 7.0.4
+Stable tag: 7.0.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -125,6 +125,10 @@ Please report security issues through the [Patchstack Vulnerability Disclosure P
 7. Run multiple polls at the same time — track votes, status, and schedules at a glance
 
 == Changelog ==
+
+= 7.0.5 =
+* added a visual editor for the new-vote email notification message (in each poll's Options tab and under Settings → Notifications): the message can now be formatted with bold, italic, underline, bulleted and numbered lists, text color, and links, with an "Insert tag" menu in the toolbar for placeholders like poll name, vote date, and the question/answer block. Notification emails are now sent as HTML so your formatting shows up in the inbox, and existing plain-text messages keep working as before.
+* fixed ended polls not showing results when results are set to display "After vote": since no one can vote once a poll closes, visitors would never see the outcome. Ended polls now show the results to everyone (with the real vote counts) instead of a Vote button that no longer works. Polls set to never show results still keep them hidden.
 
 = 7.0.4 =
 * added an "Always show the Other text box" option for Other answers (in the poll builder, under "Label for Other Answers"): it's on by default, so the Other text box keeps showing as before; turn it off and the box stays hidden until a visitor selects "Other"

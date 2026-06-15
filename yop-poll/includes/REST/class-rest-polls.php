@@ -437,7 +437,18 @@ class REST_Polls extends REST_Base {
 					$include_counts = true;
 				}
 			}
-			// 'after-vote': server cannot verify; exclude counts (client checks already_voted).
+			// 'after-vote': once the poll has closed nobody new can vote, so reveal
+			// the results to everyone — otherwise visitors who never voted could
+			// never see them. (While the poll is open the client still gates on
+			// already_voted; the server cannot verify that here.)
+			if ( ! $include_counts && in_array( 'after-vote', $show_results_raw, true ) ) {
+				$poll_section = $data['poll']['meta_data']['options']['poll'] ?? [];
+				$end_opt      = $poll_section['endDateOption'] ?? 'never';
+				$end_date     = $poll_section['endDateCustom'] ?? '';
+				if ( 'custom' === $end_opt && $end_date && strtotime( $end_date ) <= time() ) {
+					$include_counts = true;
+				}
+			}
 			// 'never': never include counts.
 		}
 
