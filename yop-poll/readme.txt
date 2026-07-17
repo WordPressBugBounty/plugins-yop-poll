@@ -4,7 +4,7 @@ Donate Link: https://www.yop-poll.com
 Tags: create poll, poll plugin, poll, voting, WordPress poll
 Requires at least: 6.5
 Tested up to: 7.0
-Stable tag: 7.0.5
+Stable tag: 7.0.6
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -125,6 +125,11 @@ Please report security issues through the [Patchstack Vulnerability Disclosure P
 7. Run multiple polls at the same time — track votes, status, and schedules at a glance
 
 == Changelog ==
+
+= 7.0.6 =
+* fixed a security issue that let someone get around the "Block Voters by IP" restriction by faking their IP address, casting unlimited votes on a public poll. The plugin now uses the visitor's real connection address by default, and only reads a forwarded-IP header when you turn on "Use Custom Headers When Retrieving IPs" (Settings → General) for a trusted reverse-proxy setup. Thanks to security researcher Melina Lentini (M3l3n) for the responsible disclosure.
+* fixed the poll builder sometimes showing an error and stopping when you save — most often right after adding a question and formatting its text: saving is now reliable. The element you were editing also stays selected after saving, so its options panel no longer clears and you can keep working on it.
+* fixed votes being lost when a poll only allows logged-in users and the visitor creates a new account to vote: previously the login window would end up on the account page and the vote was never recorded. The poll now detects when the visitor is signed in — whether they log in or register a new account (including via WooCommerce) — and submits their vote automatically.
 
 = 7.0.5 =
 * added a visual editor for the new-vote email notification message (in each poll's Options tab and under Settings → Notifications): the message can now be formatted with bold, italic, underline, bulleted and numbered lists, text color, and links, with an "Insert tag" menu in the toolbar for placeholders like poll name, vote date, and the question/answer block. Notification emails are now sent as HTML so your formatting shows up in the inbox, and existing plain-text messages keep working as before.

@@ -45,16 +45,45 @@ abstract class REST_Base extends \WP_REST_Controller {
 	}
 
 	public function get_client_ip() {
-		$ip = '';
-		if ( ! empty( $_SERVER['HTTP_CLIENT_IP'] ) ) {
-			$ip = sanitize_text_field( wp_unslash( $_SERVER['HTTP_CLIENT_IP'] ) );
-		} elseif ( ! empty( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ) {
-			$ip = sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_FORWARDED_FOR'] ) );
-			$ip = explode( ',', $ip )[0];
-		} elseif ( ! empty( $_SERVER['REMOTE_ADDR'] ) ) {
-			$ip = sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) );
+		$remote_addr = ! empty( $_SERVER['REMOTE_ADDR'] )
+			? trim( sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) )
+			: '';
+
+		// By default, trust only the connection's origin address. Client-controlled
+		// forwarding headers (Client-IP, X-Forwarded-For) are consulted ONLY when the
+		// admin has explicitly opted in for a known reverse-proxy setup. This prevents
+		// an unauthenticated attacker from spoofing the header to rotate their IP and
+		// bypass the "Block Voters by IP" restriction. See CVE-2022-1600.
+		if ( ! $this->trust_proxy_headers() ) {
+			return $remote_addr;
 		}
-		return trim( $ip );
+
+		if ( ! empty( $_SERVER['HTTP_CLIENT_IP'] ) ) {
+			$ip = trim( sanitize_text_field( wp_unslash( $_SERVER['HTTP_CLIENT_IP'] ) ) );
+			if ( filter_var( $ip, FILTER_VALIDATE_IP ) ) {
+				return $ip;
+			}
+		}
+		if ( ! empty( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ) {
+			$forwarded = sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_FORWARDED_FOR'] ) );
+			$ip        = trim( explode( ',', $forwarded )[0] );
+			if ( filter_var( $ip, FILTER_VALIDATE_IP ) ) {
+				return $ip;
+			}
+		}
+
+		return $remote_addr;
+	}
+
+	/**
+	 * Whether the admin has opted in to trusting client-supplied proxy headers
+	 * (X-Forwarded-For / Client-IP) when determining the voter's IP.
+	 */
+	protected function trust_proxy_headers() {
+		$settings = json_decode( get_option( 'yop_poll_settings', 'false' ), true );
+		return is_array( $settings )
+			&& isset( $settings['general']['use-custom-headers-for-ip'] )
+			&& 'yes' === $settings['general']['use-custom-headers-for-ip'];
 	}
 
 	protected function build_date_interval( int $number, string $unit ): ?\DateInterval {
