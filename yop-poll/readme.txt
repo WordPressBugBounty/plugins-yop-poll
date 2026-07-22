@@ -4,7 +4,7 @@ Donate Link: https://www.yop-poll.com
 Tags: create poll, poll plugin, poll, voting, WordPress poll
 Requires at least: 6.5
 Tested up to: 7.0
-Stable tag: 7.0.6
+Stable tag: 7.0.7
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -125,6 +125,9 @@ Please report security issues through the [Patchstack Vulnerability Disclosure P
 7. Run multiple polls at the same time — track votes, status, and schedules at a glance
 
 == Changelog ==
+
+= 7.0.7 =
+* added the ability to customize the vote button's "Submitting…" text — the label shown on the button while a vote is being sent: it's now editable under Settings → Messages → Vote Buttons, next to the other button labels, and still falls back to the translatable default "Submitting…" when left blank.
 
 = 7.0.6 =
 * fixed a security issue that let someone get around the "Block Voters by IP" restriction by faking their IP address, casting unlimited votes on a public poll. The plugin now uses the visitor's real connection address by default, and only reads a forwarded-IP header when you turn on "Use Custom Headers When Retrieving IPs" (Settings → General) for a trusted reverse-proxy setup. Thanks to security researcher Melina Lentini (M3l3n) for the responsible disclosure.

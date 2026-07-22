@@ -141,10 +141,11 @@ class Seeder {
 			),
 			'messages' => array(
 				'buttons' => array(
-					'anonymous' => 'Anonymous Vote',
-					'wordpress' => 'Sign in with WordPress',
-					'facebook'  => 'Sign in with Facebook',
-					'google'    => 'Sign in with Google',
+					'anonymous'  => 'Anonymous Vote',
+					'wordpress'  => 'Sign in with WordPress',
+					'facebook'   => 'Sign in with Facebook',
+					'google'     => 'Sign in with Google',
+					'submitting' => 'Submitting…',
 				),
 				'voting' => array(
 					'poll-ended'                      => 'This poll is no longer accepting votes',
