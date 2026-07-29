@@ -38,6 +38,9 @@ class Plugin {
 
 			$guide = new Admin\Guide();
 			$guide->init();
+
+			$deactivation_feedback = new Admin\Deactivation_Feedback();
+			$deactivation_feedback->init();
 		}
 
 		// Frontend.

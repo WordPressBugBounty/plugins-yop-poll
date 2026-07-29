@@ -4,7 +4,7 @@ Donate Link: https://www.yop-poll.com
 Tags: create poll, poll plugin, poll, voting, WordPress poll
 Requires at least: 6.5
 Tested up to: 7.0
-Stable tag: 7.0.7
+Stable tag: 7.0.8
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -125,6 +125,9 @@ Please report security issues through the [Patchstack Vulnerability Disclosure P
 7. Run multiple polls at the same time — track votes, status, and schedules at a glance
 
 == Changelog ==
+
+= 7.0.8 =
+* fixed the admin poll results screen listing answers in their saved order instead of by popularity: the results view (under YOP Poll → the poll's Results) now shows the most-voted answer first, matching the classic ranking, so the leading option is always at the top.
 
 = 7.0.7 =
 * added the ability to customize the vote button's "Submitting…" text — the label shown on the button while a vote is being sent: it's now editable under Settings → Messages → Vote Buttons, next to the other button labels, and still falls back to the translatable default "Submitting…" when left blank.
