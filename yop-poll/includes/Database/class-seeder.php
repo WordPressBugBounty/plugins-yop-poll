@@ -42,7 +42,7 @@ class Seeder {
 		$now = current_time( 'mysql' );
 
 		$classic_opts = wp_json_encode( array(
-			'poll'      => array( 'backgroundColor' => '#ffffff', 'borderSize' => 0, 'borderStyle' => 'none', 'borderColor' => '#ffffff', 'borderRadius' => 8, 'paddingLeftRight' => 10, 'paddingTopBottom' => 10 ),
+			'poll'      => array( 'backgroundColor' => '#ffffff', 'backgroundImageId' => 0, 'backgroundImageUrl' => '', 'backgroundSize' => 'cover', 'backgroundPosition' => 'center center', 'backgroundRepeat' => 'no-repeat', 'borderSize' => 0, 'borderStyle' => 'none', 'borderColor' => '#ffffff', 'borderRadius' => 8, 'paddingLeftRight' => 10, 'paddingTopBottom' => 10 ),
 			'questions' => array( 'paddingLeftRight' => 0, 'paddingTopBottom' => 10, 'textColor' => '#000000', 'textSize' => 16, 'textWeight' => 'normal', 'textAlign' => 'center' ),
 			'answers'   => array( 'paddingLeftRight' => 0, 'paddingTopBottom' => 4, 'textColor' => '#000000', 'textSize' => 14, 'textWeight' => 'normal' ),
 			'buttons'   => array( 'backgroundColor' => '#ffffff', 'borderSize' => 1, 'borderStyle' => 'solid', 'borderColor' => '#000000', 'borderRadius' => 5, 'paddingLeftRight' => 16, 'paddingTopBottom' => 6, 'textColor' => '#000000', 'textSize' => 14, 'textWeight' => 'normal', 'align' => 'center' ),

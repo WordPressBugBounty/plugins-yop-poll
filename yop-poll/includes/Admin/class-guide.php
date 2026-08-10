@@ -16,6 +16,15 @@ class Guide {
 	}
 
 	public static function should_show() {
+		$action_params = array( 'saved', 'cloned', 'deleted', 'votes_reset' );
+		foreach ( $action_params as $param ) {
+			// These read-only flags identify redirects after a completed poll action.
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			if ( isset( $_GET[ $param ] ) && '1' === sanitize_text_field( wp_unslash( $_GET[ $param ] ) ) ) {
+				return false;
+			}
+		}
+
 		$settings = self::read_settings();
 		$value    = $settings['general']['show-guide'] ?? 'yes';
 		return 'no' !== $value;

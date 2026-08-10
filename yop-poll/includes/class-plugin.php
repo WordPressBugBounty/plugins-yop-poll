@@ -38,6 +38,15 @@ class Plugin {
 
 			$guide = new Admin\Guide();
 			$guide->init();
+
+			// This bootstrap runs on plugins_loaded for every request, so an
+			// unresolved class here is a fatal that takes down wp-admin and the
+			// front end. A packaging slip that drops one optional file must cost
+			// the feature, not the site.
+			if ( class_exists( Admin\Deactivation_Feedback::class ) ) {
+				$deactivation_feedback = new Admin\Deactivation_Feedback();
+				$deactivation_feedback->init();
+			}
 		}
 
 		// Frontend.

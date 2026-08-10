@@ -88,7 +88,14 @@ class Capabilities {
 			if ( ! self::role_exists( $role ) ) {
 				continue;
 			}
+			// role_exists() reads $wp_roles->roles, get_role() reads
+			// $wp_roles->role_objects. Role-manager plugins can populate the
+			// first without the second, so a role can "exist" and still have no
+			// object. Calling add_cap() on that null is a fatal on PHP 8.
 			$role_obj = get_role( $role );
+			if ( ! $role_obj instanceof \WP_Role ) {
+				continue;
+			}
 			foreach ( $capabilities as $capability => $value ) {
 				if ( $value ) {
 					$role_obj->add_cap( $capability );
@@ -103,6 +110,9 @@ class Capabilities {
 				continue;
 			}
 			$role_obj = get_role( $role );
+			if ( ! $role_obj instanceof \WP_Role ) {
+				continue;
+			}
 			foreach ( $capabilities as $capability => $value ) {
 				$role_obj->remove_cap( $capability );
 			}

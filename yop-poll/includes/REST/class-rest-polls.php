@@ -9,6 +9,7 @@ use YopPoll\Models\Model_Vote;
 use YopPoll\Validation\Poll_Validator;
 use YopPoll\Database\Migrator;
 use YopPoll\Helpers\Permissions;
+use YopPoll\Helpers\Sanitizer;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -138,6 +139,7 @@ class REST_Polls extends REST_Base {
 
 	public function create_item( $request ) {
 		$body = $request->get_json_params();
+		$body['meta_data'] = Sanitizer::sanitize_poll_meta_data( $body['meta_data'] ?? array() );
 
 		$errors = ( new Poll_Validator() )->validate( $body, $body['elements'] ?? [] );
 		if ( ! empty( $errors ) ) {
@@ -199,6 +201,7 @@ class REST_Polls extends REST_Base {
 		}
 
 		$body = $request->get_json_params();
+		$body['meta_data'] = Sanitizer::sanitize_poll_meta_data( $body['meta_data'] ?? array() );
 
 		$errors = ( new Poll_Validator() )->validate(
 			array_merge( $poll, $body ),
@@ -602,6 +605,14 @@ class REST_Polls extends REST_Base {
 	 */
 	private static function prepare_poll_response( array $poll ): array {
 		$poll['meta_data'] = Migrator::decode_meta( $poll['meta_data'] ?? '' );
+
+		// The `status` column is the single source of truth. Older rows may carry a
+		// legacy meta_data.options.poll.status that is absent (polls migrated from 6.x,
+		// where status lived only in the column) or stale. Overwrite it so no consumer
+		// can read the stale copy as authoritative.
+		if ( isset( $poll['status'] ) ) {
+			$poll['meta_data']['options']['poll']['status'] = $poll['status'];
+		}
 
 		// Merge template defaults + per-poll overrides.
 		$tmpl_row = null;

@@ -4,7 +4,7 @@ Donate Link: https://www.yop-poll.com
 Tags: create poll, poll plugin, poll, voting, WordPress poll
 Requires at least: 6.5
 Tested up to: 7.0
-Stable tag: 7.0.7
+Stable tag: 7.0.9
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -125,6 +125,15 @@ Please report security issues through the [Patchstack Vulnerability Disclosure P
 7. Run multiple polls at the same time — track votes, status, and schedules at a glance
 
 == Changelog ==
+
+= 7.0.9 =
+* added a YOP Poll widget for Elementor: choose any published poll from the widget settings, optionally display results only, and preview the poll directly in the Elementor editor without copying a shortcode.
+* added the ability to use an image as the poll background: choose an image from the WordPress Media Library under Design → Poll Container, then control its size, position, and repeat behavior. The background is shown immediately in the builder preview and on the published poll, and can be changed or removed at any time.
+* improved answer discoverability in the poll builder: selecting a question now opens the extra options for its first answer — "Set As Default", "Make it a link" and the results color — instead of leaving them behind an expand button that is easy to overlook. This works on both new and existing polls. Collapse the panel and it stays collapsed while you keep working on that question.
+* fixed a poll showing as "Draft" in the polls list while its own Options tab showed "Published". The poll stayed hidden on your site, and it could not be fixed from the editor: because the Status dropdown already displayed "Published", choosing it changed nothing, so every save quietly kept the poll as a draft while still reporting "Poll saved successfully". This affected polls whose status had never been changed in the new poll builder — most often drafts carried over from the classic 6.x plugin, and copies made from a draft poll. The Status dropdown now always shows the poll's real status, so switching a draft to Published takes effect immediately. Existing polls are corrected as soon as you open them — nothing needs to be re-saved or re-imported.
+
+= 7.0.8 =
+* fixed the admin poll results screen listing answers in their saved order instead of by popularity: the results view (under YOP Poll → the poll's Results) now shows the most-voted answer first, matching the classic ranking, so the leading option is always at the top.
 
 = 7.0.7 =
 * added the ability to customize the vote button's "Submitting…" text — the label shown on the button while a vote is being sent: it's now editable under Settings → Messages → Vote Buttons, next to the other button labels, and still falls back to the translatable default "Submitting…" when left blank.

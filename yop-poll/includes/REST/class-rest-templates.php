@@ -2,6 +2,7 @@
 namespace YopPoll\REST;
 
 use YopPoll\Database\Seeder;
+use YopPoll\Helpers\Sanitizer;
 use YopPoll\Models\Model_Template;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -55,6 +56,9 @@ class REST_Templates extends REST_Base {
 		}
 
 		$options = $body['options'] ?? [];
+		if ( isset( $options['poll'] ) ) {
+			$options['poll'] = Sanitizer::sanitize_poll_container_style( $options['poll'] );
+		}
 		$now     = current_time( 'mysql' );
 		$model   = new Model_Template();
 
