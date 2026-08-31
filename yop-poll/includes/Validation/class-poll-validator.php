@@ -135,6 +135,8 @@ class Poll_Validator {
 		if ( 'yes' !== ( $m['sendEmailNotifications'] ?? 'no' ) ) return;
 		if ( empty( trim( $m['emailNotificationsFromName']   ?? '' ) ) ) $this->errors[] = __( 'From Name is required for Email Notifications.', 'yop-poll' );
 		if ( empty( trim( $m['emailNotificationsFromEmail']  ?? '' ) ) ) $this->errors[] = __( 'From Email is required for Email Notifications.', 'yop-poll' );
+		// An address wp_mail() cannot use stops the notification from being sent at all.
+		elseif ( ! is_email( trim( $m['emailNotificationsFromEmail'] ) ) ) $this->errors[] = __( 'From Email must be a valid email address.', 'yop-poll' );
 		if ( empty( trim( $m['emailNotificationsRecipients'] ?? '' ) ) ) $this->errors[] = __( 'Recipients are required for Email Notifications.', 'yop-poll' );
 		if ( empty( trim( $m['emailNotificationsSubject']    ?? '' ) ) ) $this->errors[] = __( 'Subject is required for Email Notifications.', 'yop-poll' );
 		if ( empty( trim( $m['emailNotificationsMessage']    ?? '' ) ) ) $this->errors[] = __( 'Message is required for Email Notifications.', 'yop-poll' );

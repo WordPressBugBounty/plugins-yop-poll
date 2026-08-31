@@ -33,8 +33,8 @@ class REST_Settings extends REST_Base {
 			),
 			'notifications' => array(
 				'new-vote' => array(
-					'from-name'  => 'Your Name Here',
-					'from-email' => 'Your Email Address Here',
+					'from-name'  => get_bloginfo( 'name' ),
+					'from-email' => get_option( 'admin_email' ),
 					'recipients' => '',
 					'subject'    => 'New vote for %POLL-NAME% on %VOTE-DATE%',
 					'message'    => '<p>There is a new vote for %POLL-NAME%</p>'
@@ -48,8 +48,8 @@ class REST_Settings extends REST_Base {
 						. '<p>[/CUSTOM_FIELDS]</p>',
 				),
 				'automatically-reset-votes' => array(
-					'from-name'  => 'Your Name Here',
-					'from-email' => 'Your Email Address Here',
+					'from-name'  => get_bloginfo( 'name' ),
+					'from-email' => get_option( 'admin_email' ),
 					'recipients' => '',
 					'subject'    => 'Stats for %POLL-NAME% on %RESET-DATE%',
 					'message'    => "Poll - %POLL-NAME%
@@ -124,6 +124,17 @@ Reset Date - %RESET-DATE%
 		$raw    = get_option( $this->option_key, 'false' );
 		$saved  = json_decode( $raw, true ) ?? array();
 		$merged = array_replace_recursive( $this->get_defaults(), $saved );
+
+		// Installs seeded by earlier versions hold the "Your Email Address Here"
+		// placeholder as the sender. wp_mail() rejects it and drops the message,
+		// so show the site's own identity instead of an address that cannot send.
+		foreach ( array_keys( $merged['notifications'] ?? array() ) as $key ) {
+			if ( ! is_email( $merged['notifications'][ $key ]['from-email'] ?? '' ) ) {
+				$merged['notifications'][ $key ]['from-email'] = get_option( 'admin_email' );
+				$merged['notifications'][ $key ]['from-name']  = get_bloginfo( 'name' );
+			}
+		}
+
 		return $this->success( $merged );
 	}
 

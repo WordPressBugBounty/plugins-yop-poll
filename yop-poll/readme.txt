@@ -3,8 +3,8 @@ Contributors: yourownprogrammer
 Donate Link: https://www.yop-poll.com
 Tags: create poll, poll plugin, poll, voting, WordPress poll
 Requires at least: 6.5
-Tested up to: 7.0
-Stable tag: 7.0.9
+Tested up to: 7.1
+Stable tag: 7.0.10
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -125,6 +125,17 @@ Please report security issues through the [Patchstack Vulnerability Disclosure P
 7. Run multiple polls at the same time — track votes, status, and schedules at a glance
 
 == Changelog ==
+
+= 7.0.10 =
+* Fixed an issue where polls could appear as a blank space on some websites using speed or performance tools, such as WP Rocket. Visitors could not see the question or answers, and could not vote. Polls now display and work normally without needing to change any settings or re-save polls.
+* Improved the message shown when a poll cannot load. Instead of leaving an empty space on the page, visitors will now see: "Failed to load poll."
+* Fixed an issue where signed-in visitors could see poll results showing 0 votes and 0% for every answer, even when the poll already had votes. Visitors who are allowed to see results will now see the correct totals. No changes or re-saving are needed.
+* Fixed an extra "other answer" line appearing in poll results with 0 votes. The combined "other" result will now only appear when visitors have actually submitted other answers.
+* Fixed the "Show results after poll end date" setting for polls imported from version 6.x. The setting now works correctly and shows its saved value in the poll editor. No re-saving is needed.
+* Fixed voting on polls protected by reCAPTCHA v3. Previously, visitors could see a website error after clicking Vote, and their vote was not recorded. Voting now works normally, and the reCAPTCHA score setting is used correctly. If no score is entered, the default score is 0.5.
+* Fixed an issue where CAPTCHA checks - such as reCAPTCHA v2, hCaptcha, or Cloudflare Turnstile - could sometimes fail to appear. This could leave visitors unable to vote, especially on slower connections or pages with several polls. Polls now wait for the CAPTCHA service to be ready before showing it.
+* Fixed vote notification emails that displayed placeholder text instead of real details. For example, emails could show %POLL_NAME% rather than the name of the poll, or %VOTER-EMAIL% rather than the voter’s email address. Existing notification emails from version 6.x will now correctly include the poll name, question, vote date, voter details, and answers. No changes or re-saving are needed.
+* Fixed an issue where vote notification emails were not sent when the sender address was still set to the default "Your Email Address Here" text. Emails will now use your website’s default sending address if no valid sender email has been entered. New polls will now use your site administrator email as the default sender address, and the poll editor will not allow an invalid email address to be saved. If an older poll still uses "Your Email Address Here," open the poll, enter a real email address under Options → Notifications → From Email, and save the poll.
 
 = 7.0.9 =
 * added a YOP Poll widget for Elementor: choose any published poll from the widget settings, optionally display results only, and preview the poll directly in the Elementor editor without copying a shortcode.

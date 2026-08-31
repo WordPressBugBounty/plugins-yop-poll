@@ -115,7 +115,37 @@ class Shortcode {
 			wp_enqueue_style( $handle . '-rtl' );
 		}
 
-		$poll_data          = REST_Polls::sanitize_for_public( REST_Polls::get_cached_poll_data( $poll_id ), $force_counts );
+		// For logged-in users we can compute already_voted server-side using by-ip and
+		// by-user-id blocks — embedding it in initialData lets React show results on
+		// first paint instead of flashing the voting form before Effect 2 resolves.
+		// by-cookie blocks still require the client-side check (voter_id is in
+		// localStorage), and are mitigated by the yop_poll_voted_at_<id> hint.
+		$already_voted = false;
+		if ( is_user_logged_in() ) {
+			$meta    = Migrator::decode_meta( $poll['meta_data'] ?? '' );
+			$access  = $meta['options']['access'] ?? array();
+			$rest    = new REST_Polls();
+			$wp_user = wp_get_current_user();
+			$already_voted = ! $rest->check_blocks(
+				$access,
+				new Model_Vote(),
+				$poll_id,
+				$rest->get_client_ip(),
+				get_current_user_id(),
+				'', // voter_id — only known on the client
+				'', // tracking_id
+				'', // fingerprint — pro-only
+				$wp_user ? sanitize_email( $wp_user->user_email ) : ''
+			);
+		}
+
+		// Include counts whenever the viewer is entitled to results — either the
+		// shortcode forces them, or we determined this (logged-in) visitor already
+		// voted. Computing already_voted BEFORE sanitizing keeps initialData
+		// internally consistent: already_voted ⟹ counts present, so the results view
+		// never paints as "0 votes" for a visitor it is about to show results to.
+		// (Mirrors get_results(), which passes already_voted as force_counts.)
+		$poll_data          = REST_Polls::sanitize_for_public( REST_Polls::get_cached_poll_data( $poll_id ), $force_counts || $already_voted );
 		$poll_data['nonce'] = wp_create_nonce( 'yop_poll_vote_' . $poll_id );
 
 		global $wp;
@@ -129,30 +159,8 @@ class Shortcode {
 			? $tracking_id
 			: home_url( $wp->request );
 
-		// For logged-in users we can compute already_voted server-side using by-ip and
-		// by-user-id blocks — embedding it in initialData lets React show results on
-		// first paint instead of flashing the voting form before Effect 2 resolves.
-		// by-cookie blocks still require the client-side check (voter_id is in
-		// localStorage), and are mitigated by the yop_poll_voted_at_<id> hint.
-		if ( is_user_logged_in() ) {
-			$meta   = Migrator::decode_meta( $poll['meta_data'] ?? '' );
-			$access = $meta['options']['access'] ?? array();
-			$rest   = new REST_Polls();
-			$wp_user = wp_get_current_user();
-			$blocked = ! $rest->check_blocks(
-				$access,
-				new Model_Vote(),
-				$poll_id,
-				$rest->get_client_ip(),
-				get_current_user_id(),
-				'', // voter_id — only known on the client
-				'', // tracking_id
-				'', // fingerprint — pro-only
-				$wp_user ? sanitize_email( $wp_user->user_email ) : ''
-			);
-			if ( $blocked ) {
-				$poll_data['already_voted'] = true;
-			}
+		if ( $already_voted ) {
+			$poll_data['already_voted'] = true;
 		}
 
 		return sprintf(

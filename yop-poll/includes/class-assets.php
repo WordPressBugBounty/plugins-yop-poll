@@ -77,8 +77,8 @@ class Assets {
 		$settings    = is_array( $settings ) ? $settings : array();
 		$reset_notif = array_replace(
 			array(
-				'from-name'  => 'Your Name Here',
-				'from-email' => 'Your Email Address Here',
+				'from-name'  => get_bloginfo( 'name' ),
+				'from-email' => get_option( 'admin_email' ),
 				'recipients' => '',
 				'subject'    => 'Stats for %POLL-NAME% on %RESET-DATE%',
 				'message'    => "Poll - %POLL-NAME%\nReset Date - %RESET-DATE%\n\n[RESULTS]\n%QUESTION-TEXT%\n[ANSWERS]\n%ANSWER-TEXT% - %ANSWER-VOTES% votes - %ANSWER-PERCENTAGES%\n[/ANSWERS]\n\n[OTHER-ANSWERS]\n%ANSWER-TEXT% - %ANSWER-VOTES% votes\n[/OTHER-ANSWERS]\n[/RESULTS]",
@@ -87,14 +87,21 @@ class Assets {
 		);
 		$new_vote_notif = array_replace(
 			array(
-				'from-name'  => 'Your Name Here',
-				'from-email' => 'Your Email Address Here',
+				'from-name'  => get_bloginfo( 'name' ),
+				'from-email' => get_option( 'admin_email' ),
 				'recipients' => '',
 				'subject'    => 'New vote for %POLL-NAME% on %VOTE-DATE%',
 				'message'    => "There is a new vote for %POLL-NAME%\n\nHere are the details\n\n[QUESTION]\nQuestion - %QUESTION-TEXT%\nAnswer - %ANSWER-VALUE%\n[/QUESTION]\n\n[CUSTOM_FIELDS]\n%CUSTOM_FIELD_NAME% - %CUSTOM_FIELD_VALUE%\n[/CUSTOM_FIELDS]",
 			),
 			$settings['notifications']['new-vote'] ?? array()
 		);
+
+		// Installs seeded by earlier versions carry the "Your Email Address Here"
+		// placeholder as the sender. Prefilling a poll with it produces a From
+		// header wp_mail() refuses, so fall back to the site's own identity.
+		$reset_notif    = self::usable_sender( $reset_notif );
+		$new_vote_notif = self::usable_sender( $new_vote_notif );
+
 		$integrations = $settings['integrations'] ?? array();
 		wp_localize_script( 'yop-poll-admin', 'yopPoll', array(
 			'restUrl'  => rest_url( 'yop-poll/v1/' ),
@@ -128,6 +135,28 @@ class Assets {
 		) );
 	}
 
+	/**
+	 * Replace an unusable notification sender with the site's own identity.
+	 *
+	 * wp_mail() runs the From address through PHPMailer::setFrom() before it sends
+	 * anything, and an address it rejects aborts the whole message. Anything that
+	 * is not a real address — most often the "Your Email Address Here" placeholder
+	 * seeded by earlier versions — is therefore no better than an empty field.
+	 *
+	 * @param array $notif One notification block from the settings.
+	 * @return array The same block with a sender that can actually be used.
+	 */
+	private static function usable_sender( array $notif ): array {
+		if ( is_email( $notif['from-email'] ?? '' ) ) {
+			return $notif;
+		}
+
+		$notif['from-email'] = get_option( 'admin_email' );
+		$notif['from-name']  = get_bloginfo( 'name' );
+
+		return $notif;
+	}
+
 	public function register_frontend() {
 		$asset_file = YOP_POLL_DIR . 'build/frontend.asset.php';
 		$asset      = file_exists( $asset_file )
@@ -157,6 +186,10 @@ class Assets {
 			),
 			'autoRefreshTime' => 0,
 			'restUrl'         => rest_url( 'yop-poll/v1/' ),
+			// Cookie-authenticated REST requests need this header, or a logged-in visitor
+			// is treated as a guest. We ship it ourselves rather than relying on core's
+			// wp-api-fetch inline script, which optimizer plugins frequently delay.
+			'restNonce'       => wp_create_nonce( 'wp_rest' ),
 			'adminAjaxUrl'    => admin_url( 'admin-ajax.php' ),
 			'wpUserLoggedIn'  => is_user_logged_in(),
 			'wpLoginUrl'      => wp_login_url(),

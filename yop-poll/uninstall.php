@@ -44,6 +44,7 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 	delete_option( 'yop_poll_version' );
 	delete_option( 'yop_poll_db_version' );
 	delete_option( 'yop_poll_caps_version' );
+	delete_option( 'yop_poll_package_verified' );
 	delete_option( 'yop_poll_settings' );
 	delete_option( 'yop_poll_migration_status' );
 	delete_option( 'yop_poll_migration_offset' );

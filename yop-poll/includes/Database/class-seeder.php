@@ -115,15 +115,15 @@ class Seeder {
 			),
 			'notifications' => array(
 				'new-vote' => array(
-					'from-name'  => 'Your Name Here',
-					'from-email' => 'Your Email Address Here',
+					'from-name'  => get_bloginfo( 'name' ),
+					'from-email' => get_option( 'admin_email' ),
 					'recipients' => '',
 					'subject'    => 'New vote for %POLL-NAME% on %VOTE-DATE%',
 					'message'    => "There is a new vote for %POLL-NAME%\n\nHere are the details\n\n[QUESTION]\nQuestion - %QUESTION-TEXT%\nAnswer - %ANSWER-VALUE%\n[/QUESTION]\n\n[CUSTOM_FIELDS]\n%CUSTOM_FIELD_NAME% - %CUSTOM_FIELD_VALUE%\n[/CUSTOM_FIELDS]",
 				),
 				'automatically-reset-votes' => array(
-					'from-name'  => 'Your Name Here',
-					'from-email' => 'Your Email Address Here',
+					'from-name'  => get_bloginfo( 'name' ),
+					'from-email' => get_option( 'admin_email' ),
 					'recipients' => '',
 					'subject'    => 'Stats for %POLL-NAME% on %RESET-DATE%',
 					'message'    => "Poll - %POLL-NAME%\nReset Date - %RESET-DATE%\n\n[RESULTS]\n%QUESTION-TEXT%\n[ANSWERS]\n%ANSWER-TEXT% - %ANSWER-VOTES% votes - %ANSWER-PERCENTAGES%\n[/ANSWERS]\n\n[OTHER-ANSWERS]\n%ANSWER-TEXT% - %ANSWER-VOTES% votes\n[/OTHER-ANSWERS]\n[/RESULTS]",

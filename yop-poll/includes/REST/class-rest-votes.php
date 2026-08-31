@@ -197,6 +197,7 @@ class REST_Votes extends REST_Base {
 
 		$first_name = '';
 		$last_name  = '';
+		$username   = '';
 
 		// Determine user_type + resolve WP email.
 		if ( $user_id ) {
@@ -205,6 +206,7 @@ class REST_Votes extends REST_Base {
 			$user_email = $wp_user ? sanitize_email( $wp_user->user_email ) : $user_email;
 			$first_name = $wp_user ? sanitize_text_field( $wp_user->first_name ) : '';
 			$last_name  = $wp_user ? sanitize_text_field( $wp_user->last_name  ) : '';
+			$username   = $wp_user ? sanitize_text_field( $wp_user->user_login ) : '';
 
 			// Fallback: split display_name when profile fields are empty.
 			if ( $wp_user && '' === $first_name && '' === $last_name ) {
@@ -237,6 +239,7 @@ class REST_Votes extends REST_Base {
 				$user_email = '';
 				$first_name = '';
 				$last_name  = '';
+				$username   = '';
 			}
 		}
 
@@ -454,7 +457,7 @@ class REST_Votes extends REST_Base {
 				}
 
 				if ( 'recaptcha_v3' === $captcha_type ) {
-					$min_score = (float) ( $raw_settings['integrations']['reCaptchaV3']['min-allowed-score'] ?: 0.5 );
+					$min_score = (float) ( ( $settings['integrations']['reCaptchaV3']['min-allowed-score'] ?? '' ) ?: 0.5 );
 					if ( (float) ( $verify_data['score'] ?? 0 ) < $min_score ) {
 						return $this->error( __( 'Captcha score too low', 'yop-poll' ), 422 );
 					}
@@ -543,7 +546,18 @@ class REST_Votes extends REST_Base {
 		$this->log_attempt( $log_model, $base_log, $vote_data_json, 'success' );
 
 		// ── 21. Send notification email ───────────────────────────────────────
-		$this->send_new_vote_email( $poll, $meta_data, $answers, current_time( 'mysql' ) );
+		$this->send_new_vote_email(
+			$poll,
+			$meta_data,
+			$answers,
+			current_time( 'mysql' ),
+			array(
+				'first_name' => $first_name,
+				'last_name'  => $last_name,
+				'email'      => $user_email,
+				'username'   => $username,
+			)
+		);
 
 		$poll_data          = REST_Polls::get_cached_poll_data( $poll_id );
 		$poll_data['nonce'] = wp_create_nonce( 'yop_poll_vote_' . $poll_id );
@@ -671,7 +685,8 @@ class REST_Votes extends REST_Base {
 		$elements_out = array();
 		foreach ( $grouped as $element_id => $element_answers ) {
 			$etype          = $element_type_map[ $element_id ] ?? '';
-			$type           = str_starts_with( $etype, 'question-' ) ? 'question' : $etype;
+			// strpos, not str_starts_with — the plugin header declares "Requires PHP: 7.4".
+			$type           = 0 === strpos( $etype, 'question-' ) ? 'question' : $etype;
 			$elements_out[] = array(
 				'id'   => (string) $element_id,
 				'type' => $type,
@@ -709,7 +724,7 @@ class REST_Votes extends REST_Base {
 		) ) );
 	}
 
-	private function send_new_vote_email( array $poll, array $meta_data, array $answers, string $vote_date ): void {
+	private function send_new_vote_email( array $poll, array $meta_data, array $answers, string $vote_date, array $voter = array() ): void {
 		$notif_meta = $meta_data['options']['poll'] ?? array();
 		if ( 'yes' !== ( $notif_meta['sendEmailNotifications'] ?? 'no' ) ) {
 			return;
@@ -731,23 +746,28 @@ class REST_Votes extends REST_Base {
 
 		$poll_with_elements = ( new Model_Poll() )->get_with_elements( (int) $poll['id'] );
 		$elements           = isset( $poll_with_elements['elements'] ) ? $poll_with_elements['elements'] : array();
-		$subject = str_replace(
-			array( '%POLL-NAME%', '%VOTE-DATE%' ),
-			array( $poll['name'], $vote_date ),
-			$subject
-		);
+		$subject_tokens = $this->new_vote_tokens( $poll, $vote_date, $voter, false );
+		$subject        = str_replace( array_keys( $subject_tokens ), array_values( $subject_tokens ), $subject );
 		$message_is_html = (bool) preg_match( '/<[a-z][\s\S]*>/i', $message );
-		$message         = $this->expand_new_vote_template( $message, $poll, $elements, $answers, $vote_date );
+		$message         = $this->expand_new_vote_template( $message, $poll, $elements, $answers, $vote_date, $voter );
 		if ( ! $message_is_html ) {
 			// Legacy plain-text template: preserve line breaks now that we send HTML.
 			$message = nl2br( $message );
 		}
 
 		$headers = array( 'Content-Type: text/html; charset=UTF-8' );
-		if ( $from_name && $from_email ) {
-			$headers[] = 'From: ' . $from_name . ' <' . $from_email . '>';
-		} elseif ( $from_email ) {
-			$headers[] = 'From: ' . $from_email;
+
+		// Only send a From header we know PHPMailer will accept. wp_mail() runs the
+		// address through setFrom() before anything is sent, and an unusable one —
+		// the "Your Email Address Here" placeholder this plugin has always shipped,
+		// for instance — makes it bail out and drop the notification silently.
+		// Without the header, core falls back to wordpress@<site>.
+		$from_email = trim( (string) $from_email );
+		$from_name  = trim( (string) $from_name );
+		if ( is_email( $from_email ) ) {
+			$headers[] = $from_name
+				? 'From: ' . $from_name . ' <' . $from_email . '>'
+				: 'From: ' . $from_email;
 		}
 
 		$to_list = array_filter( array_map( 'trim', explode( ',', $recipients ) ) );
@@ -756,12 +776,53 @@ class REST_Votes extends REST_Base {
 		}
 	}
 
-	private function expand_new_vote_template( string $tpl, array $poll, array $elements, array $answers, string $vote_date ): string {
-		$tpl = str_replace(
-			array( '%POLL-NAME%', '%VOTE-DATE%' ),
-			array( $poll['name'], $vote_date ),
-			$tpl
+	/**
+	 * Build the search/replace map for the scalar new-vote notification tags.
+	 *
+	 * v6 accepted a hyphenated and an underscored spelling of the same tag, and
+	 * carried four %VOTER-*% identity tags. Templates migrated from v6 use all of
+	 * them, so every spelling is honoured here.
+	 *
+	 * @param bool $escape Escape the voter-supplied values (true for the HTML body,
+	 *                     false for the plain-text subject line).
+	 */
+	private function new_vote_tokens( array $poll, string $vote_date, array $voter, bool $escape ): array {
+		// v6 formatted the vote date with the site's date format; a raw MySQL
+		// datetime here would be a visible change for every migrated template.
+		$timestamp = strtotime( $vote_date );
+		$date      = $timestamp ? date_i18n( get_option( 'date_format' ), $timestamp ) : $vote_date;
+
+		$first = (string) ( $voter['first_name'] ?? '' );
+		$last  = (string) ( $voter['last_name'] ?? '' );
+		$email = (string) ( $voter['email'] ?? '' );
+		$user  = (string) ( $voter['username'] ?? '' );
+
+		if ( $escape ) {
+			$first = esc_html( $first );
+			$last  = esc_html( $last );
+			$email = esc_html( $email );
+			$user  = esc_html( $user );
+		}
+
+		return array(
+			'%POLL-NAME%'        => $poll['name'],
+			'%POLL_NAME%'        => $poll['name'],
+			'%VOTE-DATE%'        => $date,
+			'%VOTE_DATE%'        => $date,
+			'%VOTER-FIRST-NAME%' => $first,
+			'%VOTER_FIRST_NAME%' => $first,
+			'%VOTER-LAST-NAME%'  => $last,
+			'%VOTER_LAST_NAME%'  => $last,
+			'%VOTER-EMAIL%'      => $email,
+			'%VOTER_EMAIL%'      => $email,
+			'%VOTER-USERNAME%'   => $user,
+			'%VOTER_USERNAME%'   => $user,
 		);
+	}
+
+	private function expand_new_vote_template( string $tpl, array $poll, array $elements, array $answers, string $vote_date, array $voter = array() ): string {
+		$tokens = $this->new_vote_tokens( $poll, $vote_date, $voter, true );
+		$tpl    = str_replace( array_keys( $tokens ), array_values( $tokens ), $tpl );
 
 		// Quill wraps each block marker in its own <p>. Strip those wrappers down to
 		// bare markers so the block parser below works for both plain-text and HTML
@@ -772,8 +833,10 @@ class REST_Votes extends REST_Base {
 				'/<p>\s*\[\/QUESTION\]\s*<\/p>/i',
 				'/<p>\s*\[CUSTOM_FIELDS\]\s*<\/p>/i',
 				'/<p>\s*\[\/CUSTOM_FIELDS\]\s*<\/p>/i',
+				'/<p>\s*\[ANSWERS\]\s*<\/p>/i',
+				'/<p>\s*\[\/ANSWERS\]\s*<\/p>/i',
 			),
-			array( '[QUESTION]', '[/QUESTION]', '[CUSTOM_FIELDS]', '[/CUSTOM_FIELDS]' ),
+			array( '[QUESTION]', '[/QUESTION]', '[CUSTOM_FIELDS]', '[/CUSTOM_FIELDS]', '[ANSWERS]', '[/ANSWERS]' ),
 			$tpl
 		);
 
@@ -811,9 +874,10 @@ class REST_Votes extends REST_Base {
 					if ( empty( $answer_values ) ) {
 						continue;
 					}
-					$block .= str_replace(
-						array( '%QUESTION-TEXT%', '%ANSWER-VALUE%' ),
-						array( $question_text, implode( ', ', $answer_values ) ),
+					$answer_list = implode( ', ', $answer_values );
+					$block      .= str_replace(
+						array( '%QUESTION-TEXT%', '%QUESTION_TEXT%', '%ANSWER-VALUE%', '%ANSWER_VALUE%' ),
+						array( $question_text, $question_text, $answer_list, $answer_list ),
 						$inner
 					);
 				}
@@ -852,6 +916,16 @@ class REST_Votes extends REST_Base {
 				}
 				return $block;
 			},
+			$tpl
+		);
+
+		// v6 stripped these markers rather than iterating them, so a template that
+		// wraps its answer line in bare [ANSWERS]…[/ANSWERS] must not leak them into
+		// the delivered mail. Unpaired [QUESTION]/[CUSTOM_FIELDS] markers, which the
+		// callbacks above cannot match, are dropped here for the same reason.
+		$tpl = str_replace(
+			array( '[QUESTION]', '[/QUESTION]', '[ANSWERS]', '[/ANSWERS]', '[CUSTOM_FIELDS]', '[/CUSTOM_FIELDS]' ),
+			'',
 			$tpl
 		);
 

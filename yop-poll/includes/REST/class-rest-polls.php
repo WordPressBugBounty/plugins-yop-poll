@@ -423,6 +423,14 @@ class REST_Polls extends REST_Base {
 		if ( ! is_array( $show_results_raw ) ) {
 			$show_results_raw = [ $show_results_raw ]; // normalise legacy scalar values
 		}
+		// v6 spelled the "after poll end date" moment 'after-end-date' and the v6 → v7
+		// migration carries the old value through untouched, so accept both spellings.
+		$show_results_raw = array_map(
+			static function ( $moment ) {
+				return 'after-end-date' === $moment ? 'after-poll-end-date' : $moment;
+			},
+			$show_results_raw
+		);
 		$include_counts = $force_counts;
 		if ( ! $force_counts ) {
 			if ( in_array( 'before-vote', $show_results_raw, true ) ) {
