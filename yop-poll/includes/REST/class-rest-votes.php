@@ -19,6 +19,26 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class REST_Votes extends REST_Base {
 
+	/**
+	 * Ceiling on a single "Other" answer, for polls that set no limit of their own.
+	 * subelements.stext is a TEXT column and this path is reachable unauthenticated.
+	 */
+	const OTHER_ANSWER_MAX_CHARS = 255;
+
+	/**
+	 * Absolute ceiling on any single submitted answer value, applied at the request
+	 * boundary. Without it a 64KB string still reached votes.vote_data and the logs
+	 * table even though the "Other" path truncates later. Generous enough not to clip
+	 * a legitimate multi-line text answer.
+	 */
+	const VOTE_ANSWER_MAX_CHARS = 4096;
+
+	/**
+	 * Ceiling on how many distinct voter-created options one question may accumulate.
+	 * Past this the vote still counts, recorded as free text instead of a new option.
+	 */
+	const OTHER_ANSWER_MAX_PER_ELEMENT = 200;
+
 	public function register_routes() {
 		register_rest_route( $this->namespace, '/polls/(?P<poll_id>\d+)/votes/add', array(
 			array(
@@ -155,8 +175,23 @@ class REST_Votes extends REST_Base {
 		return $this->success( array( 'items' => $items ?: array(), 'total' => $total ) );
 	}
 
+	/**
+	 * REST adapter. Deliberately a pass-through: all the logic lives in handle_vote()
+	 * so the admin-ajax adapter cannot drift from it. A fix applied here instead of in
+	 * the handler is a bug in the other transport.
+	 */
 	public function create_vote( $request ) {
-		$body    = $request->get_json_params();
+		return $this->handle_vote( (array) $request->get_json_params() );
+	}
+
+	/**
+	 * Record a vote. Transport-neutral: takes the decoded body, returns the same
+	 * WP_REST_Response / WP_Error either adapter can emit.
+	 *
+	 * @param array $body Decoded request body.
+	 * @return \WP_REST_Response|\WP_Error
+	 */
+	public function handle_vote( array $body ) {
 		$poll_id = (int) ( $body['poll_id'] ?? 0 );
 
 		if ( ! $poll_id ) {
@@ -192,8 +227,39 @@ class REST_Votes extends REST_Base {
 		$tracking_id = sanitize_text_field( $body['tracking_id'] ?? '' );
 		$page_id     = (int) ( $body['page_id'] ?? 0 );
 		$fingerprint = sanitize_text_field( $body['fingerprint'] ?? '' );
-		$voter_id    = sanitize_text_field( $body['voter_id'] ?? '' );
+		// "Block by cookie" identity. This used to be read straight from the request
+		// body, where the browser generated it into localStorage - so the control was
+		// bypassed by editing one JSON field, without clearing anything. It now comes
+		// from an HttpOnly cookie the server issues, which page script cannot read or
+		// forge; the body value is only a fallback for visitors who have not been
+		// issued one yet (and is what gets stored so the cookie can be matched later).
+		$voter_id = $this->resolve_voter_id( sanitize_text_field( $body['voter_id'] ?? '' ) );
 		$selected_perm = sanitize_text_field( $body['selected_perm'] ?? '' );
+
+		// ── 3a. Apply the GDPR/CCPA identity solution BEFORE anything reads it ───
+		//
+		// This has to happen here, not later. Ban, block and limit checks look up
+		// previous votes by ipaddress / voter_id, and the row we are about to write
+		// stores whatever these variables hold. Transforming them after the checks
+		// meant the checks searched for the real address while the table held the
+		// anonymised one, so "block by IP" and "block by cookie" matched nothing -
+		// ever, for anyone - while the admin UI reported blocking as switched on.
+		// One identity, computed once, used by every check, the log and the insert.
+		$enable_gdpr = $meta_data['options']['poll']['enableGdpr'] ?? 'no';
+		if ( 'yes' === $enable_gdpr ) {
+			$solution = $meta_data['options']['poll']['gdprSolution'] ?? 'ask_consent';
+			if ( 'anonymize' === $solution ) {
+				// Note: blocking now compares anonymised addresses, so by-ip blocking
+				// operates at /24 (IPv4) or /48 (IPv6) granularity under this setting.
+				$ip          = $this->anonymize_ip( $ip );
+				$voter_id    = '';
+				$fingerprint = '';
+			} elseif ( 'do_not_store' === $solution ) {
+				$ip          = '';
+				$voter_id    = '';
+				$fingerprint = '';
+			}
+		}
 
 		$first_name = '';
 		$last_name  = '';
@@ -243,6 +309,22 @@ class REST_Votes extends REST_Base {
 			}
 		}
 
+		// The downgrade above decides how the vote is ATTRIBUTED. It must not decide
+		// whether the voter is allowed to vote: `selected_perm` comes from the request
+		// body, so a logged-in user could send "guest" to blank out the very fields the
+		// email ban, the username ban and the per-user limit are matched on, and vote
+		// without limit. Enforcement therefore uses the real session, which the client
+		// cannot influence, while storage keeps the downgraded values.
+		$enforce_user_id = get_current_user_id();
+		$enforce_email   = '';
+		if ( $enforce_user_id > 0 ) {
+			$enforce_wp_user = get_userdata( $enforce_user_id );
+			$enforce_email   = $enforce_wp_user ? sanitize_email( $enforce_wp_user->user_email ) : '';
+		}
+		if ( '' === $enforce_email ) {
+			$enforce_email = $user_email;
+		}
+
 		// Shared log data assembled now (voter identity fields); reused by log_attempt().
 		$now          = current_time( 'mysql' );
 		$base_log     = array(
@@ -258,7 +340,24 @@ class REST_Votes extends REST_Base {
 		);
 		$log_model    = new Model_Log();
 		$vote_model   = new Model_Vote();
-		$answers      = $body['answers'] ?? array();
+		// Sanitize voter-supplied answer text ONCE, here at the boundary, so every
+		// consumer downstream gets the cleaned value. Previously each consumer read
+		// $body['answers'] afresh: the answer-recording loop sanitized its own copy
+		// while build_vote_data_json() and send_new_vote_email() re-read the raw body,
+		// which is how unfiltered voter HTML reached the admin Logs screen and the
+		// notification email.
+		$answers = array_map(
+			static function ( $answer ) {
+				if ( is_array( $answer ) && isset( $answer['answer_value'] ) ) {
+					$answer['answer_value'] = self::truncate_chars(
+						sanitize_text_field( $answer['answer_value'] ),
+						self::VOTE_ANSWER_MAX_CHARS
+					);
+				}
+				return $answer;
+			},
+			(array) ( $body['answers'] ?? array() )
+		);
 
 		// Build vote_data JSON (used in both success and failure log rows).
 		$vote_data_json = $this->build_vote_data_json( $answers, $page_id, array(), $first_name, $last_name );
@@ -280,7 +379,7 @@ class REST_Votes extends REST_Base {
 				array( 'status' => 403 )
 			);
 		}
-		if ( $user_email && $ban_model->is_banned( $poll_id, 'email', $user_email ) ) {
+		if ( $enforce_email && $ban_model->is_banned( $poll_id, 'email', $enforce_email ) ) {
 			$this->log_attempt( $log_model, $base_log, $vote_data_json, 'not-allowed-by-ban' );
 			return new \WP_Error(
 				'yop_poll_ban_reached',
@@ -288,8 +387,8 @@ class REST_Votes extends REST_Base {
 				array( 'status' => 403 )
 			);
 		}
-		if ( $user_id > 0 ) {
-			$wp_user = get_userdata( $user_id );
+		if ( $enforce_user_id > 0 ) {
+			$wp_user = get_userdata( $enforce_user_id );
 			if ( $wp_user && $ban_model->is_banned( $poll_id, 'username', $wp_user->user_login ) ) {
 				$this->log_attempt( $log_model, $base_log, $vote_data_json, 'not-allowed-by-ban' );
 				return new \WP_Error(
@@ -312,7 +411,9 @@ class REST_Votes extends REST_Base {
 		}
 
 		// ── 7. Check limits ───────────────────────────────────────────────────
-		$limit_result = $this->check_limits( $access, $vote_model, $poll_id, $user_type, $user_id, $user_email );
+		// Enforce against the real session, not the client-chosen identity class.
+		$enforce_type = $enforce_user_id > 0 ? 'wordpress' : $user_type;
+		$limit_result = $this->check_limits( $access, $vote_model, $poll_id, $enforce_type, $enforce_user_id, $enforce_email );
 		if ( true !== $limit_result ) {
 			$this->log_attempt( $log_model, $base_log, $vote_data_json, 'not-allowed-by-limit' );
 			$limit_poll_data          = REST_Polls::get_cached_poll_data( $poll_id );
@@ -332,7 +433,11 @@ class REST_Votes extends REST_Base {
 		$start_date_option = $meta_data['options']['poll']['startDateOption'] ?? 'now';
 		$start_date_custom = $meta_data['options']['poll']['startDateCustom'] ?? '';
 		if ( 'custom' === $start_date_option && ! empty( $start_date_custom ) ) {
-			if ( ( new \DateTime( $start_date_custom ) ) > ( new \DateTime() ) ) {
+			// WordPress forces PHP's default timezone to UTC, so a naive "2026-09-07 18:00"
+			// entered as SITE-local time was being read as UTC - a poll advertised to open
+			// or close at a given hour did so at the wrong one, by the site's UTC offset.
+			// check_blocks() already parses stored dates with wp_timezone(); match it.
+			if ( ( new \DateTime( $start_date_custom, wp_timezone() ) ) > ( new \DateTime( 'now', wp_timezone() ) ) ) {
 				return $this->error( __( 'This poll has not started yet.', 'yop-poll' ), 422 );
 			}
 		}
@@ -341,7 +446,7 @@ class REST_Votes extends REST_Base {
 		$end_date_option = $meta_data['options']['poll']['endDateOption'] ?? 'never';
 		$end_date_custom = $meta_data['options']['poll']['endDateCustom'] ?? '';
 		if ( 'custom' === $end_date_option && ! empty( $end_date_custom ) ) {
-			if ( ( new \DateTime( $end_date_custom ) ) < ( new \DateTime() ) ) {
+			if ( ( new \DateTime( $end_date_custom, wp_timezone() ) ) < ( new \DateTime( 'now', wp_timezone() ) ) ) {
 				return $this->error( __( 'This poll is no longer accepting votes.', 'yop-poll' ), 422 );
 			}
 		}
@@ -349,25 +454,6 @@ class REST_Votes extends REST_Base {
 		// ── 9. Validate required fields ───────────────────────────────────────
 		$element_model = new Model_Element();
 		$poll_elements = $element_model->get_by_poll( $poll_id );
-		// ── 9a. Apply GDPR/CCPA IP solution ──────────────────────────────────
-		$enable_gdpr = $meta_data['options']['poll']['enableGdpr'] ?? 'no';
-		if ( 'yes' === $enable_gdpr ) {
-			$solution = $meta_data['options']['poll']['gdprSolution'] ?? 'ask_consent';
-			if ( 'anonymize' === $solution ) {
-				$ip          = $this->anonymize_ip( $ip );
-				$voter_id    = '';
-				$fingerprint = '';
-			} elseif ( 'do_not_store' === $solution ) {
-				$ip          = '';
-				$voter_id    = '';
-				$fingerprint = '';
-			}
-		}
-		// Sync the already-built base_log so failed-attempt logs also respect the solution.
-		$base_log['ipaddress']         = $ip;
-		$base_log['voter_id']          = $voter_id;
-		$base_log['voter_fingerprint'] = $fingerprint;
-
 		$required_types = array( 'standard-single-line-text', 'standard-multi-line-text', 'advanced-email' );
 
 		foreach ( $poll_elements as $el ) {
@@ -375,7 +461,11 @@ class REST_Votes extends REST_Base {
 				continue;
 			}
 			$el_meta = Migrator::decode_meta( $el['meta_data'] ?? '' );
-			if ( ! is_array( $el_meta ) || ( $el_meta['required'] ?? '' ) !== 'yes' ) {
+			// The builder writes 'makeRequired'; 'required' is a key no writer ever
+			// produces, so this whole check was dead and required fields were enforced
+			// in the browser only. Default is "not required", matching the client
+			// (PollRenderer checks makeRequired === 'yes' for these field types).
+			if ( ! is_array( $el_meta ) || ( $el_meta['makeRequired'] ?? '' ) !== 'yes' ) {
 				continue;
 			}
 			$eid   = (int) $el['id'];
@@ -425,6 +515,7 @@ class REST_Votes extends REST_Base {
 					'hcaptcha'               => 'hCaptcha',
 					'turnstile'              => 'cloudflare-turnstile',
 				);
+				// phpcs:disable PluginCheck.CodeAnalysis.Offloading.OffloadedContent -- These are the captcha providers' own server-to-server verification endpoints, called from PHP to validate a token the visitor already solved. No asset is served from them.
 				$verify_url_map = array(
 					'recaptcha_v2_checkbox'  => 'https://www.google.com/recaptcha/api/siteverify',
 					'recaptcha_v2_invisible' => 'https://www.google.com/recaptcha/api/siteverify',
@@ -432,6 +523,7 @@ class REST_Votes extends REST_Base {
 					'hcaptcha'               => 'https://hcaptcha.com/siteverify',
 					'turnstile'              => 'https://challenges.cloudflare.com/turnstile/v0/siteverify',
 				);
+				// phpcs:enable PluginCheck.CodeAnalysis.Offloading.OffloadedContent
 
 				$raw_settings   = get_option( 'yop_poll_settings', '{}' );
 				$settings       = is_array( $raw_settings ) ? $raw_settings : ( json_decode( $raw_settings, true ) ?? array() );
@@ -465,6 +557,86 @@ class REST_Votes extends REST_Base {
 			}
 		}
 
+		// ── 10b. Reduce the submission to what this poll will actually record ─
+		//
+		// Everything downstream has to describe the same vote: the vote row, the log
+		// entry, the notification email and the tally loop. They used to disagree. Only
+		// the tally loop bound answers to this poll and de-duplicated them, while
+		// build_vote_data_json() and send_new_vote_email() were handed the raw request.
+		// A submission naming one answer fifty times plus an answer belonging to a
+		// different poll therefore tallied correctly - one vote, one increment - but was
+		// STORED as fifty-one picks including the foreign one, and the admin votes
+		// screen, the CSV export and the notification email all read that record.
+		//
+		// So the filtering happens once, here, before anything is written.
+		$sub_model = new Model_Subelement();
+
+		// The set of answers this poll actually owns, keyed element => answers.
+		//
+		// Nothing previously tied a submitted answer_id to this poll: increment_submits()
+		// is a bare "UPDATE ... WHERE id = %d", so one vote could name any subelement on
+		// the site, and could name it repeatedly. A single request could therefore add
+		// thousands of votes to someone else's closed poll while writing exactly one
+		// vote row - which is all the ban, block and limit checks ever count.
+		$allowed_answers = array();
+		foreach ( $poll_elements as $allowed_el ) {
+			$allowed_el_id = (int) $allowed_el['id'];
+			$allowed_ids   = array();
+			foreach ( $sub_model->get_by_element( $allowed_el_id ) as $allowed_sub ) {
+				$allowed_ids[ (int) $allowed_sub['id'] ] = true;
+			}
+			$allowed_answers[ $allowed_el_id ] = $allowed_ids;
+		}
+
+		$recorded_answers = array();
+		$filter_seen      = array();
+		foreach ( $answers as $answer ) {
+			$element_id = (int) ( $answer['element_id'] ?? 0 );
+			$answer_id  = (int) ( $answer['answer_id'] ?? 0 );
+
+			// The element must belong to this poll.
+			if ( ! isset( $allowed_answers[ $element_id ] ) ) {
+				continue;
+			}
+
+			if ( $answer_id > 0 ) {
+				// The answer must belong to that element, and counts once per vote.
+				if ( ! isset( $allowed_answers[ $element_id ][ $answer_id ] ) ) {
+					continue;
+				}
+				$seen_key = $element_id . ':' . $answer_id;
+				if ( isset( $filter_seen[ $seen_key ] ) ) {
+					continue;
+				}
+				$filter_seen[ $seen_key ] = true;
+				$recorded_answers[]       = $answer;
+				continue;
+			}
+
+			// Free-text answers: an "Other" box, or a custom field such as Name or Email.
+			// An element may legitimately carry several Other boxes (otherAnswersCount),
+			// so several DISTINCT texts are kept - but the same text repeated is one
+			// answer, not many. Without this the amplification the answer_id branch above
+			// refuses is simply available through the Other path instead: fifty identical
+			// texts became fifty increments off one vote.
+			//
+			// An empty value is kept (once). Step 16 ignores it, but it is part of the
+			// record an unfilled custom field leaves on the admin votes screen, and this
+			// filter is not the place to change what that screen shows.
+			$answer_value = trim( (string) ( $answer['answer_value'] ?? '' ) );
+			$seen_key     = $element_id . ':other:' . $answer_value;
+			if ( isset( $filter_seen[ $seen_key ] ) ) {
+				continue;
+			}
+			$filter_seen[ $seen_key ] = true;
+			$recorded_answers[]       = $answer;
+		}
+
+		// From here on, "the answers" means the answers this poll is recording. Whether
+		// an Other text becomes a new option, a stored submission, or neither is still
+		// decided in step 16, which needs the inserted vote id.
+		$answers = $recorded_answers;
+
 		// ── 11. Build vote_data JSON ──────────────────────────────────────────
 		$vote_data_json = $this->build_vote_data_json( $answers, $page_id, $poll_elements, $first_name, $last_name );
 
@@ -483,19 +655,55 @@ class REST_Votes extends REST_Base {
 			'added_date'        => $now,
 		);
 
+		// The ban, block and limit checks above are SELECTs; the insert below is what
+		// makes them true. Two requests arriving together both passed every check before
+		// either had written a row, so "one vote per user" could be beaten by racing.
+		// Serialise check-and-insert per poll+identity for the duration of the write.
+		$vote_lock = 'yop_poll_vote_lock_' . md5( $poll_id . '|' . $ip . '|' . $voter_id . '|' . $user_id );
+		if ( ! wp_cache_add( $vote_lock, 1, 'yop_poll', 10 ) ) {
+			$this->log_attempt( $log_model, $base_log, $vote_data_json, 'not-allowed-by-block' );
+			return new \WP_Error(
+				'yop_poll_block_reached',
+				__( 'You have already voted on this poll.', 'yop-poll' ),
+				array( 'status' => 403 )
+			);
+		}
+
 		$vote_id = $vote_model->insert( $vote_row );
 
 		// ── 16. Handle answers + "other" answers ─────────────────────────────
-		$sub_model   = new Model_Subelement();
+		// $answers, $sub_model and $allowed_answers were prepared in step 10b. The
+		// ownership and repeat checks below are kept as a second layer: this loop is what
+		// actually moves the counters, so it does not take on trust that whoever handed
+		// it a list had already filtered one.
 		$other_model = new Model_Other_Answer();
 		$poll_author = (int) $poll['author'];
+
+		$seen_answers   = array();
+		$applied_answers = 0;
 
 		foreach ( $answers as $answer ) {
 			$element_id   = (int) ( $answer['element_id'] ?? 0 );
 			$answer_id    = (int) ( $answer['answer_id'] ?? 0 );
 			$answer_value = sanitize_text_field( $answer['answer_value'] ?? '' );
 
+			// The element must belong to this poll.
+			if ( ! isset( $allowed_answers[ $element_id ] ) ) {
+				continue;
+			}
+
 			if ( $answer_id > 0 ) {
+				// The answer must belong to that element.
+				if ( ! isset( $allowed_answers[ $element_id ][ $answer_id ] ) ) {
+					continue;
+				}
+				// One increment per answer per vote, however many times it is repeated.
+				$seen_key = $element_id . ':' . $answer_id;
+				if ( isset( $seen_answers[ $seen_key ] ) ) {
+					continue;
+				}
+				$seen_answers[ $seen_key ] = true;
+				++$applied_answers;
 				$sub_model->increment_submits( $answer_id );
 			} elseif ( 0 === $answer_id && '' !== $answer_value ) {
 				// "Other" text answer — find the element meta to decide storage strategy.
@@ -508,13 +716,49 @@ class REST_Votes extends REST_Base {
 				}
 				$el_meta = Migrator::decode_meta( $el_meta_raw ?? '' );
 
+				// The poll's own character limit, enforced here as well as in the browser.
+				// stext is a TEXT column, so without this an unauthenticated voter could
+				// store ~64KB per submission, as often as they liked.
+				$other_max = (int) ( $el_meta['otherMaxCharsAllowed'] ?? 0 );
+				$other_cap = ( $other_max > 0 )
+					? min( $other_max, self::OTHER_ANSWER_MAX_CHARS )
+					: self::OTHER_ANSWER_MAX_CHARS;
+				$answer_value = self::truncate_chars( $answer_value, $other_cap );
+
 				if ( 'yes' === ( $el_meta['addOtherAnswers'] ?? 'no' ) ) {
+					// Adding an answer to the poll is a durable change to its structure,
+					// made here by an unauthenticated voter. Cap how many distinct options
+					// one element can accumulate; past the cap the vote is still recorded,
+					// as a free-text submission rather than a new option.
+					$existing_other = 0;
+					foreach ( $sub_model->get_by_element( $element_id ) as $existing_sub ) {
+						if ( 'other' === ( $existing_sub['stype'] ?? '' ) ) {
+							++$existing_other;
+						}
+					}
+					$already_known = $sub_model->find_other_by_text( $element_id, $answer_value ) > 0;
+
+					if ( ! $already_known && $existing_other >= self::OTHER_ANSWER_MAX_PER_ELEMENT ) {
+						++$applied_answers;
+						$other_model->insert( array(
+							'poll_id'    => $poll_id,
+							'element_id' => $element_id,
+							'vote_id'    => $vote_id,
+							'answer'     => $answer_value,
+							'status'     => 'active',
+							'added_date' => $now ?: current_time( 'mysql' ),
+						) );
+						continue;
+					}
+
 					$sub_id = $sub_model->find_or_create_other( $poll_id, $element_id, $answer_value, $poll_author );
+					++$applied_answers;
 					$sub_model->increment_submits( $sub_id );
 				} elseif ( 'yes' === ( $el_meta['allowOtherAnswers'] ?? 'no' ) ) {
 					// Record the "Other" submission whenever Other answers are allowed, so
 					// the vote is always counted. displayOtherAnswersInResults only controls
 					// whether the individual texts are listed in results, not the tally.
+					++$applied_answers;
 					$other_model->insert( array(
 						'poll_id'    => $poll_id,
 						'element_id' => $element_id,
@@ -528,7 +772,8 @@ class REST_Votes extends REST_Base {
 		}
 
 		// ── 16b. Update total_submited_answers ────────────────────────────────────────
-		$poll_model->increment_submited_answers( $poll_id, count( $answers ) );
+		// Count what was actually recorded, not what the request claimed to send.
+		$poll_model->increment_submited_answers( $poll_id, $applied_answers );
 
 		// ── 17-18. Update poll counter ────────────────────────────────────────
 		$poll_model->increment_submits( $poll_id );
@@ -858,14 +1103,22 @@ class REST_Votes extends REST_Base {
 						if ( (int) ( $answer['element_id'] ?? 0 ) !== $element_id ) {
 							continue;
 						}
+						// The message is sent as text/html, so voter-supplied text must be
+						// escaped - matching how new_vote_tokens() treats the voter's name
+						// and email. Rows written before the writer above was sanitized may
+						// still carry markup.
 						$val = trim( (string) ( $answer['answer_value'] ?? '' ) );
 						if ( '' !== $val ) {
-							$answer_values[] = $val;
+							$answer_values[] = esc_html( $val );
 						} else {
 							$answer_id = (int) ( $answer['answer_id'] ?? 0 );
 							foreach ( $subelements as $sub ) {
 								if ( (int) $sub['id'] === $answer_id ) {
-									$answer_values[] = $sub['stext'] ?? '';
+									// Answer text is intentionally rich (authors format it), so
+									// filter rather than escape - escaping would print tags in
+									// the email. Voter-created "other" rows hold plain text and
+									// pass through unchanged.
+									$answer_values[] = wp_kses_post( (string) ( $sub['stext'] ?? '' ) );
 									break;
 								}
 							}
@@ -901,7 +1154,8 @@ class REST_Votes extends REST_Base {
 					$field_value = '';
 					foreach ( $answers as $answer ) {
 						if ( (int) ( $answer['element_id'] ?? 0 ) === $element_id ) {
-							$field_value = trim( (string) ( $answer['answer_value'] ?? '' ) );
+							// Voter-supplied, and the message is sent as text/html.
+							$field_value = esc_html( trim( (string) ( $answer['answer_value'] ?? '' ) ) );
 							break;
 						}
 					}
@@ -938,6 +1192,62 @@ class REST_Votes extends REST_Base {
 	 * IPv4 → zeroes the last octet  (192.168.1.100 → 192.168.1.0)
 	 * IPv6 → zeroes the last 80 bits (keeps first 48 bits)
 	 */
+	/**
+	 * Trim a string to a character count, without requiring mbstring.
+	 */
+	/** Name of the HttpOnly cookie carrying the block-by-cookie identity. */
+	const VOTER_COOKIE = 'yop_poll_voter';
+
+	/**
+	 * Return the visitor's voter id, preferring a server-issued HttpOnly cookie.
+	 *
+	 * @param string $fallback Client-supplied value, used only when no cookie exists.
+	 */
+	private function resolve_voter_id( string $fallback ): string {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- reading our own cookie.
+		$cookie = isset( $_COOKIE[ self::VOTER_COOKIE ] )
+			? sanitize_text_field( wp_unslash( $_COOKIE[ self::VOTER_COOKIE ] ) )
+			: '';
+		$cookie = preg_replace( '/[^A-Za-z0-9_\-]/', '', $cookie );
+
+		if ( '' !== $cookie ) {
+			return $cookie;
+		}
+
+		$value = preg_replace( '/[^A-Za-z0-9_\-]/', '', $fallback );
+		if ( '' === $value ) {
+			$value = 'yop_' . wp_generate_password( 20, false, false );
+		}
+
+		if ( ! headers_sent() ) {
+			setcookie(
+				self::VOTER_COOKIE,
+				$value,
+				array(
+					'expires'  => time() + YEAR_IN_SECONDS,
+					'path'     => COOKIEPATH ? COOKIEPATH : '/',
+					'domain'   => COOKIE_DOMAIN,
+					'secure'   => is_ssl(),
+					'httponly' => true,
+					'samesite' => 'Lax',
+				)
+			);
+			$_COOKIE[ self::VOTER_COOKIE ] = $value;
+		}
+
+		return $value;
+	}
+
+	private static function truncate_chars( string $value, int $max ): string {
+		if ( $max <= 0 ) {
+			return $value;
+		}
+		if ( function_exists( 'mb_strlen' ) ) {
+			return ( mb_strlen( $value ) > $max ) ? mb_substr( $value, 0, $max ) : $value;
+		}
+		return ( strlen( $value ) > $max ) ? substr( $value, 0, $max ) : $value;
+	}
+
 	private function anonymize_ip( string $ip ): string {
 		if ( filter_var( $ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4 ) ) {
 			return long2ip( ip2long( $ip ) & 0xFFFFFF00 );

@@ -19,6 +19,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class Migrator {
 
+	/** Marks that the one-off pass over stored element meta has run. */
+	private const META_SANITIZED_OPTION = 'yop_poll_meta_sanitized';
+
 	// ─── Detection ────────────────────────────────────────────────────────────
 
 	public static function needs_migration(): bool {
@@ -72,6 +75,63 @@ class Migrator {
 	 * in a later release would otherwise never run for existing v7 installs. Gated
 	 * on yop_poll_db_version so it runs once per release.
 	 */
+	/**
+	 * One-off remediation: filter HTML meta already stored against elements.
+	 *
+	 * The save-time filter shipped in 7.0.11 but only ran on the create path, so every
+	 * edit of an existing poll - the common case - wrote otherAnswersLabel,
+	 * consent_text and question_template through unfiltered. Those three reach
+	 * dangerouslySetInnerHTML on the front end, the admin results screen and the block
+	 * preview with no display-side guard, so a value stored before the fix stays live
+	 * until somebody happens to re-save that poll. This closes that window once.
+	 *
+	 * Deliberately narrow: elements only, those three keys only, through the same
+	 * Sanitizer the save path calls, so there is no second implementation to keep in
+	 * step. Subelement `link` values are left alone on purpose - every renderer already
+	 * gates an answer href through a safe-scheme check, so a stored javascript: URL is
+	 * inert on display and the next save rewrites it. Rewriting stored URLs would be a
+	 * change to customer data this fix does not need to make.
+	 */
+	public static function maybe_sanitize_stored_meta(): void {
+		if ( '' !== get_option( self::META_SANITIZED_OPTION, '' ) ) {
+			return;
+		}
+		// Claim it before doing the work: two concurrent requests must not both run.
+		update_option( self::META_SANITIZED_OPTION, YOP_POLL_VERSION, true );
+
+		global $wpdb;
+		$table = $wpdb->prefix . YOP_POLL_TABLE_PREFIX . 'elements';
+
+		// Only rows that could carry markup at all. Keeps the pass cheap on a large
+		// site, and keeps it from rewriting rows it would not have changed.
+		$rows = $wpdb->get_results( "SELECT id, meta_data FROM {$table} WHERE meta_data LIKE '%<%'", ARRAY_A ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL, PluginCheck.Security.DirectDB.UnescapedDBParameter -- $table is built from $wpdb->prefix . YOP_POLL_TABLE_PREFIX and the query carries no user input; a table name cannot be a prepare() placeholder.
+
+		if ( ! $rows ) {
+			return;
+		}
+
+		foreach ( $rows as $row ) {
+			// decode_meta() returns an array, empty when the row was unreadable.
+			$meta = self::decode_meta( (string) ( $row['meta_data'] ?? '' ) );
+			if ( ! $meta ) {
+				continue;
+			}
+
+			$clean = \YopPoll\Helpers\Sanitizer::sanitize_element_meta_data( $meta );
+			if ( $clean === $meta ) {
+				continue;
+			}
+
+			$wpdb->update( // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+				$table,
+				array( 'meta_data' => wp_json_encode( $clean ) ),
+				array( 'id' => (int) $row['id'] )
+			);
+		}
+
+		self::flush_poll_caches();
+	}
+
 	public static function maybe_upgrade_schema(): void {
 		if ( get_option( 'yop_poll_db_version', '' ) === YOP_POLL_VERSION ) {
 			return;

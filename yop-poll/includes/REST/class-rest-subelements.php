@@ -1,6 +1,8 @@
 <?php
 namespace YopPoll\REST;
 
+use YopPoll\Helpers\Sanitizer;
+
 use YopPoll\Models\Model_Subelement;
 use YopPoll\Models\Model_Poll;
 use YopPoll\REST\REST_Polls;
@@ -47,7 +49,7 @@ class REST_Subelements extends REST_Base {
 			'stype'         => sanitize_text_field( $body['stype'] ?? $sub['stype'] ),
 			'status'        => sanitize_text_field( $body['status'] ?? $sub['status'] ),
 			'sorder'        => (int) ( $body['sorder'] ?? $sub['sorder'] ),
-			'meta_data'     => wp_json_encode( $body['meta_data'] ?? ( json_decode( $sub['meta_data'], true ) ?: [] ) ),
+			'meta_data'     => wp_json_encode( Sanitizer::sanitize_subelement_meta_data( $body['meta_data'] ?? ( json_decode( $sub['meta_data'], true ) ?: [] ) ) ),
 			'modified_date' => current_time( 'mysql' ),
 		);
 

@@ -329,6 +329,18 @@ class Admin_Page_Polls {
 		( new Model_Poll() )->delete( $poll_id );
 	}
 
+	/**
+	 * Remove the generated-page id from a poll's stored metadata.
+	 */
+	private static function strip_poll_page_id( $meta_json ) {
+		$meta = json_decode( (string) $meta_json, true );
+		if ( ! is_array( $meta ) ) {
+			return $meta_json;
+		}
+		unset( $meta['options']['poll']['pageId'] );
+		return wp_json_encode( $meta );
+	}
+
 	private function clone_poll( $poll_id ) {
 		$now          = current_time( 'mysql' );
 		$current_user = get_current_user_id();
@@ -350,7 +362,9 @@ class Admin_Page_Polls {
 			'author'                 => $current_user,
 			'stype'                  => $original['stype'],
 			'status'                 => $original['status'],
-			'meta_data'              => $original['meta_data'],
+			// A clone must not inherit pageId: it names the ORIGINAL's generated page,
+			// so switching auto-generate off on the copy would delete the original's page.
+			'meta_data'              => self::strip_poll_page_id( $original['meta_data'] ),
 			'total_submits'          => 0,
 			'total_submited_answers' => 0,
 			'added_date'             => $now,

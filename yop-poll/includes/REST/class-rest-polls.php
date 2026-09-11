@@ -17,6 +17,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class REST_Polls extends REST_Base {
 
+	/**
+	 * The inline-HTML allowlist used for author-written poll content.
+	 * Exposed so Helpers\Sanitizer can filter the meta keys that are rendered
+	 * as HTML by the frontend, the builder canvas and the block preview.
+	 */
+	public static function allowed_html(): array {
+		return self::$allowed_html;
+	}
+
 	private static array $allowed_html = [
 		'div'    => [ 'align' => [], 'style' => [], 'class' => [] ],
 		'p'      => [ 'align' => [], 'style' => [], 'class' => [] ],
@@ -140,6 +149,9 @@ class REST_Polls extends REST_Base {
 	public function create_item( $request ) {
 		$body = $request->get_json_params();
 		$body['meta_data'] = Sanitizer::sanitize_poll_meta_data( $body['meta_data'] ?? array() );
+		// pageId names a post this plugin will later retitle or delete. It is written
+		// by handle_poll_page() and must never be taken from the request body.
+		unset( $body['meta_data']['options']['poll']['pageId'] );
 
 		$errors = ( new Poll_Validator() )->validate( $body, $body['elements'] ?? [] );
 		if ( ! empty( $errors ) ) {
@@ -202,6 +214,9 @@ class REST_Polls extends REST_Base {
 
 		$body = $request->get_json_params();
 		$body['meta_data'] = Sanitizer::sanitize_poll_meta_data( $body['meta_data'] ?? array() );
+		// pageId names a post this plugin will later retitle or delete. It is written
+		// by handle_poll_page() and must never be taken from the request body.
+		unset( $body['meta_data']['options']['poll']['pageId'] );
 
 		$errors = ( new Poll_Validator() )->validate(
 			array_merge( $poll, $body ),
@@ -238,7 +253,16 @@ class REST_Polls extends REST_Base {
 		$poll_model->update( $poll_id, $update_data );
 
 		if ( isset( $body['elements'] ) ) {
-			$this->smart_save_elements( $poll_id, $body['elements'] );
+			// What the editor actually had on screen when it loaded. Anything created
+			// since - a voter's own answer, on a poll that accepts them - is absent from
+			// the payload without the admin ever having removed it, and must survive the
+			// save. See smart_save_elements().
+			$this->smart_save_elements(
+				$poll_id,
+				$body['elements'],
+				self::known_ids( $body, 'known_element_ids' ),
+				self::known_ids( $body, 'known_subelement_ids' )
+			);
 		}
 
 		self::refresh_poll_cache( $poll_id );
@@ -319,9 +343,37 @@ class REST_Polls extends REST_Base {
 		) );
 	}
 
+	/**
+	 * REST adapter. Pass-through by design - see handle_vote() in REST_Votes for why.
+	 */
 	public function get_results( $request ) {
-		$poll_id = (int) $request['id'];
-		$data    = self::get_cached_poll_data( $poll_id );
+		return $this->handle_results(
+			(int) $request['id'],
+			array(
+				'voter_id'    => $request->get_param( 'voter_id' ) ?? '',
+				'tracking_id' => $request->get_param( 'tracking_id' ) ?? '',
+				'fingerprint' => $request->get_param( 'fingerprint' ) ?? '',
+			)
+		);
+	}
+
+	/**
+	 * Public poll data. Transport-neutral: the REST route and the admin-ajax action
+	 * authenticated visitors use both call this.
+	 *
+	 * `auth_nonce` is issued only to a signed-in visitor, and only over admin-ajax,
+	 * which withholds Access-Control-Allow-Origin from unallowlisted origins. It is the
+	 * CSRF token for an authenticated vote and must never travel on a route a third
+	 * party can read - which is why the REST adapter never sets it. The guest `nonce`
+	 * is unchanged: it protects guest votes only, and a guest can obtain one anyway.
+	 *
+	 * @param int   $poll_id Poll id.
+	 * @param array $params  voter_id / tracking_id / fingerprint.
+	 * @param bool  $with_auth_nonce Issue the authenticated-vote nonce.
+	 * @return \WP_REST_Response|\WP_Error
+	 */
+	public function handle_results( int $poll_id, array $params, bool $with_auth_nonce = false ) {
+		$data = self::get_cached_poll_data( $poll_id );
 		if ( ! $data ) {
 			return $this->error( __( 'Poll not found.', 'yop-poll' ), 404 );
 		}
@@ -329,19 +381,28 @@ class REST_Polls extends REST_Base {
 		$raw_settings     = json_decode( get_option( 'yop_poll_settings', 'false' ), true ) ?? array();
 		$data['messages'] = $raw_settings['messages'] ?? array();
 
-		$already_voted         = $this->check_already_voted( $poll_id, $data, $request );
+		if ( $with_auth_nonce && is_user_logged_in() ) {
+			$data['auth_nonce'] = wp_create_nonce( self::vote_auth_action( $poll_id ) );
+		}
+
+		$already_voted         = $this->check_already_voted( $poll_id, $data, $params );
 		$data['already_voted'] = $already_voted;
 
 		return $this->success( self::sanitize_for_public( $data, $already_voted ) );
 	}
 
-	private function check_already_voted( int $poll_id, array $data, \WP_REST_Request $request ): bool {
+	/** Nonce action for an authenticated vote on one poll. */
+	public static function vote_auth_action( int $poll_id ): string {
+		return 'yop_poll_vote_auth_' . $poll_id;
+	}
+
+	private function check_already_voted( int $poll_id, array $data, array $params ): bool {
 		$access      = $data['poll']['meta_data']['options']['access'] ?? array();
 		$ip          = $this->get_client_ip();
 		$user_id     = get_current_user_id();
-		$voter_id    = sanitize_text_field( $request->get_param( 'voter_id' ) ?? '' );
-		$tracking_id = sanitize_text_field( $request->get_param( 'tracking_id' ) ?? '' );
-		$fingerprint = sanitize_text_field( $request->get_param( 'fingerprint' ) ?? '' );
+		$voter_id    = sanitize_text_field( (string) ( $params['voter_id'] ?? '' ) );
+		$tracking_id = sanitize_text_field( (string) ( $params['tracking_id'] ?? '' ) );
+		$fingerprint = sanitize_text_field( (string) ( $params['fingerprint'] ?? '' ) );
 
 		$user_type  = 'anonymous';
 		$user_email = '';
@@ -353,7 +414,15 @@ class REST_Polls extends REST_Base {
 
 		// For anonymous voters on email-permission polls, the frontend passes the stored email.
 		if ( 0 === $user_id ) {
-			$req_email = sanitize_email( $request->get_param( 'email' ) ?? '' );
+			// Do NOT take the voter's email from the request. Doing so turned this public
+			// route into a "has this address voted?" oracle for any address an attacker
+			// cares to try - and a positive answer also flipped force_counts, disclosing
+			// per-answer totals on polls set never to show results.
+			$req_email = '';
+			if ( is_user_logged_in() ) {
+				$current_user = wp_get_current_user();
+				$req_email    = $current_user ? sanitize_email( $current_user->user_email ) : '';
+			}
 			if ( '' !== $req_email ) {
 				$user_email = $req_email;
 			}
@@ -394,6 +463,10 @@ class REST_Polls extends REST_Base {
 
 		unset( $data['poll']['author'], $data['poll']['stype'], $data['poll']['added_date'], $data['poll']['modified_date'] );
 
+		// Rows saved before the sanitizer started stripping this may still carry it.
+		// The frontend no longer executes it, but there is no reason to publish it.
+		unset( $data['poll']['meta_data']['style']['custom']['javascript'] );
+
 		$access_private = [
 			'enableAnonymousVoting', 'allowChangeVote',
 			'limitVotesPerUser', 'votesPerUserAllowed',
@@ -431,6 +504,15 @@ class REST_Polls extends REST_Base {
 			},
 			$show_results_raw
 		);
+		// "Never show results" is a policy, not a default: it has to outrank the force
+		// flag. Previously the whole moment ladder - including the 'never' branch - sat
+		// inside `if ( ! $force_counts )`, and both the post-vote and limit-reached
+		// responses pass true, so a poll set to never show results disclosed every
+		// count to anyone who cast a single vote.
+		if ( in_array( 'never', $show_results_raw, true ) ) {
+			$force_counts = false;
+		}
+
 		$include_counts = $force_counts;
 		if ( ! $force_counts ) {
 			if ( in_array( 'before-vote', $show_results_raw, true ) ) {
@@ -465,7 +547,7 @@ class REST_Polls extends REST_Base {
 
 	// If the poll has a Results button, always include counts — the author
 	// explicitly opted in to letting visitors view results without voting.
-	if ( ! $include_counts ) {
+	if ( ! $include_counts && ! in_array( 'never', $show_results_raw, true ) ) {
 		$poll_opts = $data['poll']['meta_data']['options']['poll'] ?? [];
 		if ( ( $poll_opts['showResultsLink'] ?? 'no' ) === 'yes' ) {
 			$include_counts = true;
@@ -694,7 +776,7 @@ class REST_Polls extends REST_Base {
 				'etype'         => $etype,
 				'status'        => sanitize_text_field( $element['status'] ?? 'active' ),
 				'sorder'        => (int) ( $element['sorder'] ?? $index ),
-				'meta_data'     => wp_json_encode( $element['meta_data'] ?? [] ),
+				'meta_data'     => wp_json_encode( Sanitizer::sanitize_element_meta_data( $element['meta_data'] ?? [] ) ),
 				'added_date'    => $now,
 				'modified_date' => $now,
 			);
@@ -715,7 +797,7 @@ class REST_Polls extends REST_Base {
 							'stype'                     => $stype,
 							'status'                    => sanitize_text_field( $sub['status'] ?? 'active' ),
 							'sorder'                    => (int) ( $sub['sorder'] ?? $sub_index ),
-							'meta_data'                 => wp_json_encode( $sub['meta_data'] ?? [] ),
+							'meta_data'                 => wp_json_encode( Sanitizer::sanitize_subelement_meta_data( $sub['meta_data'] ?? [] ) ),
 							'total_submits'             => 0,
 							'added_date'                => $now,
 							'modified_date'             => $now,
@@ -731,7 +813,40 @@ class REST_Polls extends REST_Base {
 	/**
 	 * Smart update: preserve existing element IDs and vote counts; soft-delete removed rows.
 	 */
-	private function smart_save_elements( $poll_id, $elements ) {
+	/**
+	 * Read a list of ids the client says it loaded. Returns null when the key is
+	 * absent, which means "this client cannot tell us" - the callers then fall back
+	 * to a conservative rule rather than to the old destructive one.
+	 *
+	 * @param array  $body Request body.
+	 * @param string $key  known_element_ids | known_subelement_ids.
+	 * @return int[]|null
+	 */
+	private static function known_ids( array $body, string $key ): ?array {
+		if ( ! isset( $body[ $key ] ) || ! is_array( $body[ $key ] ) ) {
+			return null;
+		}
+		return array_values( array_filter( array_map( 'intval', $body[ $key ] ) ) );
+	}
+
+	/**
+	 * A payload says what the editor holds now; it does not say what the editor ever
+	 * knew about. Rows created after the edit screen loaded - a voter's own answer on
+	 * a poll with "add other answers" on - are missing from it for that reason alone,
+	 * and deleting them on that evidence loses their votes while the poll's own
+	 * counters keep counting them.
+	 *
+	 * So a row is only removed when the client confirms it had it and dropped it:
+	 * $known_* are the ids the edit screen loaded. When they are absent (an older
+	 * cached admin bundle), elements keep the previous behaviour, but voter-created
+	 * answers are never silently deleted - see smart_save_subelements().
+	 *
+	 * @param int        $poll_id  Poll id.
+	 * @param array      $elements Incoming elements.
+	 * @param int[]|null $known_element_ids    Element ids the editor loaded.
+	 * @param int[]|null $known_subelement_ids Subelement ids the editor loaded.
+	 */
+	private function smart_save_elements( $poll_id, $elements, ?array $known_element_ids = null, ?array $known_subelement_ids = null ) {
 		$element_model    = new Model_Element();
 		$subelement_model = new Model_Subelement();
 		$now              = current_time( 'mysql' );
@@ -750,15 +865,21 @@ class REST_Polls extends REST_Base {
 			}
 		}
 
-		// Soft-delete elements (and their subelements) that are no longer in the payload.
+		// Soft-delete elements (and their subelements) the editor removed. An element the
+		// editor never loaded cannot have been removed by it, so it stays: deleting it
+		// here would take every answer under it, votes included.
 		foreach ( $current_ids as $eid ) {
-			if ( ! in_array( $eid, $incoming_ids, true ) ) {
-				$element_model->update( $eid, [
-					'status'        => 'deleted',
-					'modified_date' => $now,
-				] );
-				$subelement_model->soft_delete_by_element( $eid );
+			if ( in_array( $eid, $incoming_ids, true ) ) {
+				continue;
 			}
+			if ( is_array( $known_element_ids ) && ! in_array( $eid, $known_element_ids, true ) ) {
+				continue;
+			}
+			$element_model->update( $eid, [
+				'status'        => 'deleted',
+				'modified_date' => $now,
+			] );
+			$subelement_model->soft_delete_by_element( $eid );
 		}
 
 		// Process each incoming element.
@@ -766,7 +887,14 @@ class REST_Polls extends REST_Base {
 			$element_id  = ! empty( $element['id'] ) ? (int) $element['id'] : null;
 			$is_existing = $element_id && in_array( $element_id, $current_ids, true );
 			$etype       = sanitize_text_field( $element['etype'] ?? 'question-text' );
-			$el_meta     = wp_json_encode( $element['meta_data'] ?? [] );
+			// Sanitize here, not only in save_elements(). This is the path an edit to an
+			// existing poll takes - the common case - so leaving it raw meant the
+			// save-time filter effectively never ran. otherAnswersLabel, consent_text
+			// and question_template reach dangerouslySetInnerHTML on the front end, the
+			// admin results screen and the block preview with no display-side guard, so
+			// this call is the only thing standing between a poll editor and script
+			// running for whoever opens the poll.
+			$el_meta     = wp_json_encode( Sanitizer::sanitize_element_meta_data( $element['meta_data'] ?? [] ) );
 
 			if ( $is_existing ) {
 				$element_model->update( $element_id, [
@@ -795,7 +923,7 @@ class REST_Polls extends REST_Base {
 				if ( 'question-text-slider' === $etype ) {
 					$this->save_text_slider_subelements( $poll_id, $element_id, $element['meta_data'] ?? [] );
 				} else {
-					$this->smart_save_subelements( $poll_id, $element_id, $element['subelements'] ?? [], $etype );
+					$this->smart_save_subelements( $poll_id, $element_id, $element['subelements'] ?? [], $etype, $known_subelement_ids );
 				}
 			}
 		}
@@ -804,7 +932,7 @@ class REST_Polls extends REST_Base {
 	/**
 	 * Smart update for subelements: preserve vote counts; soft-delete removed rows.
 	 */
-	private function smart_save_subelements( $poll_id, $element_id, $subelements, $etype = '' ) {
+	private function smart_save_subelements( $poll_id, $element_id, $subelements, $etype = '', ?array $known_subelement_ids = null ) {
 		$subelement_model = new Model_Subelement();
 		$now              = current_time( 'mysql' );
 		$user_id          = get_current_user_id();
@@ -812,6 +940,7 @@ class REST_Polls extends REST_Base {
 		// Load current non-deleted subelements.
 		$current_subs = $subelement_model->get_by_element( $element_id );
 		$current_ids  = array_map( 'intval', array_column( $current_subs, 'id' ) );
+		$current_type = array_column( $current_subs, 'stype', 'id' );
 
 		// Collect IDs present in the incoming payload.
 		$incoming_ids = [];
@@ -828,13 +957,27 @@ class REST_Polls extends REST_Base {
 		$should_delete = ! ( empty( $subelements ) && ! empty( $current_ids ) );
 		if ( $should_delete ) {
 			foreach ( $current_ids as $sid ) {
-				if ( ! in_array( $sid, $incoming_ids, true ) ) {
-					$subelement_model->update( $sid, [
-						'status'        => 'deleted',
-						'sorder'        => 0,
-						'modified_date' => $now,
-					] );
+				if ( in_array( $sid, $incoming_ids, true ) ) {
+					continue;
 				}
+				// An answer the editor never loaded was not removed by the admin - a voter
+				// added it after the edit screen opened. Deleting it drops its votes from
+				// the results while the poll's own totals still count them.
+				if ( is_array( $known_subelement_ids ) ) {
+					if ( ! in_array( $sid, $known_subelement_ids, true ) ) {
+						continue;
+					}
+				} elseif ( 'other' === ( $current_type[ $sid ] ?? '' ) ) {
+					// No list to check against (an older cached admin bundle). Voter-created
+					// answers are the ones that appear without the editor's knowledge, so
+					// they are the ones this path must not remove on absence alone.
+					continue;
+				}
+				$subelement_model->update( $sid, [
+					'status'        => 'deleted',
+					'sorder'        => 0,
+					'modified_date' => $now,
+				] );
 			}
 		}
 
@@ -843,7 +986,10 @@ class REST_Polls extends REST_Base {
 			$sub_id      = ! empty( $sub['id'] ) ? (int) $sub['id'] : null;
 			$is_existing = $sub_id && in_array( $sub_id, $current_ids, true );
 			$stype       = sanitize_text_field( $sub['stype'] ?? 'text' );
-			$sub_meta    = wp_json_encode( $sub['meta_data'] ?? [] );
+			// As above: the update path has to filter too. `link` becomes an <a href>,
+			// and while the three renderers each gate it through a safe-scheme check,
+			// storing a javascript: URL at all leaves the guard as the only defence.
+			$sub_meta    = wp_json_encode( Sanitizer::sanitize_subelement_meta_data( $sub['meta_data'] ?? [] ) );
 
 			if ( $is_existing ) {
 				// Update — do NOT touch total_submits.
@@ -954,24 +1100,60 @@ class REST_Polls extends REST_Base {
 		}
 	}
 
+	/**
+	 * Post meta stamped on pages this plugin generated, so it can recognise its own.
+	 */
+	const POLL_PAGE_MARKER = '_yop_poll_generated_for';
+
+	/**
+	 * Whether $page_id is a page THIS plugin generated for THIS poll.
+	 *
+	 * pageId travels in the poll's metadata, which is client-supplied, and
+	 * wp_update_post()/wp_delete_post() perform no capability check of their own.
+	 * Without this, saving a poll could retitle or permanently delete any post on the
+	 * site by id - force-deleted, so not even recoverable from the trash - and a poll
+	 * author has no such right over other people's content.
+	 */
+	private function is_own_poll_page( int $page_id, int $poll_id ): bool {
+		if ( $page_id <= 0 ) {
+			return false;
+		}
+		$post = get_post( $page_id );
+		if ( ! $post || 'page' !== $post->post_type ) {
+			return false;
+		}
+		return (int) get_post_meta( $page_id, self::POLL_PAGE_MARKER, true ) === $poll_id;
+	}
+
 	private function handle_poll_page( int $poll_id, string $poll_name, string $auto_generate, int $existing_page_id ): int {
+		$owns_existing = $this->is_own_poll_page( $existing_page_id, $poll_id );
+
 		if ( 'yes' === $auto_generate ) {
-			if ( $existing_page_id && false !== get_post_status( $existing_page_id ) ) {
-				// Page exists — sync title
+			if ( $owns_existing && current_user_can( 'edit_post', $existing_page_id ) ) {
+				// Our own page — sync title
 				wp_update_post( array( 'ID' => $existing_page_id, 'post_title' => $poll_name ) );
 				return $existing_page_id;
 			}
-			// Create new page
+			if ( $existing_page_id && ! $owns_existing ) {
+				// Points at something we did not create: leave it completely alone.
+				return 0;
+			}
+			// Create new page. wp_insert_post() checks no capability itself.
+			if ( ! current_user_can( 'publish_pages' ) ) {
+				return 0;
+			}
 			$page_id = wp_insert_post( array(
 				'post_title'   => $poll_name,
 				'post_content' => '[yop_poll id="' . $poll_id . '"]',
 				'post_status'  => 'publish',
 				'post_type'    => 'page',
+				'meta_input'   => array( self::POLL_PAGE_MARKER => $poll_id ),
 			) );
 			return ( $page_id && ! is_wp_error( $page_id ) ) ? (int) $page_id : 0;
 		}
-		// auto_generate === 'no' — delete if page exists
-		if ( $existing_page_id && false !== get_post_status( $existing_page_id ) ) {
+
+		// auto_generate === 'no' — remove the page we generated, and only that.
+		if ( $owns_existing && current_user_can( 'delete_post', $existing_page_id ) ) {
 			wp_delete_post( $existing_page_id, true ); // true = force-delete, skip trash
 		}
 		return 0;

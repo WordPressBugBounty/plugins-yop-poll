@@ -2,6 +2,8 @@
 namespace YopPoll;
 
 use YopPoll\REST\REST_Polls;
+use YopPoll\REST\REST_Votes;
+use YopPoll\REST\REST_Auth;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -13,6 +15,15 @@ class Assets {
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin' ) );
 		add_action( 'wp_enqueue_scripts', array( $this, 'register_frontend' ) );
 		add_action( 'wp_ajax_yop_poll_wp_login_redirect', array( $this, 'handle_wp_login_redirect' ) );
+		add_action( 'wp_ajax_yop_poll_auth_status',        array( $this, 'handle_auth_status' ) );
+		add_action( 'wp_ajax_nopriv_yop_poll_auth_status', array( $this, 'handle_auth_status' ) );
+
+		// Authenticated traffic only. There is deliberately no wp_ajax_nopriv_ twin for
+		// either of these: a guest keeps using the public REST routes, which need no
+		// cookie identity and therefore no wp_rest nonce. Registering only the priv
+		// action means a logged-out caller is rejected by WordPress before our code runs.
+		add_action( 'wp_ajax_yop_poll_vote',    array( $this, 'handle_vote' ) );
+		add_action( 'wp_ajax_yop_poll_results', array( $this, 'handle_results' ) );
 	}
 
 	public function enqueue_admin( $hook ) {
@@ -105,7 +116,9 @@ class Assets {
 		$integrations = $settings['integrations'] ?? array();
 		wp_localize_script( 'yop-poll-admin', 'yopPoll', array(
 			'restUrl'  => rest_url( 'yop-poll/v1/' ),
-			'nonce'    => wp_create_nonce( 'wp_rest' ),
+			// No 'nonce' key here. It used to carry a wp_rest nonce that nothing read:
+			// the admin bundle gets its REST nonce from core's own apiFetch. An unused
+			// account-wide token on a page is surface for nothing in return.
 			'adminUrl' => admin_url(),
 			'roles'    => $roles,
 			'captchaKeys' => array(
@@ -186,10 +199,12 @@ class Assets {
 			),
 			'autoRefreshTime' => 0,
 			'restUrl'         => rest_url( 'yop-poll/v1/' ),
-			// Cookie-authenticated REST requests need this header, or a logged-in visitor
-			// is treated as a guest. We ship it ourselves rather than relying on core's
-			// wp-api-fetch inline script, which optimizer plugins frequently delay.
-			'restNonce'       => wp_create_nonce( 'wp_rest' ),
+			// Where a signed-in visitor's vote and poll-data reads go. Those two calls
+			// need to know who the visitor is; over REST that means shipping the
+			// account-wide wp_rest nonce to the page, which is the token the A5 report
+			// was about. admin-ajax resolves the session from the cookie itself, so the
+			// page carries no account-wide token at all - only a per-poll vote nonce.
+			// A guest keeps using restUrl: user 0 either way, nothing to bind a token to.
 			'adminAjaxUrl'    => admin_url( 'admin-ajax.php' ),
 			'wpUserLoggedIn'  => is_user_logged_in(),
 			'wpLoginUrl'      => wp_login_url(),
@@ -197,20 +212,119 @@ class Assets {
 
 	}
 
+	/**
+	 * Report whether the visitor is logged in, and hand back fresh nonces bound to
+	 * that user. The frontend polls this while a WordPress login popup is open, so
+	 * voting works regardless of where the popup finally lands (core login, WooCommerce
+	 * My Account, registration, social-login plugins) instead of relying on the redirect
+	 * hitting our bridge page.
+	 *
+	 * This lives on admin-ajax, NOT the REST API, and that is a security decision:
+	 *
+	 * - Identity comes from WordPress itself. admin-ajax resolves the session cookie
+	 *   through the normal path, so there is no raw-cookie recovery here and no REST
+	 *   nonce middleware to step around. wp_ajax_nopriv_ answers logged-out callers.
+	 * - The response is not readable cross-origin. admin-ajax.php calls
+	 *   send_origin_headers() before dispatch, which emits Access-Control-Allow-Origin
+	 *   only for an allowlisted origin - unlike the REST API, which echoes ANY Origin
+	 *   with Allow-Credentials: true. admin-ajax also has no JSONP, so a <script src>
+	 *   tag cannot read it either.
+	 *
+	 * Core refreshes its own wp_rest nonce the same way, over the heartbeat
+	 * (wp_refresh_nonces() in wp-admin/includes/misc.php).
+	 *
+	 * Deliberately no nonce check: the caller is asking precisely because it has no
+	 * valid nonce yet. Nothing here is state-changing, and nothing is disclosed to a
+	 * cross-origin reader.
+	 */
+	public function handle_auth_status() {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only status probe; see docblock.
+		$poll_id   = isset( $_GET['poll_id'] ) ? absint( wp_unslash( $_GET['poll_id'] ) ) : 0;
+		$logged_in = is_user_logged_in();
+
+		wp_send_json( array(
+			'loggedIn'   => $logged_in,
+			'nonce'      => ( $logged_in && $poll_id > 0 ) ? wp_create_nonce( 'yop_poll_vote_' . $poll_id ) : '',
+			// The authenticated-vote CSRF token, scoped to one action on one poll. This
+			// replaces the wp_rest nonce the response used to carry: that token had
+			// account-wide reach, so disclosing it was an account-takeover primitive,
+			// while the worst case for this one is a forged vote. It is safe to send
+			// here and only here - admin-ajax withholds Access-Control-Allow-Origin from
+			// unallowlisted origins, so a third-party page cannot read the reply.
+			'authNonce'  => ( $logged_in && $poll_id > 0 ) ? wp_create_nonce( REST_Polls::vote_auth_action( $poll_id ) ) : '',
+		) );
+	}
+
+	/**
+	 * Cast a vote as the signed-in visitor.
+	 *
+	 * This exists so an authenticated vote never needs a `wp_rest` nonce. On the REST
+	 * API, cookie authentication is gated on that nonce (rest_cookie_check_errors()),
+	 * which made a token with account-wide reach a hard requirement on the client - and
+	 * a disclosure of it an account-takeover primitive. admin-ajax resolves the session
+	 * itself, so the CSRF token here is scoped to one action on one poll: if it leaks,
+	 * the worst case is a forged vote.
+	 *
+	 * That scoping is only worth anything if the token is not readable cross-origin,
+	 * which is why it is issued solely by handle_results() below and never by the public
+	 * REST poll-data route.
+	 */
+	public function handle_vote() {
+		$raw  = file_get_contents( 'php://input' );
+		$body = json_decode( (string) $raw, true );
+		if ( ! is_array( $body ) ) {
+			$body = wp_unslash( $_POST ); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce is verified immediately below.
+		}
+
+		$poll_id = (int) ( $body['poll_id'] ?? 0 );
+		$nonce   = isset( $body['auth_nonce'] ) ? sanitize_text_field( (string) $body['auth_nonce'] ) : '';
+
+		if ( ! $poll_id || ! wp_verify_nonce( $nonce, REST_Polls::vote_auth_action( $poll_id ) ) ) {
+			wp_send_json(
+				array(
+					'code'    => 'yop_poll_invalid_nonce',
+					'message' => __( 'Invalid or expired security token. Please refresh the page and try again.', 'yop-poll' ),
+					'data'    => array( 'status' => 403 ),
+				),
+				403
+			);
+		}
+
+		$votes = new REST_Votes();
+		$votes->send_ajax_result( $votes->handle_vote( $body ) );
+	}
+
+	/**
+	 * Poll data for the signed-in visitor.
+	 *
+	 * Read-only, so no nonce: there is nothing to forge. It exists because
+	 * check_already_voted() resolves identity with get_current_user_id(), which on the
+	 * REST API is 0 without a wp_rest nonce - so a signed-in visitor fetching poll data
+	 * over REST would be treated as a guest and shown a voting form for a poll they had
+	 * already voted on. This is also where the authenticated-vote nonce is issued.
+	 */
+	public function handle_results() {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only.
+		$poll_id = isset( $_GET['poll_id'] ) ? absint( wp_unslash( $_GET['poll_id'] ) ) : 0;
+		if ( ! $poll_id ) {
+			wp_send_json( array( 'code' => 'yop_poll_error', 'message' => __( 'Poll ID is required.', 'yop-poll' ), 'data' => array( 'status' => 400 ) ), 400 );
+		}
+
+		$params = array();
+		foreach ( array( 'voter_id', 'tracking_id', 'fingerprint' ) as $key ) {
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only.
+			$params[ $key ] = isset( $_GET[ $key ] ) ? sanitize_text_field( wp_unslash( $_GET[ $key ] ) ) : '';
+		}
+
+		$polls = new REST_Polls();
+		$polls->send_ajax_result( $polls->handle_results( $poll_id, $params, true ) );
+	}
+
 	public function handle_wp_login_redirect() {
-		// phpcs:ignore WordPress.Security.NonceVerification -- Redirect callback; nonce created here for the frontend.
-		$poll_id       = isset( $_GET['poll_id'] ) ? absint( wp_unslash( $_GET['poll_id'] ) ) : 0;
-		$nonce         = $poll_id > 0 ? wp_create_nonce( 'yop_poll_vote_' . $poll_id ) : '';
-		$wp_rest_nonce = wp_create_nonce( 'wp_rest' );
 		nocache_headers();
-		header( 'Content-Type: text/html; charset=utf-8' );
-		echo '<!DOCTYPE html><html><head><meta charset="utf-8"></head><body>'
-			. '<script>'
-			. 'if(window.opener&&window.opener!==window){'
-			.   'window.opener.postMessage({type:"yop_poll_wp_login_success",nonce:"' . esc_js( $nonce ) . '",wpRestNonce:"' . esc_js( $wp_rest_nonce ) . '"},"*");'
-			. '}'
-			. 'window.close();'
-			. '</script></body></html>';
+		// The bridge page carries no nonce and no user data - see
+		// REST_Auth::render_login_bridge() for why that matters.
+		REST_Auth::render_login_bridge();
 		wp_die();
 	}
 

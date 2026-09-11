@@ -35,6 +35,43 @@ abstract class REST_Base extends \WP_REST_Controller {
 		return new \WP_Error( 'yop_poll_error', $message, array( 'status' => $status ) );
 	}
 
+	/**
+	 * Emit a handler result over admin-ajax in the shape the REST API would have used.
+	 *
+	 * The vote and poll-data handlers are shared by two transports: the REST routes and
+	 * the admin-ajax actions that authenticated visitors use. They keep returning
+	 * WP_REST_Response / WP_Error so the REST adapters stay pass-throughs and cannot
+	 * drift; this converts that to JSON for the ajax adapters.
+	 *
+	 * The envelope has to match byte for byte. The frontend throws the parsed body on any
+	 * non-2xx and branches on `code` - yop_poll_limit_reached, yop_poll_block_reached,
+	 * yop_poll_ban_reached - and reads `data.poll_data` off the limit error. Emit a
+	 * different shape here and every refusal silently renders as a generic failure.
+	 *
+	 * @param \WP_REST_Response|\WP_Error|mixed $result Handler result.
+	 */
+	public function send_ajax_result( $result ): void {
+		if ( is_wp_error( $result ) ) {
+			$data   = $result->get_error_data();
+			$status = ( is_array( $data ) && isset( $data['status'] ) ) ? (int) $data['status'] : 400;
+
+			wp_send_json(
+				array(
+					'code'    => $result->get_error_code(),
+					'message' => $result->get_error_message(),
+					'data'    => is_array( $data ) ? $data : array( 'status' => $status ),
+				),
+				$status
+			);
+		}
+
+		if ( $result instanceof \WP_REST_Response ) {
+			wp_send_json( $result->get_data(), $result->get_status() );
+		}
+
+		wp_send_json( $result );
+	}
+
 	protected function get_int_param( $request, $key, $default = 0 ) {
 		return (int) $request->get_param( $key ) ?: $default;
 	}
@@ -124,6 +161,16 @@ abstract class REST_Base extends \WP_REST_Controller {
 
 		$block_period = $access['blockLengthType'] ?? 'forever';
 
+		// An unrecognised block type used to `continue 2`, so a poll configured with a
+		// value this edition does not implement (by-fingerprint / by-email from the paid
+		// editions on shared tables, or a v6 spelling the migrator never mapped) blocked
+		// nobody while the UI reported blocking as on. Track what actually ran: if the
+		// only types present are ones we cannot honour, deny rather than wave the vote
+		// through. A mixed list such as ['by-ip','by-fingerprint'] still works normally,
+		// so this only bites when blocking would otherwise be a complete no-op.
+		$applied     = false;
+		$unsupported = false;
+
 		foreach ( $block_voters as $block_type ) {
 			$args = array();
 
@@ -149,9 +196,11 @@ abstract class REST_Base extends \WP_REST_Controller {
 					break;
 
 				default:
+					$unsupported = true;
 					continue 2;
 			}
 
+			$applied   = true;
 			$last_vote = $vote_model->get_last_vote( $poll_id, $args );
 			if ( ! $last_vote ) {
 				continue;
@@ -184,6 +233,13 @@ abstract class REST_Base extends \WP_REST_Controller {
 				return false;
 			}
 			// Elapsed — this block type is cleared; continue checking other types.
+		}
+
+		// Every configured type was one we cannot honour: fail closed. A supported type
+		// that simply had no identity to match on (say by-cookie once GDPR anonymisation
+		// has cleared voter_id) does not set $unsupported, so it still allows the vote.
+		if ( $unsupported && ! $applied ) {
+			return false;
 		}
 
 		return true;

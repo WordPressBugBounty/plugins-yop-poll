@@ -50,6 +50,12 @@ class REST_Logs extends REST_Base {
 				$where['poll_author'] = $author_filter;
 			}
 		}
+		// Deleting from the admin screens is a SOFT delete (status => 'deleted'). The
+		// models' own get_list() honours that, but these handlers use the generic
+		// Model_Base::all()/count(), which apply only the keys given here - so deleted
+		// rows, carrying IP addresses and email addresses, were still being returned.
+		$where['status'] = 'active';
+
 		if ( $where ) {
 			$args['where'] = $where;
 		}

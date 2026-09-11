@@ -43,9 +43,14 @@ class REST_Bans extends REST_Base {
 			'search_columns' => array( 'b_value' ),
 		);
 
+		// Deleting a ban from the admin screen is a SOFT delete (status => 'deleted').
+		// Model_Ban::get_list() honours that, but this handler uses the generic
+		// Model_Base::all()/count(), which apply only the keys given here.
+		$args['where'] = array( 'status' => 'active' );
+
 		$author_filter = Permissions::list_filter_author_id();
 		if ( null !== $author_filter ) {
-			$args['where'] = array( 'author' => $author_filter );
+			$args['where']['author'] = $author_filter;
 		}
 
 		$items = $model->all( $args );

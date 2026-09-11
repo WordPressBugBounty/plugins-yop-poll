@@ -95,6 +95,22 @@ class Cron_Auto_Reset {
 
 		global $wpdb;
 		$table = $wpdb->prefix . YOP_POLL_TABLE_PREFIX . 'polls';
+
+		// Re-read immediately before writing and merge only the two keys this job owns.
+		// The blob was fetched at the top of run(), so an administrator saving the poll
+		// in between had their entire settings edit - blockVoters, useCaptcha,
+		// votePermissions, everything - silently reverted by this update.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL, PluginCheck.Security.DirectDB.UnescapedDBParameter -- $table is built from $wpdb->prefix . YOP_POLL_TABLE_PREFIX and a table name cannot be a prepare() placeholder.
+		$fresh_raw = $wpdb->get_var( $wpdb->prepare( "SELECT meta_data FROM {$table} WHERE id = %d", $poll_id ) );
+		$fresh = Migrator::decode_meta( $fresh_raw ?? '' );
+		if ( is_array( $fresh ) && ! empty( $fresh ) ) {
+			$fresh['options']['poll']['resetPollStatsOn'] =
+				$meta_data['options']['poll']['resetPollStatsOn'] ?? '';
+			$fresh['options']['poll']['resetPollStatsAutomatically'] =
+				$meta_data['options']['poll']['resetPollStatsAutomatically'] ?? 'no';
+			$meta_data = $fresh;
+		}
+
 		$wpdb->update( // phpcs:ignore WordPress.DB.DirectDatabaseQuery, PluginCheck.Security.DirectDB.UnescapedDBParameter -- $table built from $wpdb->prefix . YOP_POLL_TABLE_PREFIX.
 			$table,
 			array( 'meta_data' => wp_json_encode( $meta_data ) ),

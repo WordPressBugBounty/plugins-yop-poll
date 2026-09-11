@@ -17,6 +17,64 @@ class Sanitizer {
 	 * @param mixed $meta Poll metadata supplied through REST.
 	 * @return array
 	 */
+	/** Poll option keys the frontend renders as HTML. */
+	private const HTML_POLL_META_KEYS = array( 'gdprConsentText' );
+
+	/** Poll option keys used as a URL the browser navigates to. */
+	private const URL_POLL_META_KEYS = array( 'redirectUrl' );
+
+	/** Element meta keys rendered as HTML by the frontend, builder and block preview. */
+	private const HTML_ELEMENT_META_KEYS = array( 'otherAnswersLabel', 'consent_text', 'question_template' );
+
+	/** Subelement meta keys used as a URL. */
+	private const URL_SUBELEMENT_META_KEYS = array( 'link' );
+
+	/**
+	 * Filter element metadata. These keys reach dangerouslySetInnerHTML in three
+	 * renderers that share no code - the frontend, the builder canvas and the block
+	 * preview - so filtering has to happen here, once, on the way in.
+	 *
+	 * @param mixed $meta Element metadata supplied through REST.
+	 * @return array
+	 */
+	public static function sanitize_element_meta_data( $meta ): array {
+		if ( is_string( $meta ) ) {
+			$meta = json_decode( $meta, true );
+		}
+		if ( ! is_array( $meta ) ) {
+			return array();
+		}
+		foreach ( self::HTML_ELEMENT_META_KEYS as $key ) {
+			if ( isset( $meta[ $key ] ) && is_string( $meta[ $key ] ) ) {
+				$meta[ $key ] = wp_kses( $meta[ $key ], \YopPoll\REST\REST_Polls::allowed_html() );
+			}
+		}
+		return $meta;
+	}
+
+	/**
+	 * Filter subelement metadata. `link` becomes an <a href> on the frontend and in
+	 * the builder, and React does not sanitize URLs, so a javascript: value there is
+	 * script execution for every visitor who clicks the answer.
+	 *
+	 * @param mixed $meta Subelement metadata supplied through REST.
+	 * @return array
+	 */
+	public static function sanitize_subelement_meta_data( $meta ): array {
+		if ( is_string( $meta ) ) {
+			$meta = json_decode( $meta, true );
+		}
+		if ( ! is_array( $meta ) ) {
+			return array();
+		}
+		foreach ( self::URL_SUBELEMENT_META_KEYS as $key ) {
+			if ( isset( $meta[ $key ] ) && is_string( $meta[ $key ] ) ) {
+				$meta[ $key ] = esc_url_raw( $meta[ $key ], array( 'http', 'https', 'mailto' ) );
+			}
+		}
+		return $meta;
+	}
+
 	public static function sanitize_poll_meta_data( $meta ): array {
 		if ( is_string( $meta ) ) {
 			$meta = json_decode( $meta, true );
@@ -28,6 +86,37 @@ class Sanitizer {
 
 		if ( isset( $meta['style']['poll'] ) && is_array( $meta['style']['poll'] ) ) {
 			$meta['style']['poll'] = self::sanitize_poll_container_style( $meta['style']['poll'] );
+		}
+
+		// Poll-level values the frontend renders as HTML or navigates to. These are
+		// author-written, so they are filtered rather than escaped - escaping would
+		// print tags to the visitor - but nothing here may carry script or a
+		// javascript:/data: URL. Editing a poll is not an unfiltered_html privilege.
+		foreach ( self::HTML_POLL_META_KEYS as $html_key ) {
+			if ( isset( $meta['options']['poll'][ $html_key ] ) && is_string( $meta['options']['poll'][ $html_key ] ) ) {
+				$meta['options']['poll'][ $html_key ] = wp_kses(
+					$meta['options']['poll'][ $html_key ],
+					\YopPoll\REST\REST_Polls::allowed_html()
+				);
+			}
+		}
+		foreach ( self::URL_POLL_META_KEYS as $url_key ) {
+			if ( isset( $meta['options']['poll'][ $url_key ] ) && is_string( $meta['options']['poll'][ $url_key ] ) ) {
+				$meta['options']['poll'][ $url_key ] = esc_url_raw(
+					$meta['options']['poll'][ $url_key ],
+					array( 'http', 'https' )
+				);
+			}
+		}
+
+		// Executable custom JavaScript is never accepted over REST. The plugin exposes
+		// no field for it - style.custom holds only the Custom Code CSS box - so any
+		// value here arrived in a hand-crafted request body. Storing arbitrary script
+		// against a poll would let anyone who can edit a poll run code on every page
+		// that shows it, which is an unfiltered_html-class privilege that poll-editing
+		// capabilities do not grant.
+		if ( isset( $meta['style']['custom']['javascript'] ) ) {
+			unset( $meta['style']['custom']['javascript'] );
 		}
 
 		return $meta;

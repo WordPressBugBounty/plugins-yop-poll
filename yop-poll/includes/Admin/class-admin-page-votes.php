@@ -240,7 +240,12 @@ class Votes_List_Table extends \WP_List_Table {
 		if ( $poll_id ) {
 			$where[]  = 'poll_id = %d';
 			$values[] = $poll_id;
-		} else {
+		}
+		// Author scoping applies IN ADDITION to any poll filter, never instead of it.
+		// Previously an explicit poll_id skipped it entirely, so this table had no
+		// ownership constraint of its own - safe only because its one caller checks
+		// first. Any future caller would have inherited an IDOR.
+		{
 			$author_filter = Permissions::list_filter_author_id();
 			if ( null !== $author_filter ) {
 				$where[]  = "poll_id IN (SELECT id FROM {$polls_table} WHERE author = %d)";
@@ -443,12 +448,28 @@ class Admin_Page_Votes {
 
 		$out = fopen( 'php://output', 'w' );
 
+		/**
+		 * Neutralise spreadsheet formula injection.
+		 *
+		 * fputcsv() quotes for delimiters and newlines only; it does nothing about a
+		 * leading =, +, - or @, which Excel, LibreOffice and Sheets all treat as the
+		 * start of a formula. Voter-supplied answer text reaches these cells from the
+		 * public vote endpoint, so a cell can arrive as =HYPERLINK(...) or a DDE
+		 * payload and execute when an administrator opens the export.
+		 */
+		$csv_safe = static function ( $value ) {
+			$value = (string) $value;
+			return ( '' !== $value && false !== strpos( "=+-@\t\r", $value[0] ) )
+				? "'" . $value
+				: $value;
+		};
+
 		// Header row.
 		$header = array( 'ID', 'User Type', 'Email', 'IP Address', 'Date' );
 		foreach ( $elements as $el ) {
 			$header[] = wp_strip_all_tags( $el['etext'] );
 		}
-		fputcsv( $out, $header );
+		fputcsv( $out, array_map( $csv_safe, $header ) );
 
 		// Data rows.
 		foreach ( $rows as $row ) {
@@ -462,7 +483,7 @@ class Admin_Page_Votes {
 			foreach ( $elements as $el ) {
 				$line[] = $detail_map[ (int) $row['id'] ][ (int) $el['id'] ] ?? '';
 			}
-			fputcsv( $out, $line );
+			fputcsv( $out, array_map( $csv_safe, $line ) );
 		}
 
 		fclose( $out ); // phpcs:ignore WordPress.WP.AlternativeFunctions

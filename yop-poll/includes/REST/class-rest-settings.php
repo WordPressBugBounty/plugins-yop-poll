@@ -9,17 +9,33 @@ class REST_Settings extends REST_Base {
 
 	private $option_key = 'yop_poll_settings';
 
+	/** Stand-in returned instead of a stored secret key. */
+	const SECRET_PLACEHOLDER = '********';
+
+	/**
+	 * Settings are site configuration, not poll content.
+	 *
+	 * check_admin_permission() passes for ANY yop_poll_* capability, which by default
+	 * includes the Author role - a role with no manage_options and no business reading
+	 * or rewriting a site option. This endpoint exposes the captcha secret keys and the
+	 * switch that makes the plugin trust client-supplied IP headers, so it is gated on
+	 * the core capability that actually means "may configure this site".
+	 */
+	public function check_settings_permission( $request ) {
+		return current_user_can( 'manage_options' );
+	}
+
 	public function register_routes() {
 		register_rest_route( $this->namespace, '/settings', array(
 			array(
 				'methods'             => \WP_REST_Server::READABLE,
 				'callback'            => array( $this, 'get_settings' ),
-				'permission_callback' => array( $this, 'check_admin_permission' ),
+				'permission_callback' => array( $this, 'check_settings_permission' ),
 			),
 			array(
 				'methods'             => 'PUT',
 				'callback'            => array( $this, 'update_settings' ),
-				'permission_callback' => array( $this, 'check_admin_permission' ),
+				'permission_callback' => array( $this, 'check_settings_permission' ),
 			),
 		) );
 	}
@@ -135,6 +151,13 @@ Reset Date - %RESET-DATE%
 			}
 		}
 
+		// Never emit stored secrets. The UI only needs to know one is set.
+		foreach ( array_keys( $merged['integrations'] ?? array() ) as $integration ) {
+			if ( ! empty( $merged['integrations'][ $integration ]['secret-key'] ) ) {
+				$merged['integrations'][ $integration ]['secret-key'] = self::SECRET_PLACEHOLDER;
+			}
+		}
+
 		return $this->success( $merged );
 	}
 
@@ -146,6 +169,15 @@ Reset Date - %RESET-DATE%
 
 		// Preserve installation date — never overwrite from client.
 		$sanitized['general']['i-date'] = $existing['general']['i-date'] ?? $sanitized['general']['i-date'];
+
+		// A secret that comes back as the placeholder was never shown to the client;
+		// keep what is stored rather than overwriting it with the mask.
+		foreach ( array_keys( $sanitized['integrations'] ?? array() ) as $integration ) {
+			if ( self::SECRET_PLACEHOLDER === ( $sanitized['integrations'][ $integration ]['secret-key'] ?? '' ) ) {
+				$sanitized['integrations'][ $integration ]['secret-key'] =
+					$existing['integrations'][ $integration ]['secret-key'] ?? '';
+			}
+		}
 
 		update_option( $this->option_key, wp_json_encode( $sanitized ) );
 		return $this->success( $sanitized );

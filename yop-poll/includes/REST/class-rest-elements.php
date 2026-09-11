@@ -1,6 +1,8 @@
 <?php
 namespace YopPoll\REST;
 
+use YopPoll\Helpers\Sanitizer;
+
 use YopPoll\Models\Model_Element;
 use YopPoll\Models\Model_Subelement;
 use YopPoll\Models\Model_Poll;
@@ -74,7 +76,7 @@ class REST_Elements extends REST_Base {
 			'etype'         => sanitize_text_field( $body['etype'] ?? 'question-text' ),
 			'status'        => sanitize_text_field( $body['status'] ?? 'active' ),
 			'sorder'        => (int) ( $body['sorder'] ?? 0 ),
-			'meta_data'     => wp_json_encode( $body['meta_data'] ?? new \stdClass() ),
+			'meta_data'     => wp_json_encode( Sanitizer::sanitize_element_meta_data( $body['meta_data'] ?? array() ) ),
 			'added_date'    => $now,
 			'modified_date' => $now,
 		);
@@ -104,7 +106,7 @@ class REST_Elements extends REST_Base {
 			'etype'         => sanitize_text_field( $body['etype'] ?? $element['etype'] ),
 			'status'        => sanitize_text_field( $body['status'] ?? $element['status'] ),
 			'sorder'        => (int) ( $body['sorder'] ?? $element['sorder'] ),
-			'meta_data'     => wp_json_encode( $body['meta_data'] ?? ( json_decode( $element['meta_data'], true ) ?: [] ) ),
+			'meta_data'     => wp_json_encode( Sanitizer::sanitize_element_meta_data( $body['meta_data'] ?? ( json_decode( $element['meta_data'], true ) ?: [] ) ) ),
 			'modified_date' => current_time( 'mysql' ),
 		);
 

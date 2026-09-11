@@ -1,0 +1,668 @@
+== Changelog ==
+
+The complete release history for YOP Poll. The readme.txt changelog carries a
+shortened version of the same entries.
+
+= 7.0.11 =
+* Security release, recommended for all sites. Fixes a vulnerability in the "Sign in with WordPress" voting option that could expose a signed-in user's security token. Polls now use a limited, poll-specific token instead.
+* Improved sanitization of poll content, voter input and spreadsheet exports. Existing content is cleaned automatically on update.
+* Fixed several vote-counting issues and made voting limits, bans and blocking settings work as intended.
+* Vote records, exports and email notifications now match the counted results.
+* Strengthened server-side validation of votes, custom CSS and links.
+* Fixed issues with time zones, hidden results, voter privacy and deleted data reappearing.
+* Tightened permissions on the Settings page and when saving polls. Fixed a conflict between automatic results reset and poll edits.
+* Fixed a display issue with text fields in the block editor preview.
+* Fixed voter-added answers and their votes being lost when a poll was edited.
+
+= 7.0.10 =
+* Fixed polls not displaying on sites that delay or defer JavaScript.
+* Fixed polls incorrectly showing empty results to some signed-in visitors.
+* Fixed several captcha-related voting and display issues.
+* Fixed problems with new-vote notification emails.
+* Fixed minor issues with how results are displayed.
+
+= 7.0.9 =
+* added a YOP Poll widget for Elementor: choose any published poll from the widget settings, optionally display results only, and preview the poll directly in the Elementor editor without copying a shortcode.
+* added the ability to use an image as the poll background: choose an image from the WordPress Media Library under Design → Poll Container, then control its size, position, and repeat behavior. The background is shown immediately in the builder preview and on the published poll, and can be changed or removed at any time.
+* improved answer discoverability in the poll builder: selecting a question now opens the extra options for its first answer — "Set As Default", "Make it a link" and the results color — instead of leaving them behind an expand button that is easy to overlook. This works on both new and existing polls. Collapse the panel and it stays collapsed while you keep working on that question.
+* fixed a poll showing as "Draft" in the polls list while its own Options tab showed "Published". The poll stayed hidden on your site, and it could not be fixed from the editor: because the Status dropdown already displayed "Published", choosing it changed nothing, so every save quietly kept the poll as a draft while still reporting "Poll saved successfully". This affected polls whose status had never been changed in the new poll builder — most often drafts carried over from the classic 6.x plugin, and copies made from a draft poll. The Status dropdown now always shows the poll's real status, so switching a draft to Published takes effect immediately. Existing polls are corrected as soon as you open them — nothing needs to be re-saved or re-imported.
+
+= 7.0.8 =
+* fixed the admin poll results screen listing answers in their saved order instead of by popularity: the results view (under YOP Poll → the poll's Results) now shows the most-voted answer first, matching the classic ranking, so the leading option is always at the top.
+
+= 7.0.7 =
+* added the ability to customize the vote button's "Submitting…" text — the label shown on the button while a vote is being sent: it's now editable under Settings → Messages → Vote Buttons, next to the other button labels, and still falls back to the translatable default "Submitting…" when left blank.
+
+= 7.0.6 =
+* fixed a security issue that let someone get around the "Block Voters by IP" restriction by faking their IP address, casting unlimited votes on a public poll. The plugin now uses the visitor's real connection address by default, and only reads a forwarded-IP header when you turn on "Use Custom Headers When Retrieving IPs" (Settings → General) for a trusted reverse-proxy setup. Thanks to security researcher Melina Lentini (M3l3n) for the responsible disclosure.
+* fixed the poll builder sometimes showing an error and stopping when you save — most often right after adding a question and formatting its text: saving is now reliable. The element you were editing also stays selected after saving, so its options panel no longer clears and you can keep working on it.
+* fixed votes being lost when a poll only allows logged-in users and the visitor creates a new account to vote: previously the login window would end up on the account page and the vote was never recorded. The poll now detects when the visitor is signed in — whether they log in or register a new account (including via WooCommerce) — and submits their vote automatically.
+
+= 7.0.5 =
+* added a visual editor for the new-vote email notification message (in each poll's Options tab and under Settings → Notifications): the message can now be formatted with bold, italic, underline, bulleted and numbered lists, text color, and links, with an "Insert tag" menu in the toolbar for placeholders like poll name, vote date, and the question/answer block. Notification emails are now sent as HTML so your formatting shows up in the inbox, and existing plain-text messages keep working as before.
+* fixed ended polls not showing results when results are set to display "After vote": since no one can vote once a poll closes, visitors would never see the outcome. Ended polls now show the results to everyone (with the real vote counts) instead of a Vote button that no longer works. Polls set to never show results still keep them hidden.
+
+= 7.0.4 =
+* added an "Always show the Other text box" option for Other answers (in the poll builder, under "Label for Other Answers"): it's on by default, so the Other text box keeps showing as before; turn it off and the box stays hidden until a visitor selects "Other"
+* fixed not being able to edit answer text in the poll builder: clicking an answer no longer traps the cursor at the start, so labels can be typed, selected, and deleted normally (and the drag handle still reorders answers)
+* fixed the YOP Poll admin menu icon appearing light gray in the new default WordPress color scheme: it now matches the other menu icons in every color scheme
+* fixed the block editor preview not showing the "Other" answer option and its text box: the preview now matches what visitors see
+* fixed polls with a past end date still showing the voting form after upgrading from 6.x: ended polls now hide the Vote button and show your "Poll Ended" message (set under Settings → Messages), so old polls in blog posts stop accepting new votes
+* fixed ended polls still accepting late vote submissions: votes are now also rejected on the server, in case a visitor tries to get around the disabled button
+* fixed CSV export of votes leaving out the custom-field columns (Name, Email, etc.): the exported file now includes a column for each custom field, matching what's shown under each vote in View votes
+* fixed CSV export of votes showing raw HTML tags (like <b>...</b>) in answer cells and triggering an Excel "file format doesn't match the extension" warning: answer text is now exported as plain text, so the file opens cleanly and shows the formatted text without markup
+* fixed "Other" votes not showing up in results: when a question allowed an "Other" answer, those votes were saved but appeared as 0% (and could make the total read 0). Other votes are now counted and shown as an "Other" bar on both the admin Results page and the live poll, with no extra setting required
+
+= 7.0.3 =
+* added "Round percentage" option in Display settings: results can now be shown as whole numbers (e.g. 33% / 67%) instead of with decimals
+* fixed limited-time "Block Voters" not working correctly on sites set to a timezone other than UTC: blocks now use the site's local time, so a 1-hour block no longer appears to expire early and let visitors vote again on refresh
+* fixed brief flash of the voting form when revisiting a poll you had already voted on: the correct view (results) is now shown immediately instead of appearing for a moment before switching
+* fixed Answers drag-handle in the poll builder being inactive: text answers can again be reordered by dragging the handle on the left of each answer row
+* fixed Vote/Results buttons becoming almost invisible on hover when a custom button color was set: the hover state now darkens your chosen color instead of fading to near-white
+* fixed vote details and CSV export for polls with custom fields after migrating from 6.x: older vote entries are now read correctly so vote rows and exports display as expected
+* fixed background vote/log migration stalling on some sites: the migration now restarts itself automatically until it completes
+* fixed missing space between the answer text and the percentage on the after-vote results rows
+* fixed error when deleting a vote (one at a time or in bulk): vote deletion now works correctly and updates per-answer counts as expected
+* fixed "View votes" links on the Results page not filtering by answer: clicking an answer's vote count (or exporting the CSV) now correctly shows only the voters who picked that answer, instead of every voter on the poll
+* improved accessibility: form fields (Name, Email, etc.) and radio/checkbox answer groups are now properly labelled for screen readers, and the total-votes/answers counter uses a darker gray for better contrast (WCAG AA)
+
+= 7.0.2 =
+* fixed text fields (Name, Email, etc.) being un-typeable when "Max characters allowed" was left at 0
+* restored Gutenberg block so polls can be inserted from the block editor again
+* restored the in-admin Playbook guide page
+* added per-question answer alignment (left, center, right) in the poll builder
+* fixed classic-template polls being capped at 400px wide; they now fill their parent container
+
+= 7.0.1 =
+* restored YOP Poll widget so polls can be added through Appearance → Widgets again
+* fixed result percentages summing to 101% on some polls; default decimal places restored to 1 (e.g. 33.3%)
+* fixed migration from 6.x for "Show results only" polls
+* removed Back to vote button when "Show results only" is enabled
+* fixed voting failing on sites where performance/optimizer plugins strip the WordPress REST API setup script
+
+= 7.0.0 =
+* Major release: complete rewrite using React and a modern REST API
+* Faster, redesigned admin experience with no full-page reloads
+* All existing polls, votes, and settings migrate automatically
+* Modernized foundation, ready for what's coming next
+
+= 6.5.40 =
+* fixed broken link on the poll guide
+
+= 6.5.39 =
+* fixed bug with draft polls showing on the frontend
+
+= 6.5.38 =
+* fixed security issue
+
+= 6.5.37 =
+* fixed notice generated by custom fields char limit
+
+= 6.5.36 =
+* added support for Cloudflare Turnstile
+
+= 6.5.35 =
+* added max char limit to custom fields
+
+= 6.5.34 =
+* fixed issue with polls not displaying when switching from pro to free version
+
+= 6.5.33 =
+* removed h5 tag from question html structure
+
+= 6.5.32 =
+* fixed issue with scrolling when checking for maximum number of answers allowed
+
+= 6.5.31 =
+* accessibility enhancement for polls
+
+= 6.5.30 =
+* various design fixes
+* fixed issue with builtin captcha failing on multiple attempts
+
+= 6.5.29 =
+* fixed issue with built in captcha not working on php 8
+* fixed issue with built in captcha allowing multiple votes with the same captcha response
+
+= 6.5.28 =
+* fixed issue with voting when other answers option is enabled
+
+= 6.5.27 =
+* fixed TOCTOU vulnerability in the voting process
+* display newest polls by default on View Polls page
+
+
+= 6.5.26 =
+* remove username and password sanitization for login. wp_signon will handle the sanitization
+* added Create Account and Forgot Password links on login modal
+
+= 6.5.25 =
+* fixed php warning when using YOP Poll as a widget
+* fixed issue with GDPR checkbox not displaying on Brave browser
+
+= 6.5.24 =
+* added question and custom field name as column headers in exported votes file
+* removed poll name column from exported votes file
+* cleaned the exported votes file
+* fixed issue with displaying custom field records on results page
+
+= 6.5.23 =
+* updated admin javascript to load in footer to prevent conflict with other plugins
+
+= 6.5.22 =
+* fixed issue with disabling multiple answers per vote after it has been enabled
+* added screen options for Bans page. You can now set the number of records per page
+* added yop_poll_vote_recorded_with_details hook for a vote recorded. Poll id and Vote details are passed to the callback
+
+= 6.5.21 =
+* added sorting option for Start Date and End Date on View Polls page
+* added column for shortcode on View Polls page. You can now get the shortcode for a poll without any extra steps/clicks.
+* added screen options for View Logs page. You can now set the number of records per page.
+
+= 6.5.2 =
+* added screen options for View Polls page. You can now set the number of polls per page.
+* added screen options for View Votes page. You can now set the number of votes per page.
+* added Reset Votes option for each poll. You can now reset votes for a poll much easier.
+
+= 6.5.1 =
+* fixed issue with voting throwing a notice
+* added an option for redirect after vote. You can now set the delay (in seconds) for the redirect
+* added yop_poll_vote_recorded hook for a vote recorded. Poll id argument is passed to the callback
+
+= 6.5.0 =
+* fix conflict with JNews theme causing issues with "Add Votes Manually" feature
+* fix conflict with plugins and themes using datetimepicker
+
+= 6.4.9 =
+* fixed voting issue when there are multiple polls on the same page
+
+= 6.4.8 =
+* added ajax login when allowing votes from wordpress users
+* updated voting flow in facebook browser
+
+= 6.4.7 =
+* fixed issue with shortcode popup not showing on certain themes
+* fixed issue with displaying current active poll
+
+= 6.4.6 =
+* fixed issue with google reCaptcha v2 Checkbox
+
+= 6.4.5 =
+* fixed issue with blocking voters per day by reseting at midnight instead of 24 hours from the time of the vote
+
+= 6.4.4 =
+* added sanitization for custom headers
+* updated 5.x and 4.x importers
+
+= 6.4.3 =
+* fixed security issue
+* fixed issue with vote button not working inside elementor popups
+* added an option to choose if custom headers should be used when getting the ip address of the voters
+
+= 6.4.2 =
+* fixed issue with other answers not displaying in view votes details
+* fixed issue with other answers not included in exports
+
+= 6.4.1 =
+* fixed issue with other answers not being included in notification emails
+* added page/post id to the vote data
+
+= 6.4.0 =
+* fixed issue that was causing translation files not to load properly
+
+= 6.3.9 =
+* fixed issue that was preventing editing polls on windows servers
+
+= 6.3.8 =
+* updated sanitization for templates and skins
+* fixed issue with total votes and answers not displaying correctly
+
+= 6.3.7 =
+* fixed issue with built in captcha
+* updated sanitization for built in captcha
+* updated the design of built in captcha
+
+= 6.3.6 =
+* fixed issue with polls not displaying correctly in widgets
+* fixed archive shortcode to only display published polls
+* added more sanitization for arrays and objects
+
+= 6.3.5 =
+* fixed typo in 4.x importer causing issues on some installs
+
+= 6.3.4 =
+* fixed issue with google reCaptcha v2 Invisible
+* fixed issue with archive shortcode displaying polls not started when "show" is set to active
+* fixed issue with displaying incorrect message when a poll is ended
+* added support for hCaptcha
+* added more sanitization
+
+= 6.3.3 =
+* fixed XSS bugs
+* fixed issue with validating email addresses when sending notifications for votes
+* added tags for messages - [strong][/strong], [u][/u], [i][/i], [br]
+* added tags for elements - [strong][/strong], [u][/u], [i][/i], [br]
+* added support for links in the consent text
+* added new option for yop_poll_archive shortcode. Now it supports displaying only polls that accept votes. Usage - [yop_poll_archive sort=date_added/num_votes sortdir=asc/desc max=0/number-desired show=active/ended/all]
+
+= 6.3.2 =
+* fixed issue with migrating polls from versions lower than 6.0.0
+
+= 6.3.1 =
+* fixed XSS bugs CVE-2021-24833, CVE-2021-24834 - Props to Vishnupriya Ilango of Fortinet's FortiGuard Labs
+* fixed issue with custom styles not applying to custom fields
+
+= 6.3.0 =
+* fixed issue with bans affecting all polls when creating a ban specific to a poll
+* added support for %VOTER-EMAIL%, %VOTER-FIRST-NAME%, %VOTER-LAST-NAME%, %VOTER-USERNAME% in both subject and body. These tags can be used only when allowing votes from wordpress users
+
+= 6.2.9 =
+* fixed issue with "Ban by Username" not working as expected
+* fixed display issue on View Bans page
+* added support for %VOTER-EMAIL% in Recipients list when sending email notifications. The tag can be used only when allowing votes from wordpress users
+
+= 6.2.8 =
+* fixed XSS bug
+* fixed issue with allowed formatting tags for answers not showing when displaying results
+
+= 6.2.7 =
+* fixed issue with answers set as default not showing selected
+* added an option to choose the location for the notification section. When set to "Bottom" scrolling to the top of the poll is disabled
+
+= 6.2.6 =
+* fixed error showing up when activating the plugin via cli
+* remove scrolling effect when voting
+* added more parameters to [yop_poll_archive]
+
+= 6.2.5 =
+* fix issue with notification message not being updated on successfull votes
+* added reset for radio and checkbox controls on page refresh
+
+= 6.2.4 =
+* fixed issue with GDPR/CCPA checkbox when having multiple polls on the same page
+* fixed issue with Results and Get Code icons not showing
+* fixed issue with cloning polls
+
+= 6.2.3 =
+* fixed issue with [br] tag showing on results page
+* added more tags for answers - [strong][/strong], [p][/p], [b][/b], [u][/u], [i][/i]
+
+= 6.2.2 =
+* fixed issue with polls loading with ajax
+* added %VOTER-FIRST-NAME%, %VOTER-LAST-NAME%, %VOTER-EMAIL%, %VOTER-USERNAME% to new vote email notifications
+
+= 6.2.1 =
+* removed 2 options from built in captcha
+* updated icons for View Results and Get Shortcode
+* fixed issue with duplicate answers when viewing results
+
+= 6.2.0 =
+* fixed issue with google reCaptcha loading intermitently when polls are loaded with ajax
+* fixed issue with google reCaptcha when allowing votes from guests and wordpress users
+* added support for google reCaptcha v3
+
+= 6.1.9 =
+* fixed issue with wp login window blocking voting if window is manually closed
+
+= 6.1.8 =
+* fixed issue with votes not being deleted when poll is removed
+* fixed issue with logs not being deleted when poll is removed
+* fixed issue with guest voting and limit number of votes
+* fixed issue on edit poll screen that was causing polls to stop displaying when a new template was choosen
+
+= 6.1.7 =
+* fixed broken css rule
+* added option to keep/remove plugin data on uninstall
+* added default message with tags for email notifications
+
+= 6.1.6 =
+* fixed issue with blocking voters when wordpress voting is enabled
+
+= 6.1.5 =
+* fixed typos
+* fixed security issue when previewing a poll
+* fixed issue with loading language files
+* fixed issue with loader not being shown when voting
+* fixed issue with answers displayed below radio/checkbox controls on small screens
+
+= 6.1.4 =
+* fixed issue with polls loading in facebook inapp browser
+* fixed issue with scroll location when there is an error in voting
+* moved voting buttons at the bottom of poll container
+* added links to answers when displaying results
+* added support for adding custom fields on click
+
+= 6.1.2 =
+* fixed conflict with JNews theme
+* fixed issue with answers being displayed twice in results
+* improved flow for Edit Poll
+* fixed XSS bug
+
+= 6.1.1 =
+* fixed display issue for Sort Results when "As Defined" is choosed
+* removed select2 controls
+* improved polls display when a start/end date is choosed
+* added option to load polls via ajax
+* added support for reCaptcha v2 Invisible
+
+= 6.1.0 =
+* fixed issue with limit votes
+* fixed issue with other answers when "Show in results" is set to Yes
+* fixed issue with fingerprint
+* removed extra space on results page when an answer has no votes
+
+= 6.0.9 =
+* fixed issue with cloning polls
+* fixed issue with editing poll duplicating new elements
+* fixed issue with display results tag
+* fixed issue with resetting settings when plugin was disabled
+* fixed issue with customizing skin throwing an error on saving poll
+* fixed issue with results not sorting "View Results" option
+* fixed issue with recaptcha
+* fixed issue with font size
+* fixed issue with color for messages
+* fixed issue with tracking ids
+* improved email notifications
+* added a new option for blocks
+* added labels to answers for better user experience
+
+= 6.0.8 =
+* added ability to manually add votes
+* added support for multisite
+* fixed issue with built in captcha not working on nginx environments
+* fixed issue with sorting results
+
+= 6.0.7 =
+* fixed issue with other answers when resetting votes
+* fixed issue with timezones when using block feature
+
+= 6.0.6 =
+* fixed issue with blocking voters
+* fixed issue with logs
+* fixed issue with bans
+* fixed issue with settings
+* fixed issue with WordPress voting
+
+= 6.0.5 =
+* added skins
+* redesigned templates
+* improved ux for chosing templates
+* cleaned add/edit poll screens
+* cleaned files structure
+
+= 6.0.4 =
+* added ability to search votes
+* added ability to delete votes
+* added columns for username and email on View Votes screen
+* added notifications messages to admin settings
+* fixed css issue
+* fixed issue with overlapping
+* fixed compatibility issue with Elementor
+* fixed bug with searching logs
+
+= 6.0.3 =
+* added support for reCaptcha v2
+* added scroll to thank you/error message after voting
+* fixed spacing with total votes
+* fixed issue with thank you message not being displayed when GDPR enabled
+* fixed XSS vulnerability
+* updated notification messages for blocks and limits
+
+= 6.0.2 =
+* load plugin js and css only on plugin pages
+* fixed issue with exporting custom fields data
+* added column for each custom field when exporting votes
+* fixed issue with "Show total answers" being set to "Yes" when "Show total votes" is set to "Yes"
+* fixed issue with email notifications
+* fixed issue with captcha
+* added support for poll archive page
+* added ability to set number of polls displayed per page
+* fixed issue with results colour when poll is ended
+* fixed issue with generating page for poll
+* removed p tag from notification messages
+* fixed issue with gdpr consent checkbox
+
+= 6.0.1 =
+* css cleanout
+* fixed issue with css for custom fields
+* fixed issue with the gridline
+* fixed issue with results after vote
+* fixed issue with displaying number of votes and percentages
+* fixed issue with spacing between answers
+* fixed issue with export
+* fixed issue with redirect after vote time
+* fixed issue with reset votes
+* fixed issue with results set to Never
+* fixed issue with deleted polls
+
+= 6.0.0 =
+* complete re-write
+* add GDPR compliance
+
+= 5.8.3 =
+* fixed php7 issues
+
+= 5.8.2 =
+* fixed issue with notices showing up on front pages
+
+= 5.8.1 =
+* fixed security issue
+* fixed issue with multisite
+* compatibility with WordPress 4.7.2
+
+= 5.8.0 =
+* compatibility with WordPress 4.5.2
+* fixed issue with navigation links on archive page
+* fixed loading issue
+* fixed issue with custom fields
+
+= 5.7.9 =
+* start date and end date easier to read on the front end
+* Fixed issue with showing results before vote
+
+= 5.7.8 =
+* Fixed issue with reset stats
+* Fixed security issue
+* Fixed issue with automatically reset stats
+* Fixed issue with custom loading image
+* Fixed display issues
+* Updated Get Code with more options
+
+= 5.7.7 =
+* Fixed issue with translations
+
+= 5.7.6 =
+* Fixed issues with cloning poll
+* Fixed conflicts with different plugins
+* Fixed issue with pagination on archive page
+* Fixed issue with logs page
+* Fixed issue with facebook voting
+* Added new shortcuts for email notifications
+* Added new column for username in view votes page
+
+= 5.7.5 =
+* Fixed issue with vote button not showing up
+* Other minor fixes
+
+= 5.7.4 =
+* Fixed security issue. A big thank you to [g0blin Research](https://twitter.com/g0blinResearch) for his help in getting this issue fixed
+
+= 5.7.3 =
+* Fixed display poll issue
+
+= 5.7.2 =
+* Display poll improvements
+
+= 5.7.1 =
+* Fixed issue with polls not being displayed
+
+= 5.7 =
+* Fixed issue with random polls
+* Fixed issue with tabulated display
+* Removed autoscroll after a failed vote
+* Fixed issue with inserted code when using html editor
+* Fixed issue with blocking voters option
+* Fixed issue with in_array causing errors
+* Fixed twig compatibility
+* Added Print Votes page
+
+= 5.6 =
+* Fixed issue with login popup
+* Fixed issue with vote button
+* Fixed issue with html
+
+= 5.5 =
+* Fixed issue with clone poll
+* Fixed issue with archive page
+* Fixed issue with captcha
+
+= 5.3 =
+* Fixed issue with links color being overwritten
+* Fixed issue with start date and end date not displaying corectly
+* Fixed issue with widget
+* Added email notifications customization per poll
+
+= 5.2 =
+* Complete new design
+* Wizard to guide you when creating a poll
+* You can now change the order answers are being displayed
+
+= 4.9.3 =
+* Fixed security issue. Many thanks to Antonio Sanchez for all his help.
+
+= 4.9.2 =
+* Fixed security issue
+
+= 4.9.1 =
+* Fixed issue with Template preview not working in IE8
+* Fixed issue with wpautop filter
+* Redefined admin area allowed tags: a(href, title, target), img( src, title), br
+* Fixed issue with Other answers
+
+= 4.9 =
+* Added templates preview when adding/editing a poll
+* Added sidebar scroll
+* Typos fixes
+* CSS and Javascript improvements
+* Various bugs fixes
+
+= 4.8 =
+* Re-added ability to use html tags
+* Added new tags: %POLL-SUCCESS-MSG% and %POLL-ERROR-MSG%
+* Various bug fixes
+
+= 4.7 =
+* Fixed bug with Other answers. Html code is no longer allowed
+
+= 4.6 =
+* Added ability to send email notifications when a vote is recorded
+* Various bug fixes
+
+= 4.5 =
+* Added ability to choose date format when displaying polls
+* Added ability to limit viewing results only for logged in users
+* Added ability to add custom answers to poll answers
+* Added new shortcode [yop_poll id="-4"] that displays latest closed poll
+* Added an offset for shortcodes. [yop_poll id="-1" offset="0"] displays the first active poll found, [yop_poll id="-1" offset="1"] displays the second one
+* Added WPML compatibility
+* Various bugs fixes
+
+= 4.4 =
+* Added ability to reset polls
+* Added ability to to add a custom message to be displayed after voting
+* Added ability to allow users to vote multiple times on the same poll
+* Various bugs fixes
+
+= 4.3 =
+* Added multisite support
+* Added ability to redirect to a custom url after voting
+* Added ability to edit polls and templates author
+* Added ability to set a response as default
+* Improvements on View Results
+* Added ability to edit number of votes (very usefull when migrating polls)
+* Added tracking capabilities
+* Various improvements on logs
+
+= 4.2 =
+* Added captcha
+* Fixed issue with start date and end date when adding/editing a poll
+* Fixed issue with the message displayed when editing a poll
+
+= 4.1 =
+* Fixed js issue causing the widget poll not to work
+
+= 4.0 =
+* Added ability to use custom loading animation
+* Added capabilities and roles
+* Fixed issue with update overwritting settings
+
+= 3.9 =
+* Fixed display issue with IE7 and IE8
+
+= 3.8 =
+* Fixed compatibility issue with Restore jQuery plugin
+* Added ability to link poll answers
+
+= 3.7 =
+* Fixed issue with Loading text displayed above the polls
+* Fixed issue with deleting answers from polls
+
+= 3.6 =
+* Fixed issue with missing files
+
+= 3.5 =
+* Added french language pack
+* Added loading animation when vote button is clicked
+* Fixed issue with characters encoding
+
+= 3.4 =
+* Fixed issue with menu items in admin area
+* Fixed issue with language packs
+
+= 3.3 =
+* Added option to auto generate a page when a poll is created
+* Fixed compatibility issues with IE
+* Fixed issues with custom fields
+
+= 3.2 =
+* Fixed bug that was causing issues with TinyMCE Editor
+
+= 3.1 =
+* Various bugs fixed
+
+= 3.0 =
+* Added export ability for logs
+* Added date filter option for logs
+* Added option to view logs grouped by vote or by answer
+* Various bugs fixed
+
+= 2.0 =
+* Fixed various bugs with templates
+
+= 1.9 =
+* Fixed various bugs with templates
+
+= 1.8 =
+* Fixed bug with WordPress editor
+
+= 1.7 =
+* Fixed bug that was causing poll not to update it's settings
+
+= 1.6 =
+* Added ability to change the text for Vote button
+* Added ability to display the answers for Others field
+
+= 1.5 =
+* Fixed sort_answers_by_votes_asc_callback() bug
+
+= 1.4 =
+* Fixed compatibility issues with other plugins
+
+= 1.3 =
+* Fixed bug that was causing widgets text not to display
+
+= 1.2 =
+* Fixed do_shortcode() with missing argument bug
+
+= 1.1 =
+* Fixed call_user_func_array() bug

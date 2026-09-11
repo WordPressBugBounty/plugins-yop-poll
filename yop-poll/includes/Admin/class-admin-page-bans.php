@@ -328,7 +328,17 @@ class Admin_Page_Bans {
 		$is_edit = 'edit' === $action;
 
 		if ( $is_edit && $ban_id ) {
+			// save_ban() checks ownership before writing; this read path did not, so any
+			// ban row on the site could be displayed - banned address, email or username
+			// included - simply by putting its id in the URL.
 			$found = ( new Model_Ban() )->find( $ban_id );
+			if ( $found && ! Permissions::can_edit_item( (int) ( $found['author'] ?? 0 ) ) ) {
+				wp_die(
+					esc_html__( 'You do not have permission to edit this ban.', 'yop-poll' ),
+					'',
+					array( 'response' => 403 )
+				);
+			}
 			if ( $found ) {
 				$ban = $found;
 			}

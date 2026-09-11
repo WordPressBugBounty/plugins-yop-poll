@@ -227,7 +227,12 @@ class Logs_List_Table extends \WP_List_Table {
 						if ( preg_match( '/^https?:\/\/.+\.(jpe?g|png|gif|webp|svg|bmp)(\?.*)?$/i', trim( $answer_value ) ) ) {
 							$answer_texts[] = '<img src="' . esc_url( trim( $answer_value ) ) . '" style="max-width:300px;height:auto" />';
 						} else {
-							$answer_texts[] = $answer_value;
+							// Voter-supplied free text is never HTML. It must NOT go through the
+							// $allowed_tags allowlist below: that list grants <iframe src> for
+							// admin-authored video embeds, and an anonymous voter can push text
+							// into this table through the public vote endpoint on both the
+							// success and the blocked-attempt paths.
+							$answer_texts[] = esc_html( wp_strip_all_tags( $answer_value ) );
 						}
 					} else {
 						$answer_texts[] = '—';
