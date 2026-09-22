@@ -4,7 +4,7 @@ Donate Link: https://www.yop-poll.com
 Tags: create poll, poll plugin, poll, voting, WordPress poll
 Requires at least: 6.5
 Tested up to: 7.1
-Stable tag: 7.0.11
+Stable tag: 7.0.12
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -134,6 +134,9 @@ Please report security issues through the [Patchstack Vulnerability Disclosure P
 
 The full notes for every release, in the same wording, are in changelog.txt.
 
+= 7.0.12 =
+* Fixed "Limit Number Of Votes per User" still being applied after Guest voting was turned on. The builder hides that setting while guests can vote, but signed-in visitors were still being stopped at the limit. The limit now applies only when the setting is visible, and turns back on if Guest voting is switched off again.
+
 = 7.0.11 =
 * Security release, recommended for all sites. Fixes a vulnerability in the "Sign in with WordPress" voting option that could expose a signed-in user's security token. Polls now use a limited, poll-specific token instead.
 * Improved sanitization of poll content, voter input and spreadsheet exports. Existing content is cleaned automatically on update.
@@ -175,6 +178,9 @@ The full notes for every release, in the same wording, are in changelog.txt.
 * See changelog.txt for the complete history, including the 7.0.0 rewrite and all of 6.x.
 
 == Upgrade Notice ==
+
+= 7.0.12 =
+Fixes a vote limit that kept applying to signed-in visitors on polls open to guests, although the setting was hidden.
 
 = 7.0.11 =
 Security release. Closes a weakness in the "Sign in with WordPress" voting option that could expose a signed-in administrator's account-wide security token to another website, and removes that token from the poll entirely. Recommended for any site whose polls offer WordPress sign-in.

@@ -143,7 +143,10 @@ class Poll_Validator {
 	}
 
 	private function validate_access( array $m ): void {
-		if ( 'yes' === ( $m['limitVotesPerUser'] ?? 'no' ) ) {
+		// Same rule as REST_Base::limit_applies(): the builder hides the limit while Guest
+		// is allowed, so a value left behind there must not block the save.
+		$perms = (array) ( $m['votePermissions'] ?? [ 'guest' ] );
+		if ( 'yes' === ( $m['limitVotesPerUser'] ?? 'no' ) && ! in_array( 'guest', $perms, true ) ) {
 			$v = trim( (string) ( $m['votesPerUserAllowed'] ?? '' ) );
 			if ( '' === $v || 0 === (int) $v )
 				$this->errors[] = __( 'Votes per user is required and must be greater than 0 when "Limit Votes Per User" is enabled.', 'yop-poll' );

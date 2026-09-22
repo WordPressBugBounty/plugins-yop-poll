@@ -3,6 +3,9 @@
 The complete release history for YOP Poll. The readme.txt changelog carries a
 shortened version of the same entries.
 
+= 7.0.12 =
+* Fixed "Limit Number Of Votes per User" still being applied after Guest voting was turned on. The builder hides that setting while guests can vote, but signed-in visitors were still being stopped at the limit. The limit now applies only when the setting is visible, and turns back on if Guest voting is switched off again.
+
 = 7.0.11 =
 * Security release, recommended for all sites. Fixes a vulnerability in the "Sign in with WordPress" voting option that could expose a signed-in user's security token. Polls now use a limited, poll-specific token instead.
 * Improved sanitization of poll content, voter input and spreadsheet exports. Existing content is cleaned automatically on update.

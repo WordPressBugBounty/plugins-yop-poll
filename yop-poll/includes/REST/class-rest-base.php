@@ -245,8 +245,29 @@ abstract class REST_Base extends \WP_REST_Controller {
 		return true;
 	}
 
-	protected function check_limits( array $access, Model_Vote $vote_model, int $poll_id, string $user_type, int $user_id, string $user_email ): bool {
+	/**
+	 * Whether the per-user vote limit is in force for a poll.
+	 *
+	 * The builder offers the limit only when Guest is not a vote permission, and hides it
+	 * the moment Guest is ticked. The saved value stays in the meta (so unticking Guest
+	 * brings the setting back), and was still being enforced - a limit the admin could no
+	 * longer see or turn off. Mirror the builder: with Guest allowed there is no limit.
+	 */
+	public static function limit_applies( array $access ): bool {
 		if ( 'yes' !== ( $access['limitVotesPerUser'] ?? 'no' ) ) {
+			return false;
+		}
+
+		$perms = $access['votePermissions'] ?? array( 'guest' );
+		if ( ! is_array( $perms ) ) {
+			$perms = array( $perms );
+		}
+
+		return ! in_array( 'guest', $perms, true );
+	}
+
+	protected function check_limits( array $access, Model_Vote $vote_model, int $poll_id, string $user_type, int $user_id, string $user_email ): bool {
+		if ( ! self::limit_applies( $access ) ) {
 			return true;
 		}
 
