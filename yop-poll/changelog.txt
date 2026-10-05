@@ -3,6 +3,9 @@
 The complete release history for YOP Poll. The readme.txt changelog carries a
 shortened version of the same entries.
 
+= 7.0.13 =
+* Fixed "Show results to: Registered" being ignored. On a poll that shows its results only to registered users, guests could still see the results after voting. Guests now see only the thank-you message and no Results button, while signed-in visitors see the results as before. A visitor who signs in from the poll's login popup and then votes now sees the results right away, without reloading the page.
+
 = 7.0.12 =
 * Fixed "Limit Number Of Votes per User" still being applied after Guest voting was turned on. The builder hides that setting while guests can vote, but signed-in visitors were still being stopped at the limit. The limit now applies only when the setting is visible, and turns back on if Guest voting is switched off again.
 

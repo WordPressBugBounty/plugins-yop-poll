@@ -4,7 +4,7 @@ Donate Link: https://www.yop-poll.com
 Tags: create poll, poll plugin, poll, voting, WordPress poll
 Requires at least: 6.5
 Tested up to: 7.1
-Stable tag: 7.0.12
+Stable tag: 7.0.13
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -134,6 +134,9 @@ Please report security issues through the [Patchstack Vulnerability Disclosure P
 
 The full notes for every release, in the same wording, are in changelog.txt.
 
+= 7.0.13 =
+* Fixed "Show results to: Registered" being ignored. On a poll that shows its results only to registered users, guests could still see the results after voting. Guests now see only the thank-you message and no Results button, while signed-in visitors see the results as before. A visitor who signs in from the poll's login popup and then votes now sees the results right away, without reloading the page.
+
 = 7.0.12 =
 * Fixed "Limit Number Of Votes per User" still being applied after Guest voting was turned on. The builder hides that setting while guests can vote, but signed-in visitors were still being stopped at the limit. The limit now applies only when the setting is visible, and turns back on if Guest voting is switched off again.
 
@@ -178,6 +181,9 @@ The full notes for every release, in the same wording, are in changelog.txt.
 * See changelog.txt for the complete history, including the 7.0.0 rewrite and all of 6.x.
 
 == Upgrade Notice ==
+
+= 7.0.13 =
+Guests no longer see the results of polls set to show results to registered users only.
 
 = 7.0.12 =
 Fixes a vote limit that kept applying to signed-in visitors on polls open to guests, although the setting was hidden.

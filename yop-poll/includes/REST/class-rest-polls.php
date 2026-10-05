@@ -504,6 +504,23 @@ class REST_Polls extends REST_Base {
 			},
 			$show_results_raw
 		);
+		// "Show results to: Registered" — a guest is treated exactly like a "never"
+		// poll, so the counts are stripped and the frontend renders no results view.
+		// Rewriting the published meta (not just the counts) is what tells the client
+		// to show the thank-you message instead of an empty results panel. This runs
+		// per response, after the shared transient is read, so it never leaks one
+		// visitor's view into the cache.
+		$show_results_to = $results_meta['showResultsTo'] ?? [ 'guest' ];
+		if ( ! is_array( $show_results_to ) ) {
+			$show_results_to = [ $show_results_to ];
+		}
+		$registered_only = in_array( 'registered', $show_results_to, true )
+			&& ! in_array( 'guest', $show_results_to, true );
+		if ( $registered_only && ! is_user_logged_in() ) {
+			$show_results_raw = [ 'never' ];
+			$data['poll']['meta_data']['options']['results']['showResultsMoment'] = [ 'never' ];
+			$data['poll']['meta_data']['options']['poll']['showResultsLink']      = 'no';
+		}
 		// "Never show results" is a policy, not a default: it has to outrank the force
 		// flag. Previously the whole moment ladder - including the 'never' branch - sat
 		// inside `if ( ! $force_counts )`, and both the post-vote and limit-reached
