@@ -1,7 +1,23 @@
 == Changelog ==
 
-The complete release history for YOP Poll. The readme.txt changelog carries a
-shortened version of the same entries.
+The complete release history for YOP Poll. The readme.txt changelog carries the
+most recent releases, in the same wording.
+
+= 7.1.0 =
+* **Faster polls.** Polls load quicker and use less of your visitors' data. Search engines can now read your poll questions and answers too.
+* **New: Elementor support.** You can add a poll to any page with the new YOP Poll widget for Elementor. When you save a poll, YOP Poll now shows you how to add it to a page in the editor your site uses.
+* **Simpler styling.** The Style tab is organised by the parts of a poll, so it's easier to find what you want to change. Pick one Accent colour and every selected answer and button uses it. Polls you've already styled keep their colours.
+* **Easier integrations.** Settings → Integrations now shows all services in a grid you can search.
+* **See votes waiting to be counted.** Votes that aren't counted yet, such as ones waiting for email confirmation, have their own tab in the votes list. The results page shows how many are waiting.
+* **Better permissions.** Authors can only manage the polls they created, the same way posts work in WordPress. Only administrators can open Settings. The keys and passwords you save in Settings are also better protected.
+* **Clearer messages for voters.** If someone has already voted or has no votes left, the poll now tells them so instead of showing "Vote not allowed". The "Limit votes per person" option now only applies when voters have to sign in to vote.
+* **Fixed:** Saving a poll no longer deletes answers that voters added, or the votes on those answers.
+* **Fixed:** Signing in to vote no longer ends with a "Login cancelled" error.
+* **Fixed:** "New vote" emails are sent again for polls where the "From" field wasn't set to an email address.
+* **Fixed:** If you upgraded from version 6, your old email tags and the "show results after the end date" setting work again.
+* **Safer exports.** Exported vote files now open safely in Excel and other spreadsheet apps.
+* **Correct voter addresses behind Cloudflare or similar services.** With "Trust proxy headers" turned on, YOP Poll now uses each voter's real address.
+* **Cleanup.** The old picture captcha has been removed. Use the Built-in check instead, which gives you the same protection. We also removed some unused code behind the scenes.
 
 = 7.0.13 =
 * Fixed "Show results to: Registered" being ignored. On a poll that shows its results only to registered users, guests could still see the results after voting. Guests now see only the thank-you message and no Results button, while signed-in visitors see the results as before. A visitor who signs in from the poll's login popup and then votes now sees the results right away, without reloading the page.

@@ -1,77 +1,125 @@
 <?php
+/**
+ * The logs screen.
+ *
+ * @package YopPoll
+ */
+
 namespace YopPoll\Admin;
 
 use YopPoll\Models\Model_Log;
-use YopPoll\Database\Migrator;
 use YopPoll\Helpers\Permissions;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-if ( ! class_exists( 'WP_List_Table' ) ) {
-	require_once ABSPATH . 'wp-admin/includes/class-wp-list-table.php';
-}
+/**
+ * The log, and the record of any one entry beside it.
+ *
+ * A log is read to answer a question — why was this vote refused, who keeps
+ * voting — so the event leads the table and the full untruncated record opens
+ * in a panel next to it rather than being clipped at the right edge.
+ */
+class Admin_Page_Logs {
 
-class Logs_List_Table extends \WP_List_Table {
+	/**
+	 * Everything the request asked for, read once.
+	 *
+	 * The two superglobals are merged explicitly rather than read through
+	 * `$_REQUEST`: the bulk actions arrive by POST and everything else by GET,
+	 * and `$_REQUEST` is built once at request start, so anything that sets
+	 * `$_GET` afterwards — a test, a rewrite — is invisible to it.
+	 *
+	 * @return array
+	 */
+	private function read_state() {
+		// phpcs:disable WordPress.Security.NonceVerification -- Read here; verified by the handler that acts on it.
+		$request = array_merge( (array) $_GET, (array) $_POST );
 
-	public function __construct() {
-		parent::__construct( array(
-			'singular' => 'log',
-			'plural'   => 'logs',
-			'ajax'     => false,
-		) );
-	}
+		$read = static function ( $key, $fallback = '' ) use ( $request ) {
+			return isset( $request[ $key ] ) ? $request[ $key ] : $fallback;
+		};
 
-	public function get_columns() {
-		return array(
-			'cb'         => '<input type="checkbox" />',
-			'poll'       => __( 'Poll', 'yop-poll' ),
-			'username'   => __( 'Username', 'yop-poll' ),
-			'email'      => __( 'Email', 'yop-poll' ),
-			'user_type'  => __( 'User Type', 'yop-poll' ),
-			'ipaddress'  => __( 'IP Address', 'yop-poll' ),
-			'added_date' => __( 'Date', 'yop-poll' ),
-			'message'    => __( 'Message', 'yop-poll' ),
+		// Keyed as stored: `Voter_Identity` writes the type through
+		// sanitize_key(), so a signed-in entry is `wordpress`, and a link
+		// bookmarked with the old `WordPress` still lands on it.
+		$type  = sanitize_key( wp_unslash( (string) $read( 'log_type', 'all' ) ) );
+		$order = strtoupper( sanitize_key( wp_unslash( (string) $read( 'order', 'DESC' ) ) ) );
+
+		$log_ids = isset( $_POST['log_ids'] )
+			? array_map( 'absint', (array) wp_unslash( $_POST['log_ids'] ) )
+			: array();
+
+		$state = array(
+			'log_action'   => sanitize_key( wp_unslash( (string) $read( 'log_action' ) ) ),
+			'log_id'       => absint( wp_unslash( (string) $read( 'log_id', 0 ) ) ),
+			'log_ids'      => array_values( array_filter( $log_ids ) ),
+			'type'         => in_array( $type, array( 'wordpress', 'anonymous' ), true ) ? $type : 'all', // phpcs:ignore WordPress.WP.CapitalPDangit.MisspelledInText -- the stored type, not the name.
+			'search'       => sanitize_text_field( wp_unslash( (string) $read( 's' ) ) ),
+			'paged'        => max( 1, absint( wp_unslash( (string) $read( 'paged', 1 ) ) ) ),
+			'orderby'      => sanitize_key( wp_unslash( (string) $read( 'orderby', 'added_date' ) ) ),
+			'order'        => in_array( $order, array( 'ASC', 'DESC' ), true ) ? $order : 'DESC',
+			'notice'       => sanitize_key( wp_unslash( (string) $read( 'yop_notice' ) ) ),
+			'notice_count' => absint( wp_unslash( (string) $read( 'count', 0 ) ) ),
 		);
-	}
-
-	public function get_sortable_columns() {
-		return array(
-			'added_date' => array( 'l.added_date', true ),
-		);
-	}
-
-	public function get_bulk_actions() {
-		return array(
-			'delete' => __( 'Trash', 'yop-poll' ),
-		);
-	}
-
-	public function no_items() {
-		esc_html_e( 'No Logs Available.', 'yop-poll' );
-	}
-
-	public function prepare_items() {
-		$model    = new Model_Log();
-		$per_page = $this->get_items_per_page( 'yop_poll_logs_per_page', 20 );
-		$page     = $this->get_pagenum();
-
-		// phpcs:disable WordPress.Security.NonceVerification -- Read-only list-table sort params.
-		$order_raw = isset( $_GET['order'] ) ? strtoupper( sanitize_key( wp_unslash( $_GET['order'] ) ) ) : 'DESC';
-		$order     = in_array( $order_raw, array( 'ASC', 'DESC' ), true ) ? $order_raw : 'DESC';
-		$orderby   = ! empty( $_GET['orderby'] ) ? sanitize_key( wp_unslash( $_GET['orderby'] ) ) : 'l.id';
 		// phpcs:enable WordPress.Security.NonceVerification
 
+		return $state;
+	}
+
+	/**
+	 * The list's own URL, carrying the view the user is looking at.
+	 *
+	 * Every redirect goes through here, so a deletion lands back on the same
+	 * filters, search and page rather than at the top of an unfiltered list.
+	 *
+	 * @param array $state The request.
+	 * @param array $extra Notice arguments to add.
+	 * @return string
+	 */
+	private function list_url( array $state, array $extra = array() ) {
 		$args = array(
-			'per_page' => $per_page,
-			'page'     => $page,
-			'orderby'  => $orderby,
-			'order'    => $order,
+			'page'   => 'yop-poll',
+			'action' => 'logs',
 		);
 
-		if ( ! empty( $_GET['s'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
-			$args['search'] = sanitize_text_field( wp_unslash( $_GET['s'] ) ); // phpcs:ignore WordPress.Security.NonceVerification
+		if ( 'all' !== ( $state['type'] ?? 'all' ) ) {
+			$args['log_type'] = $state['type'];
+		}
+		if ( ! empty( $state['search'] ) ) {
+			$args['s'] = $state['search'];
+		}
+		if ( ! empty( $state['paged'] ) && $state['paged'] > 1 ) {
+			$args['paged'] = $state['paged'];
+		}
+		if ( ! empty( $state['orderby'] ) ) {
+			$args['orderby'] = $state['orderby'];
+			$args['order']   = $state['order'];
+		}
+
+		return add_query_arg( array_merge( $args, $extra ), admin_url( 'admin.php' ) );
+	}
+
+	/**
+	 * The filter arguments the model takes, from the request.
+	 *
+	 * Shared by the table and by "Delete all matching", which is the whole
+	 * point: the button promises to delete what the screen is showing, so it
+	 * has to ask the same question the screen asked.
+	 *
+	 * @param array $state The request.
+	 * @return array
+	 */
+	private function filter_args( array $state ) {
+		$args = array();
+
+		if ( ! empty( $state['search'] ) ) {
+			$args['search']        = $state['search'];
+			$args['message_codes'] = Log_Event::codes_matching( $state['search'] );
+		}
+		if ( 'all' !== ( $state['type'] ?? 'all' ) ) {
+			$args['user_type'] = $state['type'];
 		}
 
 		$author_filter = Permissions::list_filter_author_id();
@@ -79,366 +127,377 @@ class Logs_List_Table extends \WP_List_Table {
 			$args['poll_author'] = $author_filter;
 		}
 
-		$this->items = $model->get_list( $args );
-		$total       = $model->count_active( $args );
-
-		$this->set_pagination_args( array(
-			'total_items' => $total,
-			'per_page'    => $per_page,
-			'total_pages' => ceil( $total / $per_page ),
-		) );
-
-		$this->_column_headers = $this->get_column_info();
+		return $args;
 	}
 
-	public function column_cb( $item ) {
-		return sprintf( '<input type="checkbox" name="log_ids[]" value="%d" />', $item['id'] );
+	/**
+	 * Mark entries deleted, skipping any this user may not touch.
+	 *
+	 * Returns the ids it actually flipped, not the ids it was given, so the
+	 * notice never claims a row that was skipped for permission or had
+	 * already gone.
+	 *
+	 * @param int[] $ids Log ids.
+	 * @return int[]
+	 */
+	private function delete_logs( array $ids ) {
+		$model   = new Model_Log();
+		$deleted = array();
+
+		foreach ( array_unique( array_map( 'absint', $ids ) ) as $id ) {
+			if ( ! $id ) {
+				continue;
+			}
+
+			$log = $model->find( $id );
+			if ( ! $log || 'deleted' === ( $log['status'] ?? '' ) ) {
+				continue;
+			}
+			if ( ! Permissions::can_delete_item( (int) $log['poll_author'] ) ) {
+				continue;
+			}
+
+			$model->update( $id, array( 'status' => 'deleted' ) );
+			$deleted[] = $id;
+		}
+
+		return $deleted;
 	}
 
-	public function column_poll( $item ) {
-		$poll_name = ! empty( $item['poll_name'] ) ? $item['poll_name'] : __( '(deleted)', 'yop-poll' );
-
-		$base_url = admin_url( 'admin.php?page=yop-poll&action=logs' );
-
-		// phpcs:disable WordPress.Security.NonceVerification -- Read-only list-table row state.
-		$log_action    = isset( $_GET['log_action'] ) ? sanitize_key( wp_unslash( $_GET['log_action'] ) ) : '';
-		$active_log_id = 'view_details' === $log_action && isset( $_GET['log_id'] )
-			? absint( wp_unslash( $_GET['log_id'] ) )
-			: 0;
-		// phpcs:enable WordPress.Security.NonceVerification
-
-		$is_open = $active_log_id === (int) $item['id'];
-
-		if ( $is_open ) {
-			$details_url = $base_url;
-		} else {
-			$details_url = add_query_arg( array(
-				'log_action' => 'view_details',
-				'log_id'     => $item['id'],
-			), $base_url );
-		}
-
-		$details_label = $is_open ? __( 'Hide Details', 'yop-poll' ) : __( 'View Details', 'yop-poll' );
-
-		$delete_url = wp_nonce_url(
-			admin_url( 'admin.php?page=yop-poll&action=logs&log_action=delete&log_id=' . $item['id'] ),
-			'yop_poll_delete_log_' . $item['id']
-		);
-
-		$actions = array(
-			'view_details' => sprintf( '<a href="%s">%s</a>', esc_url( $details_url ), $details_label ),
-			'delete'       => sprintf(
-				'<a href="#" class="yop-poll-logs-confirm-action" data-href="%s" data-message="%s" data-label="%s">%s</a>',
-				esc_url( $delete_url ),
-				esc_attr( __( 'Are you sure you want to trash this log entry?', 'yop-poll' ) ),
-				esc_attr( __( 'Trash', 'yop-poll' ) ),
-				__( 'Trash', 'yop-poll' )
-			),
-		);
-
-		$output = sprintf( '<strong>%s</strong>', esc_html( $poll_name ) );
-		$output .= $this->row_actions( $actions );
-
-		if ( $is_open ) {
-			$output .= $this->get_log_details_html( $item );
-		}
-
-		return $output;
-	}
-
-	private function get_log_details_html( array $item ): string {
-		global $wpdb;
-
-		$vote_data = Migrator::normalize_vote_data( Migrator::decode_meta( (string) ( $item['vote_data'] ?? '' ) ) );
-		if ( empty( $vote_data['elements'] ) || ! is_array( $vote_data['elements'] ) ) {
-			return '<div class="yop-log-details" style="margin-top:6px;padding-left:4px"><em>' . esc_html__( 'No details available.', 'yop-poll' ) . '</em></div>';
-		}
-
-		$elements_table    = $wpdb->prefix . YOP_POLL_TABLE_PREFIX . 'elements';
-		$subelements_table = $wpdb->prefix . YOP_POLL_TABLE_PREFIX . 'subelements';
-
-		$allowed_tags = array_merge(
-			wp_kses_allowed_html( 'post' ),
+	/**
+	 * Register the screen option and run anything that redirects.
+	 *
+	 * All of it happens here, before a byte of output, because every branch
+	 * ends in `wp_safe_redirect()`.
+	 */
+	public function setup() {
+		add_screen_option(
+			'per_page',
 			array(
-				'iframe' => array(
-					'src'             => true,
-					'title'           => true,
-					'width'           => true,
-					'height'          => true,
-					'frameborder'     => true,
-					'allow'           => true,
-					'allowfullscreen' => true,
-				),
+				'label'   => __( 'Entries per page', 'yop-poll' ),
+				'default' => 10,
+				'option'  => 'yop_poll_logs_per_page',
 			)
 		);
 
-		$html = '<div class="yop-log-details" style="margin-top:6px;padding-left:4px">';
+		$state = $this->read_state();
 
-		foreach ( $vote_data['elements'] as $element ) {
-			$element_id = (int) ( $element['id'] ?? 0 );
+		// The table is constructed so core registers the screen's columns,
+		// which is what puts the Voter and Poll checkboxes in Screen Options.
+		new Logs_List_Table( $state );
 
-			// Get element (question) text.
-			$etext = '';
-			if ( $element_id ) {
-				$etext = $wpdb->get_var( $wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery, PluginCheck.Security.DirectDB.UnescapedDBParameter -- $elements_table built from $wpdb->prefix . YOP_POLL_TABLE_PREFIX.
-					"SELECT etext FROM {$elements_table} WHERE id = %d", // phpcs:ignore WordPress.DB.PreparedSQL
-					$element_id
-				) );
-			}
-			$question_label = $etext ?: __( 'Question', 'yop-poll' ) . ' #' . $element_id;
+		// Enqueued from the screen that needs it, not from `Assets`, so this
+		// screen's asset knowledge stays with this screen. `setup()` runs on
+		// `load-toplevel_page_yop-poll`, which is before
+		// `admin_enqueue_scripts`, so this is still in time.
+		$asset = YOP_POLL_DIR . 'build/logs-list.asset.php';
+		$meta  = file_exists( $asset ) ? require $asset : array(
+			'dependencies' => array(),
+			'version'      => YOP_POLL_VERSION,
+		);
 
-			// Resolve answers.
-			$answer_texts = array();
-			if ( ! empty( $element['data'] ) && is_array( $element['data'] ) ) {
-				foreach ( $element['data'] as $answer ) {
-					$answer_id    = (int) ( $answer['id'] ?? 0 );
-					$answer_value = ! empty( $answer['data'] ) && is_array( $answer['data'] ) ? implode( ', ', $answer['data'] ) : '';
-					$sub_meta     = null;
+		wp_enqueue_script(
+			'yop-poll-logs-list',
+			YOP_POLL_URL . 'build/logs-list.js',
+			$meta['dependencies'],
+			$meta['version'],
+			true
+		);
 
-					if ( $answer_id > 0 ) {
-						$sub_row = $wpdb->get_row( $wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery, PluginCheck.Security.DirectDB.UnescapedDBParameter -- $subelements_table built from $wpdb->prefix . YOP_POLL_TABLE_PREFIX.
-							"SELECT stext, meta_data FROM {$subelements_table} WHERE id = %d", // phpcs:ignore WordPress.DB.PreparedSQL
-							$answer_id
-						), ARRAY_A );
-						if ( $sub_row ) {
-							$sub_meta = json_decode( $sub_row['meta_data'] ?? '', true );
-
-							// Video embed from meta_data.
-							if ( ! empty( $sub_meta['videoEmbed'] ) ) {
-								$answer_texts[] = wp_kses( $sub_meta['videoEmbed'], $allowed_tags );
-								continue;
-							}
-
-							if ( ! empty( $sub_row['stext'] ) ) {
-								$stext = $sub_row['stext'];
-								// Image URL in stext.
-								if ( preg_match( '/^https?:\/\/.+\.(jpe?g|png|gif|webp|svg|bmp)(\?.*)?$/i', trim( $stext ) ) ) {
-									$answer_texts[] = '<img src="' . esc_url( trim( $stext ) ) . '" style="max-width:300px;height:auto" />';
-								} else {
-									$answer_texts[] = $stext;
-								}
-								continue;
-							}
-						}
-					}
-
-					if ( '' !== $answer_value ) {
-						// Image URL in answer_value.
-						if ( preg_match( '/^https?:\/\/.+\.(jpe?g|png|gif|webp|svg|bmp)(\?.*)?$/i', trim( $answer_value ) ) ) {
-							$answer_texts[] = '<img src="' . esc_url( trim( $answer_value ) ) . '" style="max-width:300px;height:auto" />';
-						} else {
-							// Voter-supplied free text is never HTML. It must NOT go through the
-							// $allowed_tags allowlist below: that list grants <iframe src> for
-							// admin-authored video embeds, and an anonymous voter can push text
-							// into this table through the public vote endpoint on both the
-							// success and the blocked-attempt paths.
-							$answer_texts[] = esc_html( wp_strip_all_tags( $answer_value ) );
-						}
-					} else {
-						$answer_texts[] = '—';
-					}
+		switch ( $state['log_action'] ) {
+			case 'delete':
+				if ( ! $state['log_id'] ) {
+					return;
 				}
-			}
+				check_admin_referer( 'yop_poll_delete_log_' . $state['log_id'] );
+				$this->finish( $state, $this->delete_logs( array( $state['log_id'] ) ), 'deleted' );
+				return;
 
-			$html .= sprintf(
-				'<div style="margin-bottom:4px"><strong>%s:</strong> %s',
-				esc_html__( 'Question', 'yop-poll' ),
-				wp_kses( $question_label, $allowed_tags )
-			);
-			foreach ( $answer_texts as $answer_text ) {
-				$html .= sprintf(
-					'<div style="padding-left:16px"><strong>%s:</strong> %s</div>',
-					esc_html__( 'Answer', 'yop-poll' ),
-					wp_kses( $answer_text, $allowed_tags )
-				);
-			}
-			$html .= '</div>';
+			case 'delete-selected':
+				check_admin_referer( 'bulk-logs' );
+				$this->finish( $state, $this->delete_logs( $state['log_ids'] ), 'deleted' );
+				return;
+
+			case 'clear':
+				check_admin_referer( 'bulk-logs' );
+				$ids = ( new Model_Log() )->ids_matching( $this->filter_args( $state ) );
+				$this->finish( $state, $this->delete_logs( $ids ), 'cleared' );
+				return;
 		}
-
-		$html .= '</div>';
-		return $html;
 	}
 
-	public function column_username( $item ) {
-		if ( 'wordpress' === $item['user_type'] && ! empty( $item['user_id'] ) ) {
-			$user = get_userdata( (int) $item['user_id'] );
-			return $user ? esc_html( $user->display_name ) : esc_html( $item['user_email'] );
-		}
-		return esc_html( $item['user_email'] ?: '-' );
-	}
-
-	public function column_email( $item ) {
-		return esc_html( $item['user_email'] ?: '-' );
-	}
-
-	public function column_user_type( $item ) {
-		return esc_html( $item['user_type'] );
-	}
-
-	public function column_ipaddress( $item ) {
-		return esc_html( $item['ipaddress'] );
-	}
-
-	public function column_added_date( $item ) {
-		return esc_html( mysql2date( 'F j, Y g:i a', $item['added_date'] ) );
-	}
-
-	public function column_message( $item ) {
-		$msg = $item['vote_message'];
-		if ( empty( $msg ) ) {
-			return '-';
-		}
-		$decoded = Migrator::decode_meta( $msg ?? '' );
-		if ( ! empty( $decoded ) ) {
-			$msg = implode( ', ', array_values( $decoded ) );
-		}
-		return esc_html( wp_trim_words( $msg, 12, '...' ) );
-	}
-
-	public function column_default( $item, $column_name ) {
-		return esc_html( $item[ $column_name ] ?? '' );
-	}
-}
-
-class Admin_Page_Logs {
-
-	public function setup() {
-		add_screen_option( 'per_page', array(
-			'label'   => __( 'Number of logs per page', 'yop-poll' ),
-			'default' => 20,
-			'option'  => 'yop_poll_logs_per_page',
-		) );
-		new Logs_List_Table();
-
-		// All redirect-causing actions must run here, before any output is sent.
-		// phpcs:disable WordPress.Security.NonceVerification -- Nonce verified below via check_admin_referer().
-		$log_action = isset( $_GET['log_action'] ) ? sanitize_key( wp_unslash( $_GET['log_action'] ) ) : '';
-		$log_id     = isset( $_GET['log_id'] ) ? absint( wp_unslash( $_GET['log_id'] ) ) : 0;
-		// phpcs:enable WordPress.Security.NonceVerification
-
-		// Handle single delete.
-		if ( 'delete' === $log_action && $log_id ) {
-			check_admin_referer( 'yop_poll_delete_log_' . $log_id );
-			$model = new Model_Log();
-			$log   = $model->find( $log_id );
-			if ( ! $log || ! Permissions::can_delete_item( (int) $log['poll_author'] ) ) {
-				wp_die( esc_html__( 'You do not have permission to perform this action.', 'yop-poll' ), 403 );
-			}
-			$model->update( $log_id, array( 'status' => 'deleted' ) );
-			wp_safe_redirect( admin_url( 'admin.php?page=yop-poll&action=logs&deleted=1' ) );
+	/**
+	 * Redirect back to the list, saying what happened.
+	 *
+	 * @param array  $state   The request.
+	 * @param int[]  $deleted What actually went.
+	 * @param string $notice  Which notice to show.
+	 */
+	private function finish( array $state, array $deleted, $notice ) {
+		if ( ! $deleted ) {
+			wp_safe_redirect( $this->list_url( $state, array( 'yop_notice' => 'none' ) ) );
 			exit;
 		}
 
-		// Handle bulk delete.
-		// phpcs:disable WordPress.Security.NonceVerification -- Nonce verified below via check_admin_referer().
-		$post_action = isset( $_POST['action'] ) ? sanitize_key( wp_unslash( $_POST['action'] ) ) : '';
-		$log_ids     = isset( $_POST['log_ids'] ) ? array_map( 'intval', (array) wp_unslash( $_POST['log_ids'] ) ) : array();
-		// phpcs:enable WordPress.Security.NonceVerification
-		if ( 'delete' === $post_action && ! empty( $log_ids ) ) {
-			check_admin_referer( 'bulk-logs' );
-			$model = new Model_Log();
-			foreach ( $log_ids as $id ) {
-				$log = $model->find( $id );
-				if ( ! $log || ! Permissions::can_delete_item( (int) $log['poll_author'] ) ) {
-					continue;
-				}
-				$model->update( $id, array( 'status' => 'deleted' ) );
-			}
-			wp_safe_redirect( admin_url( 'admin.php?page=yop-poll&action=logs&deleted=1' ) );
-			exit;
-		}
+		// A deletion can empty the page that was being looked at, and page
+		// nine of a list that now has three is nowhere.
+		$state['paged'] = 1;
+
+		wp_safe_redirect(
+			$this->list_url(
+				$state,
+				array(
+					'yop_notice' => $notice,
+					'count'      => count( $deleted ),
+				)
+			)
+		);
+		exit;
 	}
 
+	/**
+	 * Draw the screen.
+	 */
 	public function render() {
-		$table = new Logs_List_Table();
+		$state = $this->read_state();
+
+		$table = new Logs_List_Table( $state );
 		$table->prepare_items();
 
-		echo '<div class="wrap">';
-		echo '<h1 class="wp-heading-inline">' . esc_html__( 'All Logs', 'yop-poll' ) . '</h1>';
+		echo '<div class="wrap yop-poll-logs">';
+		echo '<h1 class="wp-heading-inline">' . esc_html__( 'Logs', 'yop-poll' ) . '</h1>';
 		echo '<hr class="wp-header-end">';
 
-		if ( ! empty( $_GET['deleted'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
-			echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Log entry deleted.', 'yop-poll' ) . '</p></div>';
+		$this->render_notice( $state );
+
+		$table->views();
+
+		$this->render_search( $state );
+
+		printf(
+			'<form method="post" action="%s" class="yop-poll-logs-form">',
+			esc_url( $this->list_url( $state ) )
+		);
+
+		if ( 'ask-clear' === $state['log_action'] ) {
+			$this->render_confirm( $state, $table );
 		}
 
-		echo '<form method="get">';
-		echo '<input type="hidden" name="page" value="yop-poll" />';
-	echo '<input type="hidden" name="action" value="logs" />';
-		$table->search_box( __( 'Search Logs', 'yop-poll' ), 'yop-log-search' );
 		$table->display();
 		echo '</form>';
+
+		// The notes sit under the table rather than in a rail beside it. The
+		// rail existed to hold the record panel, and that has moved into the
+		// table — leaving a third of the width to three sentences that are
+		// read once.
+		$this->render_notes();
+
 		echo '</div>';
 
 		$this->render_confirm_modal();
 	}
 
+	/**
+	 * What just happened.
+	 *
+	 * @param array $state The request.
+	 */
+	private function render_notice( array $state ) {
+		$count = max( 1, (int) $state['notice_count'] );
+		$text  = '';
+
+		switch ( $state['notice'] ) {
+			case 'deleted':
+				$text = sprintf(
+					/* translators: %s: how many entries were deleted. */
+					_n(
+						'%s entry deleted. The vote it recorded is unaffected.',
+						'%s entries deleted. The votes they recorded are unaffected.',
+						$count,
+						'yop-poll'
+					),
+					number_format_i18n( $count )
+				);
+				break;
+
+			case 'cleared':
+				$text = sprintf(
+					/* translators: %s: how many entries were deleted. */
+					_n(
+						'%s entry deleted. Recorded votes and results are unaffected.',
+						'%s entries deleted. Recorded votes and results are unaffected.',
+						$count,
+						'yop-poll'
+					),
+					number_format_i18n( $count )
+				);
+				break;
+
+			case 'none':
+				printf(
+					'<div class="notice notice-warning is-dismissible"><p>%s</p></div>',
+					esc_html__( 'Nothing was deleted. Select at least one entry first.', 'yop-poll' )
+				);
+				return;
+		}
+
+		if ( '' === $text ) {
+			return;
+		}
+
+		printf(
+			'<div class="notice notice-success is-dismissible"><p>%s</p></div>',
+			esc_html( $text )
+		);
+	}
+
+	/**
+	 * The search.
+	 *
+	 * Its own GET form: a search is a new view of the list, not an action on
+	 * it, so it must not travel through the POST form below.
+	 *
+	 * @param array $state The request.
+	 */
+	private function render_search( array $state ) {
+		echo '<div class="yop-poll-logs-filters">';
+
+		printf(
+			'<form method="get" action="%s" class="yop-poll-logs-search">',
+			esc_url( admin_url( 'admin.php' ) )
+		);
+		echo '<input type="hidden" name="page" value="yop-poll" />';
+		echo '<input type="hidden" name="action" value="logs" />';
+		if ( 'all' !== $state['type'] ) {
+			printf( '<input type="hidden" name="log_type" value="%s" />', esc_attr( $state['type'] ) );
+		}
+		printf(
+			'<label class="yop-poll-logs-label" for="yop-poll-log-search">%s</label>',
+			esc_html__( 'Search', 'yop-poll' )
+		);
+		printf(
+			'<input type="search" id="yop-poll-log-search" name="s" value="%1$s" placeholder="%2$s" />',
+			esc_attr( $state['search'] ),
+			esc_attr__( 'Username, email, IP or message', 'yop-poll' )
+		);
+		echo '</form>';
+
+		echo '</div>';
+	}
+
+	/**
+	 * The confirmation for emptying the log, in place above the table.
+	 *
+	 * Deleting everything is destructive and unselective, so it states the
+	 * exact count and what survives before it will do anything.
+	 *
+	 * @param array           $state The request.
+	 * @param Logs_List_Table $table The prepared table.
+	 */
+	private function render_confirm( array $state, Logs_List_Table $table ) {
+		$matching = (int) $table->total();
+		$all      = (int) $table->counts()['all'];
+		$filtered = $matching !== $all;
+
+		$title = $filtered
+			? sprintf(
+				/* translators: %s: how many entries the filters match. */
+				_n(
+					'Delete the %s entry these filters match?',
+					'Delete the %s entries these filters match?',
+					$matching,
+					'yop-poll'
+				),
+				number_format_i18n( $matching )
+			)
+			: sprintf(
+				/* translators: %s: how many entries there are. */
+				_n( 'Delete all %s log entry?', 'Delete all %s log entries?', $all, 'yop-poll' ),
+				number_format_i18n( $all )
+			);
+
+		$body = $filtered
+			? sprintf(
+				/* translators: 1: how many are kept. 2: how many there are in total. */
+				__( 'The other %1$s of your %2$s entries are kept. This cannot be undone.', 'yop-poll' ),
+				number_format_i18n( $all - $matching ),
+				number_format_i18n( $all )
+			)
+			: __( 'The whole log is emptied. This cannot be undone.', 'yop-poll' );
+
+		$action = $filtered
+			? sprintf(
+				/* translators: %s: how many entries will be deleted. */
+				_n( 'Delete %s entry', 'Delete %s entries', $matching, 'yop-poll' ),
+				number_format_i18n( $matching )
+			)
+			: __( 'Delete everything', 'yop-poll' );
+
+		printf(
+			'<div class="yop-poll-logs-confirm" role="alertdialog" aria-label="%1$s">
+				<span class="yop-poll-logs-confirm__text">
+					<strong>%1$s</strong>
+					<span>%2$s</span>
+				</span>
+				<span class="yop-poll-logs-confirm__actions">
+					<a class="button" href="%3$s">%4$s</a>
+					<button type="submit" name="log_action" value="clear" class="button yop-poll-logs-confirm__go">%5$s</button>
+					<span class="yop-poll-logs-confirm__note">%6$s</span>
+				</span>
+			</div>',
+			esc_html( $title ),
+			esc_html( $body ),
+			esc_url( $this->list_url( $state ) ),
+			esc_html__( 'Cancel', 'yop-poll' ),
+			esc_html( $action ),
+			esc_html__( 'Recorded votes and results are unaffected — only the log is cleared.', 'yop-poll' )
+		);
+	}
+
+	/**
+	 * What the log does and does not hold.
+	 */
+	private function render_notes() {
+		$notes = array(
+			__( 'One entry per vote attempt, whether it was accepted or refused.', 'yop-poll' ),
+			__( 'Username and email are recorded only when the voter is signed in or gave one.', 'yop-poll' ),
+			__( 'IP addresses are recorded unless your Privacy setting anonymizes them.', 'yop-poll' ),
+		);
+
+		echo '<div class="yop-poll-logs-card yop-poll-logs-card--notes">';
+		printf(
+			'<div class="yop-poll-logs-card__head"><span>%s</span></div>',
+			esc_html__( 'What logs record', 'yop-poll' )
+		);
+		echo '<div class="yop-poll-logs-card__body"><ul class="yop-poll-logs-notes">';
+
+		foreach ( $notes as $note ) {
+			printf( '<li>%s</li>', esc_html( $note ) );
+		}
+
+		echo '</ul></div>';
+		echo '</div>';
+	}
+
+	/**
+	 * The dialog behind every single deletion.
+	 */
 	private function render_confirm_modal() {
-		?>
-		<style>
-		#yop-poll-logs-modal-overlay {
-			position: fixed;
-			inset: 0;
-			background: rgba(0,0,0,.5);
-			z-index: 100000;
-			display: flex;
-			align-items: center;
-			justify-content: center;
-		}
-		#yop-poll-logs-modal {
-			background: #fff;
-			width: 420px;
-			max-width: 90vw;
-			border-radius: 3px;
-			overflow: hidden;
-			box-shadow: 0 8px 32px rgba(0,0,0,.28);
-		}
-		#yop-poll-logs-modal-header {
-			background: #e07b39;
-			padding: 14px 20px;
-			color: #fff;
-			font-size: 14px;
-			font-weight: 600;
-		}
-		#yop-poll-logs-modal-body { padding: 20px 20px 24px; font-size: 13px; color: #1d2327; }
-		#yop-poll-logs-modal-footer {
-			border-top: 1px solid #dcdcde;
-			padding: 12px 20px;
-			display: flex;
-			justify-content: flex-end;
-			gap: 8px;
-		}
-		#yop-poll-logs-modal-footer .button { min-width: 80px; text-align: center; }
-		</style>
-		<div id="yop-poll-logs-modal-overlay" style="display:none;">
-			<div id="yop-poll-logs-modal">
-				<div id="yop-poll-logs-modal-header"><?php esc_html_e( 'Warning', 'yop-poll' ); ?></div>
-				<div id="yop-poll-logs-modal-body"><p id="yop-poll-logs-modal-msg" style="margin:0;"></p></div>
-				<div id="yop-poll-logs-modal-footer">
-					<button id="yop-poll-logs-modal-cancel" class="button"><?php esc_html_e( 'Cancel', 'yop-poll' ); ?></button>
-					<a id="yop-poll-logs-modal-ok" href="#" class="button"><?php esc_html_e( 'OK', 'yop-poll' ); ?></a>
+		printf(
+			'<div class="yop-poll-confirm" id="yop-poll-confirm" hidden>
+				<div class="yop-poll-confirm__backdrop" data-yop-confirm-cancel></div>
+				<div class="yop-poll-confirm__box" role="dialog" aria-modal="true" aria-labelledby="yop-poll-confirm-title">
+					<h2 class="yop-poll-confirm__title" id="yop-poll-confirm-title">%1$s</h2>
+					<p class="yop-poll-confirm__body" data-yop-confirm-message></p>
+					<div class="yop-poll-confirm__actions">
+						<button type="button" class="button" data-yop-confirm-cancel>%2$s</button>
+						<a href="#" class="button button-primary" data-yop-confirm-go>%3$s</a>
+					</div>
 				</div>
-			</div>
-		</div>
-		<script>
-		(function() {
-			var overlay   = document.getElementById('yop-poll-logs-modal-overlay');
-			var msgEl     = document.getElementById('yop-poll-logs-modal-msg');
-			var okBtn     = document.getElementById('yop-poll-logs-modal-ok');
-			var cancelBtn = document.getElementById('yop-poll-logs-modal-cancel');
-			function close() { overlay.style.display = 'none'; }
-			cancelBtn.addEventListener('click', close);
-			overlay.addEventListener('click', function(e) { if (e.target === overlay) close(); });
-			document.querySelectorAll('.yop-poll-logs-confirm-action').forEach(function(link) {
-				link.addEventListener('click', function(e) {
-					e.preventDefault();
-					msgEl.textContent = link.getAttribute('data-message');
-					okBtn.href        = link.getAttribute('data-href');
-					okBtn.textContent = link.getAttribute('data-label');
-					overlay.style.display = 'flex';
-				});
-			});
-		})();
-		</script>
-		<?php
+			</div>',
+			esc_html__( 'Delete this log entry?', 'yop-poll' ),
+			esc_html__( 'Cancel', 'yop-poll' ),
+			esc_html__( 'Delete', 'yop-poll' )
+		);
 	}
 }

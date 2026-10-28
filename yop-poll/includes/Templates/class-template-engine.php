@@ -7,20 +7,102 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class Template_Engine {
 
-	public static function get_template_path( $base ) {
-		$path = YOP_POLL_DIR . 'includes/Templates/' . sanitize_file_name( $base ) . '/template.php';
-		if ( file_exists( $path ) ) {
-			return $path;
+	/**
+	 * Return registered template locations keyed by rendering base.
+	 *
+	 * A location may provide path, URL, style dependencies, and a version. The
+	 * path and URL point to the directory containing template.php/style.css.
+	 */
+	public static function get_locations(): array {
+		$locations = array(
+			'classic' => array(
+				'path'               => YOP_POLL_DIR . 'includes/Templates/classic/',
+				'url'                => YOP_POLL_URL . 'includes/Templates/classic/',
+				'style_dependencies' => array(),
+				'version'            => YOP_POLL_VERSION,
+			),
+		);
+		$locations = apply_filters( 'yop_poll_template_locations', $locations );
+
+		if ( ! is_array( $locations ) ) {
+			return array();
 		}
-		return YOP_POLL_DIR . 'includes/Templates/classic/template.php';
+
+		$normalized = array();
+		foreach ( $locations as $base => $location ) {
+			$base = sanitize_key( $base );
+			if ( '' === $base || ! is_array( $location ) ) {
+				continue;
+			}
+
+			$path = isset( $location['path'] ) ? trailingslashit( $location['path'] ) : '';
+			$url  = isset( $location['url'] ) ? trailingslashit( $location['url'] ) : '';
+			if ( '' === $path || '' === $url ) {
+				continue;
+			}
+
+			$normalized[ $base ] = array(
+				'path'               => $path,
+				'url'                => $url,
+				'style_dependencies' => isset( $location['style_dependencies'] ) && is_array( $location['style_dependencies'] )
+					? array_values( array_filter( array_map( 'sanitize_key', $location['style_dependencies'] ) ) )
+					: array(),
+				'version'            => isset( $location['version'] ) ? sanitize_text_field( $location['version'] ) : '',
+			);
+		}
+
+		return $normalized;
 	}
 
-	public static function get_template_style_url( $base ) {
-		$file = 'includes/Templates/' . sanitize_file_name( $base ) . '/style.css';
-		if ( file_exists( YOP_POLL_DIR . $file ) ) {
-			return YOP_POLL_URL . $file;
+	public static function get_location( string $base ): ?array {
+		$locations = self::get_locations();
+		$base      = sanitize_key( $base );
+
+		return $locations[ $base ] ?? null;
+	}
+
+	public static function has_location( string $base ): bool {
+		$location = self::get_location( $base );
+
+		return null !== $location && file_exists( $location['path'] . 'style.css' );
+	}
+
+	public static function get_template_path( $base ) {
+		$location = self::get_location( sanitize_key( $base ) );
+		if ( $location && file_exists( $location['path'] . 'template.php' ) ) {
+			return $location['path'] . 'template.php';
 		}
-		return YOP_POLL_URL . 'includes/Templates/classic/style.css';
+
+		$classic = self::get_location( 'classic' );
+		return $classic ? $classic['path'] . 'template.php' : '';
+	}
+
+	/**
+	 * Resolve a registered style asset, falling back to Classic.
+	 */
+	public static function get_style_asset( string $base, bool $rtl = false ): ?array {
+		$filename = $rtl ? 'style-rtl.css' : 'style.css';
+		$location = self::get_location( $base );
+
+		// An external template without dedicated RTL CSS should keep its normal
+		// stylesheet; applying Classic's RTL rules to unrelated markup is unsafe.
+		if ( $rtl && $location && ! file_exists( $location['path'] . $filename ) ) {
+			return null;
+		}
+
+		if ( ! $location || ! file_exists( $location['path'] . $filename ) ) {
+			$location = self::get_location( 'classic' );
+		}
+		if ( ! $location || ! file_exists( $location['path'] . $filename ) ) {
+			return null;
+		}
+
+		return array(
+			'path'         => $location['path'] . $filename,
+			'url'          => $location['url'] . $filename,
+			'dependencies' => $location['style_dependencies'],
+			'version'      => $location['version'] ?: (string) filemtime( $location['path'] . $filename ),
+		);
 	}
 
 	/**
@@ -28,8 +110,8 @@ class Template_Engine {
 	 * template directory does not exist (e.g. base = 'custom').
 	 */
 	public static function resolve_css_base( string $base ): string {
-		$dir = YOP_POLL_DIR . 'includes/Templates/' . sanitize_file_name( $base );
-		return is_dir( $dir ) ? $base : 'classic';
+		$base = sanitize_key( $base );
+		return self::has_location( $base ) ? $base : 'classic';
 	}
 
 	/**
@@ -37,8 +119,8 @@ class Template_Engine {
 	 * rendering_base when the poll's own template_base has no directory.
 	 */
 	public static function resolve_css_base_for_poll( string $base, int $template_id ): string {
-		$dir = YOP_POLL_DIR . 'includes/Templates/' . sanitize_file_name( $base );
-		if ( is_dir( $dir ) ) {
+		$base = sanitize_key( $base );
+		if ( self::has_location( $base ) ) {
 			return $base;
 		}
 		// Directory missing (e.g. base = 'custom'): look up the template row.
@@ -50,9 +132,8 @@ class Template_Engine {
 				ARRAY_A
 			);
 			if ( $row && ! empty( $row['rendering_base'] ) ) {
-				$rb  = sanitize_key( $row['rendering_base'] );
-				$dir = YOP_POLL_DIR . 'includes/Templates/' . sanitize_file_name( $rb );
-				if ( is_dir( $dir ) ) {
+				$rb = sanitize_key( $row['rendering_base'] );
+				if ( self::has_location( $rb ) ) {
 					return $rb;
 				}
 			}

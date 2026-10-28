@@ -8,7 +8,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 class Deactivator {
 
 	public static function deactivate() {
-		delete_transient( 'yop_poll_activating' );
 		Cron\Cron_Auto_Reset::unschedule();
 	}
 }

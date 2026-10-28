@@ -1,321 +1,549 @@
 <?php
+/**
+ * The Bans screen.
+ *
+ * @package YopPoll
+ */
+
 namespace YopPoll\Admin;
 
 use YopPoll\Models\Model_Ban;
 use YopPoll\Models\Model_Poll;
 use YopPoll\Helpers\Permissions;
+use YopPoll\Validation\Ban_Validator;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-if ( ! class_exists( 'WP_List_Table' ) ) {
-	require_once ABSPATH . 'wp-admin/includes/class-wp-list-table.php';
-}
-
-class Bans_List_Table extends \WP_List_Table {
-
-	public function __construct() {
-		parent::__construct( array(
-			'singular' => 'ban',
-			'plural'   => 'bans',
-			'ajax'     => false,
-		) );
-	}
-
-	public function get_columns() {
-		return array(
-			'cb'         => '<input type="checkbox" />',
-			'poll'       => __( 'Poll', 'yop-poll' ),
-			'author'     => __( 'Author', 'yop-poll' ),
-			'ban_by'     => __( 'Ban By', 'yop-poll' ),
-			'ban_value'  => __( 'Value', 'yop-poll' ),
-			'added_date' => __( 'Added On', 'yop-poll' ),
-		);
-	}
-
-	public function get_sortable_columns() {
-		return array(
-			'ban_by'     => array( 'b_by', false ),
-			'ban_value'  => array( 'b_value', false ),
-			'added_date' => array( 'added_date', true ),
-		);
-	}
-
-	public function get_bulk_actions() {
-		return array(
-			'delete' => __( 'Trash', 'yop-poll' ),
-		);
-	}
-
-	public function no_items() {
-		esc_html_e( 'No Bans Available.', 'yop-poll' );
-	}
-
-	public function prepare_items() {
-		$model    = new Model_Ban();
-		$per_page = $this->get_items_per_page( 'yop_poll_bans_per_page', 20 );
-		$page     = $this->get_pagenum();
-
-		$orderby_map = array(
-			'ban_by'    => 'b_by',
-			'ban_value' => 'b_value',
-		);
-
-		// phpcs:disable WordPress.Security.NonceVerification -- Read-only list-table sort params.
-		$requested_orderby = isset( $_GET['orderby'] ) ? sanitize_key( wp_unslash( $_GET['orderby'] ) ) : 'id';
-		$db_orderby        = $orderby_map[ $requested_orderby ] ?? $requested_orderby;
-		$order_raw         = isset( $_GET['order'] ) ? strtoupper( sanitize_key( wp_unslash( $_GET['order'] ) ) ) : 'DESC';
-		$order             = in_array( $order_raw, array( 'ASC', 'DESC' ), true ) ? $order_raw : 'DESC';
-		// phpcs:enable WordPress.Security.NonceVerification
-
-		$args = array(
-			'per_page' => $per_page,
-			'page'     => $page,
-			'orderby'  => $db_orderby,
-			'order'    => $order,
-		);
-
-		if ( ! empty( $_GET['s'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
-			$args['search'] = sanitize_text_field( wp_unslash( $_GET['s'] ) ); // phpcs:ignore WordPress.Security.NonceVerification
-		}
-
-		$author_filter = Permissions::list_filter_author_id();
-		if ( null !== $author_filter ) {
-			$args['author'] = $author_filter;
-		}
-
-		$this->items = $model->get_list( $args );
-		$total       = $model->count_active( $args );
-
-		$this->set_pagination_args( array(
-			'total_items' => $total,
-			'per_page'    => $per_page,
-			'total_pages' => ceil( $total / $per_page ),
-		) );
-
-		$this->_column_headers = $this->get_column_info();
-	}
-
-	public function column_cb( $item ) {
-		return sprintf( '<input type="checkbox" name="ban_ids[]" value="%d" />', $item['id'] );
-	}
-
-	public function column_poll( $item ) {
-		if ( '0' === strval( $item['poll_id'] ) ) {
-			$poll_name = __( 'All Polls', 'yop-poll' );
-		} else {
-			$poll = ( new Model_Poll() )->find( (int) $item['poll_id'] );
-			$poll_name = $poll ? $poll['name'] : __( '(deleted)', 'yop-poll' );
-		}
-
-		$edit_url   = admin_url( 'admin.php?page=yop-poll&action=bans&ban_action=edit&ban_id=' . $item['id'] );
-		$delete_url = wp_nonce_url(
-			admin_url( 'admin.php?page=yop-poll&action=bans&ban_action=delete&ban_id=' . $item['id'] ),
-			'yop_poll_delete_ban_' . $item['id']
-		);
-
-		$actions = array(
-			'edit'   => sprintf( '<a href="%s">%s</a>', esc_url( $edit_url ), __( 'Edit', 'yop-poll' ) ),
-			'delete' => sprintf(
-				'<a href="#" class="yop-poll-confirm-action" data-href="%s" data-message="%s" data-label="%s">%s</a>',
-				esc_url( $delete_url ),
-				esc_attr( __( 'Are you sure you want to trash this ban?', 'yop-poll' ) ),
-				esc_attr( __( 'Trash', 'yop-poll' ) ),
-				__( 'Trash', 'yop-poll' )
-			),
-		);
-
-		return sprintf( '<strong>%s</strong>%s', esc_html( $poll_name ), $this->row_actions( $actions ) );
-	}
-
-	public function column_author( $item ) {
-		$user = get_userdata( (int) $item['author'] );
-		return $user ? esc_html( $user->display_name ) : '';
-	}
-
-	public function column_ban_by( $item ) {
-		return esc_html( $item['b_by'] );
-	}
-
-	public function column_ban_value( $item ) {
-		return esc_html( $item['b_value'] );
-	}
-
-	public function column_added_date( $item ) {
-		return esc_html( mysql2date( 'F j, Y g:i a', $item['added_date'] ) );
-	}
-
-	public function column_default( $item, $column_name ) {
-		return esc_html( $item[ $column_name ] ?? '' );
-	}
-}
-
+/**
+ * The Bans screens: the list, and the mount point the ban form draws into.
+ */
 class Admin_Page_Bans {
 
-	public function setup() {
-		add_screen_option( 'per_page', array(
-			'label'   => __( 'Number of bans per page', 'yop-poll' ),
-			'default' => 20,
-			'option'  => 'yop_poll_bans_per_page',
-		) );
-		new Bans_List_Table();
+	/**
+	 * How long a removal stays undoable.
+	 *
+	 * The notice offering Undo can sit open on a screen for as long as the
+	 * screen is open, so the bound belongs on the row rather than on the page:
+	 * `Model_Ban::restore()` refuses anything modified longer ago than this.
+	 * It also closes the one hole in keeping the ids in the URL — a crafted
+	 * `&undo=` reaches nothing older than this, and nothing the user could not
+	 * have removed themselves.
+	 */
+	const UNDO_WINDOW = 15 * MINUTE_IN_SECONDS;
 
-		// All redirect-causing actions must run here, before any output is sent.
-		// phpcs:disable WordPress.Security.NonceVerification -- Nonce verified below via check_admin_referer().
-		$ban_action = isset( $_GET['ban_action'] ) ? sanitize_key( wp_unslash( $_GET['ban_action'] ) ) : '';
-		$ban_id     = isset( $_GET['ban_id'] ) ? absint( wp_unslash( $_GET['ban_id'] ) ) : 0;
+	/**
+	 * The request, read and sanitised once.
+	 *
+	 * Everything on this screen used to reach into `$_GET` and `$_POST` where
+	 * it stood, which is why the file carried seven separate
+	 * `phpcs:ignore NonceVerification` comments. Reading it in one place also
+	 * means the page and the table cannot disagree about what was asked for.
+	 *
+	 * @return array
+	 */
+	private function read_state() {
+		// The two are merged explicitly rather than read through `$_REQUEST`:
+		// a bulk removal arrives by POST and everything else by GET, and
+		// `$_REQUEST` is built once at request start, so anything that sets
+		// `$_GET` afterwards — a test, a rewrite — is invisible to it.
+		// phpcs:disable WordPress.Security.NonceVerification -- Read here; verified by the handler that acts on it.
+		$request = array_merge( (array) $_GET, (array) $_POST );
+
+		$read = static function ( $key, $fallback = '' ) use ( $request ) {
+			return isset( $request[ $key ] ) ? $request[ $key ] : $fallback;
+		};
+
+		$type  = sanitize_key( wp_unslash( (string) $read( 'ban_type', 'all' ) ) );
+		$order = strtoupper( sanitize_key( wp_unslash( (string) $read( 'order', 'DESC' ) ) ) );
+
+		$ban_ids = isset( $_POST['ban_ids'] )
+			? array_map( 'absint', (array) wp_unslash( $_POST['ban_ids'] ) )
+			: array();
+
+		$undo_raw = sanitize_text_field( wp_unslash( (string) $read( 'undo' ) ) );
+
+		$state = array(
+			'ban_action'   => sanitize_key( wp_unslash( (string) $read( 'ban_action' ) ) ),
+			'ban_id'       => absint( wp_unslash( (string) $read( 'ban_id', 0 ) ) ),
+			'ban_ids'      => array_values( array_filter( $ban_ids ) ),
+			'undo_ids'     => array_values( array_filter( array_map( 'absint', explode( ',', $undo_raw ) ) ) ),
+			'type'         => in_array( $type, Ban_Validator::types(), true ) ? $type : 'all',
+			'search'       => sanitize_text_field( wp_unslash( (string) $read( 's' ) ) ),
+			'paged'        => max( 1, absint( wp_unslash( (string) $read( 'paged', 1 ) ) ) ),
+			'orderby'      => sanitize_key( wp_unslash( (string) $read( 'orderby', 'added_date' ) ) ),
+			'order'        => in_array( $order, array( 'ASC', 'DESC' ), true ) ? $order : 'DESC',
+			'notice'       => sanitize_key( wp_unslash( (string) $read( 'yop_notice' ) ) ),
+			'notice_count' => absint( wp_unslash( (string) $read( 'count', 0 ) ) ),
+		);
 		// phpcs:enable WordPress.Security.NonceVerification
 
-		// Handle single delete.
-		if ( 'delete' === $ban_action && $ban_id ) {
-			check_admin_referer( 'yop_poll_delete_ban_' . $ban_id );
-			$model = new Model_Ban();
-			$ban   = $model->find( $ban_id );
+		return $state;
+	}
+
+	/**
+	 * The list's own URL, carrying the view the user is looking at.
+	 *
+	 * Every redirect goes through here, so a removal lands back on the same
+	 * filter, search and page rather than at the top of an unfiltered list.
+	 *
+	 * @param array $state The request.
+	 * @param array $extra Notice arguments to add.
+	 * @return string
+	 */
+	private function list_url( array $state, array $extra = array() ) {
+		$args = array(
+			'page'   => 'yop-poll',
+			'action' => 'bans',
+		);
+
+		if ( 'all' !== ( $state['type'] ?? 'all' ) ) {
+			$args['ban_type'] = $state['type'];
+		}
+		if ( ! empty( $state['search'] ) ) {
+			$args['s'] = $state['search'];
+		}
+		if ( ! empty( $state['paged'] ) && $state['paged'] > 1 ) {
+			$args['paged'] = $state['paged'];
+		}
+		if ( ! empty( $state['orderby'] ) ) {
+			$args['orderby'] = $state['orderby'];
+			$args['order']   = $state['order'];
+		}
+
+		return add_query_arg( array_merge( $args, $extra ), admin_url( 'admin.php' ) );
+	}
+
+	/**
+	 * Mark bans removed, skipping any this user may not touch.
+	 *
+	 * Returns the ids it actually flipped, not the ids it was given — which is
+	 * what makes a bulk Undo restore exactly the rows that went, and never a
+	 * row that was skipped for permission or was already gone.
+	 *
+	 * @param int[] $ids Ban ids.
+	 * @return int[]
+	 */
+	public function remove_bans( array $ids ) {
+		$model   = new Model_Ban();
+		$removed = array();
+		$now     = current_time( 'mysql' );
+
+		foreach ( $model->find_many( $ids ) as $ban ) {
+			if ( 'active' !== $ban['status'] ) {
+				continue;
+			}
+			if ( ! Permissions::can_delete_item( (int) $ban['author'] ) ) {
+				continue;
+			}
+
+			$model->update(
+				(int) $ban['id'],
+				array(
+					'status'        => 'deleted',
+					'modified_date' => $now,
+				)
+			);
+			$removed[] = (int) $ban['id'];
+		}
+
+		return $removed;
+	}
+
+	/**
+	 * Put removed bans back.
+	 *
+	 * Gated on the delete capability rather than edit: this un-does a delete,
+	 * and anyone who could delete the row could delete it again, so restoring
+	 * it grants nothing.
+	 *
+	 * @param int[] $ids Ban ids.
+	 * @return int Rows actually restored.
+	 */
+	public function restore_bans( array $ids ) {
+		$model    = new Model_Ban();
+		$allowed  = array();
+
+		foreach ( $model->find_many( $ids ) as $ban ) {
+			if ( Permissions::can_delete_item( (int) $ban['author'] ) ) {
+				$allowed[] = (int) $ban['id'];
+			}
+		}
+
+		if ( ! $allowed ) {
+			return 0;
+		}
+
+		return $model->restore(
+			$allowed,
+			gmdate( 'Y-m-d H:i:s', time() - self::UNDO_WINDOW )
+		);
+	}
+
+	/**
+	 * Register the screen option and run everything that redirects.
+	 *
+	 * Hooked on `load-toplevel_page_yop-poll`, so every handler here runs
+	 * before a byte of the page is sent.
+	 */
+	public function setup() {
+		add_screen_option(
+			'per_page',
+			array(
+				'label'   => __( 'Number of bans per page', 'yop-poll' ),
+				'default' => 10,
+				'option'  => 'yop_poll_bans_per_page',
+			)
+		);
+
+		$state = $this->read_state();
+		new Bans_List_Table( $state );
+
+		// Enqueued from the screen that needs it, not from `Assets`, so this
+		// screen's asset knowledge stays with this screen. `setup()` runs on
+		// `load-toplevel_page_yop-poll`, which is before
+		// `admin_enqueue_scripts`, so this is still in time.
+		if ( '' === $state['ban_action'] || 'remove-selected' === $state['ban_action'] ) {
+			$asset = YOP_POLL_DIR . 'build/bans-list.asset.php';
+			$meta  = file_exists( $asset ) ? require $asset : array(
+				'dependencies' => array(),
+				'version'      => YOP_POLL_VERSION,
+			);
+
+			wp_enqueue_script(
+				'yop-poll-bans-list',
+				YOP_POLL_URL . 'build/bans-list.js',
+				$meta['dependencies'],
+				$meta['version'],
+				true
+			);
+		}
+
+		// Everything that redirects runs here, before any output.
+
+		if ( 'undo' === $state['ban_action'] && $state['undo_ids'] ) {
+			check_admin_referer(
+				'yop_poll_undo_bans_' . implode( '-', $state['undo_ids'] ),
+				'yop_poll_undo_nonce'
+			);
+
+			$restored = $this->restore_bans( $state['undo_ids'] );
+
+			// Written from what actually happened, never from the count in the
+			// URL: a partial restore says so, and a total miss says nothing was
+			// left to undo rather than claiming a success it did not have.
+			wp_safe_redirect(
+				$this->list_url(
+					$state,
+					$restored
+						? array(
+							'yop_notice' => 'restored',
+							'count'      => $restored,
+						)
+						: array( 'yop_notice' => 'nothing_to_undo' )
+				)
+			);
+			exit;
+		}
+
+		if ( 'remove' === $state['ban_action'] && $state['ban_id'] ) {
+			check_admin_referer( 'yop_poll_remove_ban_' . $state['ban_id'] );
+
+			$ban = ( new Model_Ban() )->find( $state['ban_id'] );
 			if ( ! $ban || ! Permissions::can_delete_item( (int) $ban['author'] ) ) {
 				wp_die( esc_html__( 'You do not have permission to perform this action.', 'yop-poll' ), 403 );
 			}
-			$model->update( $ban_id, array( 'status' => 'deleted', 'modified_date' => current_time( 'mysql' ) ) );
-			wp_safe_redirect( admin_url( 'admin.php?page=yop-poll&action=bans&deleted=1' ) );
+
+			$removed = $this->remove_bans( array( $state['ban_id'] ) );
+
+			wp_safe_redirect(
+				$this->list_url(
+					$state,
+					array(
+						'yop_notice' => 'removed',
+						'count'      => count( $removed ),
+						'ban_id'     => $state['ban_id'],
+						'undo'       => implode( ',', $removed ),
+					)
+				)
+			);
 			exit;
 		}
 
-		// Handle bulk delete.
-		// phpcs:disable WordPress.Security.NonceVerification -- Nonce verified below via check_admin_referer().
-		$post_action = isset( $_POST['action'] ) ? sanitize_key( wp_unslash( $_POST['action'] ) ) : '';
-		$ban_ids     = isset( $_POST['ban_ids'] ) ? array_map( 'intval', (array) wp_unslash( $_POST['ban_ids'] ) ) : array();
-		// phpcs:enable WordPress.Security.NonceVerification
-		if ( 'delete' === $post_action && ! empty( $ban_ids ) ) {
+		if ( 'remove-selected' === $state['ban_action'] ) {
 			check_admin_referer( 'bulk-bans' );
-			$model = new Model_Ban();
-			foreach ( $ban_ids as $id ) {
-				$ban = $model->find( $id );
-				if ( ! $ban || ! Permissions::can_delete_item( (int) $ban['author'] ) ) {
-					continue;
-				}
-				$model->update( $id, array( 'status' => 'deleted', 'modified_date' => current_time( 'mysql' ) ) );
-			}
-			wp_safe_redirect( admin_url( 'admin.php?page=yop-poll&action=bans&deleted=1' ) );
-			exit;
-		}
 
-		// Handle add/edit form submission.
-		if ( isset( $_POST['yop_poll_ban_nonce'] ) ) {
-			check_admin_referer( 'yop_poll_save_ban', 'yop_poll_ban_nonce' );
-			$this->save_ban(); // save_ban() always redirects and exits.
+			if ( ! $state['ban_ids'] ) {
+				wp_safe_redirect( $this->list_url( $state, array( 'yop_notice' => 'none_selected' ) ) );
+				exit;
+			}
+
+			$removed = $this->remove_bans( $state['ban_ids'] );
+
+			wp_safe_redirect(
+				$this->list_url(
+					$state,
+					array(
+						'yop_notice' => 'removed',
+						'count'      => count( $removed ),
+						'undo'       => implode( ',', $removed ),
+					)
+				)
+			);
+			exit;
 		}
 	}
 
+	/**
+	 * The list, or the ban form, depending on the request.
+	 */
 	public function render() {
-		// phpcs:disable WordPress.Security.NonceVerification -- Nonce verified below via check_admin_referer().
-		$ban_action = isset( $_GET['ban_action'] ) ? sanitize_key( wp_unslash( $_GET['ban_action'] ) ) : '';
-		$ban_id     = isset( $_GET['ban_id'] ) ? absint( wp_unslash( $_GET['ban_id'] ) ) : 0;
-		// phpcs:enable WordPress.Security.NonceVerification
+		$state = $this->read_state();
 
-		if ( 'add' === $ban_action || ( 'edit' === $ban_action && $ban_id ) ) {
-			$this->render_form( $ban_action, $ban_id );
+		if ( 'add' === $state['ban_action'] || ( 'edit' === $state['ban_action'] && $state['ban_id'] ) ) {
+			$this->render_form( $state['ban_action'], $state['ban_id'] );
 			return;
 		}
 
-		$this->render_list();
+		$this->render_list( $state );
 	}
 
-	private function save_ban() {
-		// Nonce verified by caller (setup()) via check_admin_referer().
-		// phpcs:disable WordPress.Security.NonceVerification
-		$ban_id   = isset( $_POST['ban_id'] ) ? absint( wp_unslash( $_POST['ban_id'] ) ) : 0;
-		$poll_id  = isset( $_POST['poll_id'] ) ? absint( wp_unslash( $_POST['poll_id'] ) ) : 0;
-		$b_by     = isset( $_POST['b_by'] ) ? sanitize_text_field( wp_unslash( $_POST['b_by'] ) ) : '';
-		$b_value  = isset( $_POST['b_value'] ) ? sanitize_text_field( wp_unslash( $_POST['b_value'] ) ) : '';
-		// phpcs:enable WordPress.Security.NonceVerification
-		$now      = current_time( 'mysql' );
+	/**
+	 * A ban this user's own list would show them, or null.
+	 *
+	 * The notice reads a ban by the id in the URL, so without this it named
+	 * any ban's value, and the poll it guards, to anyone who could open this
+	 * screen. The rule is the list's own: every ban for someone who may see
+	 * everyone's, and otherwise only their own.
+	 *
+	 * @param int $id Ban id.
+	 * @return array|null
+	 */
+	private function visible_ban( int $id ): ?array {
+		$ban = ( new Model_Ban() )->find( $id );
 
-		if ( $ban_id ) {
-			$existing = ( new Model_Ban() )->find( $ban_id );
-			if ( ! $existing || ! Permissions::can_edit_item( (int) $existing['author'] ) ) {
-				wp_die( esc_html__( 'You do not have permission to perform this action.', 'yop-poll' ), 403 );
-			}
-		} else {
-			if ( ! Permissions::can_add() ) {
-				wp_die( esc_html__( 'You do not have permission to perform this action.', 'yop-poll' ), 403 );
-			}
+		if ( ! $ban ) {
+			return null;
 		}
 
-		$error = '';
-		if ( empty( $b_by ) || empty( $b_value ) ) {
-			$error = 'value_required';
-		} elseif ( 'ip' === $b_by && ! filter_var( $b_value, FILTER_VALIDATE_IP ) ) {
-			$error = 'invalid_ip';
-		} elseif ( 'email' === $b_by && ! is_email( $b_value ) ) {
-			$error = 'invalid_email';
-		} elseif ( 'username' === $b_by && ( ! validate_username( $b_value ) || ! get_user_by( 'login', $b_value ) ) ) {
-			$error = 'invalid_username';
-		}
+		$author = Permissions::list_filter_author_id();
 
-		if ( $error ) {
-			$redirect = add_query_arg( array(
-				'page'       => 'yop-poll',
-				'action'     => 'bans',
-				'ban_action' => $ban_id ? 'edit' : 'add',
-				'ban_id'     => $ban_id,
-				'error'      => $error,
-				'poll_id'    => $poll_id,
-				'b_by'       => $b_by,
-				'b_value'    => $b_value,
-			), admin_url( 'admin.php' ) );
-			wp_safe_redirect( $redirect );
-			exit;
-		}
-
-		$model = new Model_Ban();
-
-		if ( $ban_id ) {
-			$model->update( $ban_id, array(
-				'author'        => get_current_user_id(),
-				'poll_id'       => $poll_id,
-				'b_by'          => $b_by,
-				'b_value'       => $b_value,
-				'modified_date' => $now,
-			) );
-			wp_safe_redirect( admin_url( 'admin.php?page=yop-poll&action=bans&updated=1' ) );
-		} else {
-			$model->insert( array(
-				'author'        => get_current_user_id(),
-				'poll_id'       => $poll_id,
-				'b_by'          => $b_by,
-				'b_value'       => $b_value,
-				'status'        => 'active',
-				'added_date'    => $now,
-				'modified_date' => $now,
-			) );
-			wp_safe_redirect( admin_url( 'admin.php?page=yop-poll&action=bans&added=1' ) );
-		}
-		exit;
+		return null === $author || (int) $ban['author'] === $author ? $ban : null;
 	}
 
-	private function render_list() {
-		$table = new Bans_List_Table();
+	/**
+	 * What just happened, and whether it can be taken back.
+	 *
+	 * One place, in place of the three `deleted=1` / `added=1` / `updated=1`
+	 * blocks this screen used to carry — and it serves the React Add Ban form
+	 * too, which redirects here after saving.
+	 *
+	 * No user text travels in the URL. The value and the poll name are looked
+	 * up from `ban_id`, which is still there because a removal is soft.
+	 *
+	 * @param array $state The request.
+	 */
+	private function render_notice( array $state ) {
+		$notice = $state['notice'];
+		if ( ! $notice ) {
+			return;
+		}
+
+		$ban   = $state['ban_id'] ? $this->visible_ban( $state['ban_id'] ) : null;
+		$count = max( 1, (int) $state['notice_count'] );
+		$type  = 'success';
+		$text  = '';
+
+		switch ( $notice ) {
+			case 'added':
+			case 'updated':
+				if ( ! $ban ) {
+					return;
+				}
+				$where = (int) $ban['poll_id']
+					? ( new Model_Poll() )->find( (int) $ban['poll_id'] )
+					: null;
+
+				if ( 'updated' === $notice ) {
+					$text = sprintf(
+						/* translators: %s: the banned value. */
+						__( 'The ban on %s was updated.', 'yop-poll' ),
+						$ban['b_value']
+					);
+					break;
+				}
+
+				$text = $where
+					? sprintf(
+						/* translators: 1: a kind of ban. 2: the banned value. 3: a poll name. */
+						__( '%1$s %2$s is now banned on %3$s.', 'yop-poll' ),
+						Ban_Validator::subject_label( (string) $ban['b_by'] ),
+						$ban['b_value'],
+						$where['name']
+					)
+					: sprintf(
+						/* translators: 1: a kind of ban. 2: the banned value. */
+						__( '%1$s %2$s is now banned on every poll.', 'yop-poll' ),
+						Ban_Validator::subject_label( (string) $ban['b_by'] ),
+						$ban['b_value']
+					);
+				break;
+
+			case 'removed':
+				$text = $ban
+					? sprintf(
+						/* translators: %s: the banned value. */
+						__( 'The ban on %s was removed — they can vote again.', 'yop-poll' ),
+						$ban['b_value']
+					)
+					: sprintf(
+						/* translators: %s: how many bans were removed. */
+						_n(
+							'%s ban removed. That voter can vote again.',
+							'%s bans removed. Those voters can vote again.',
+							$count,
+							'yop-poll'
+						),
+						number_format_i18n( $count )
+					);
+				break;
+
+			case 'restored':
+				$text = sprintf(
+					/* translators: %s: how many bans were restored. */
+					_n(
+						'%s ban restored. That voter is blocked again.',
+						'%s bans restored. Those voters are blocked again.',
+						$count,
+						'yop-poll'
+					),
+					number_format_i18n( $count )
+				);
+				break;
+
+			case 'nothing_to_undo':
+				$type = 'warning';
+				$text = __( 'Nothing to undo — those bans have already changed.', 'yop-poll' );
+				break;
+
+			case 'none_selected':
+				$type = 'warning';
+				$text = __( 'Select at least one ban first.', 'yop-poll' );
+				break;
+
+			default:
+				return;
+		}
+
+		printf(
+			'<div class="notice notice-%s is-dismissible yop-poll-ban-notice" role="status"><p>%s</p>',
+			esc_attr( $type ),
+			esc_html( $text )
+		);
+
+		// The Undo control is minted here, nonced against the exact rows it
+		// would put back — so a nonce made for one removal cannot restore a
+		// different set.
+		if ( 'removed' === $notice && ! empty( $state['undo_ids'] ) ) {
+			printf(
+				'<form method="post" action="%s" class="yop-poll-ban-undo">',
+				esc_url( $this->list_url( $state ) )
+			);
+			wp_nonce_field(
+				'yop_poll_undo_bans_' . implode( '-', $state['undo_ids'] ),
+				'yop_poll_undo_nonce'
+			);
+			printf(
+				'<input type="hidden" name="ban_action" value="undo" />'
+				. '<input type="hidden" name="undo" value="%s" />'
+				. '<button type="submit" class="button">%s</button>',
+				esc_attr( implode( ',', $state['undo_ids'] ) ),
+				esc_html__( 'Undo', 'yop-poll' )
+			);
+			echo '</form>';
+		}
+
+		echo '</div>';
+	}
+
+	/**
+	 * The list.
+	 *
+	 * Two sibling forms, not one. Search has to be a GET so it can be
+	 * bookmarked and survive sorting and paging; a bulk removal must not be a
+	 * URL sitting in someone's history. Nested forms are illegal, so they are
+	 * siblings — which is also how the design's "filters left, search right"
+	 * row is built.
+	 *
+	 * The bulk submit is `ban_action`, never `action`: `action` is this
+	 * plugin's own router, so a control of that name inside a form here steers
+	 * the request to another screen. That is what the old bulk action did, and
+	 * why pressing Apply landed on the polls list.
+	 *
+	 * @param array $state The request.
+	 */
+	private function render_list( array $state ) {
+		$table = new Bans_List_Table( $state );
 		$table->prepare_items();
 
+		$counts = $table->counts();
+		$total  = (int) ( $counts['all'] ?? 0 );
+
 		echo '<div class="wrap">';
-		echo '<h1 class="wp-heading-inline">' . esc_html__( 'All Bans', 'yop-poll' ) . '</h1>';
-		echo '<a href="' . esc_url( admin_url( 'admin.php?page=yop-poll&action=bans&ban_action=add' ) ) . '" class="page-title-action">' . esc_html__( 'Add New', 'yop-poll' ) . '</a>';
+		echo '<h1 class="wp-heading-inline">' . esc_html__( 'Bans', 'yop-poll' ) . '</h1>';
+		printf(
+			' <a href="%s" class="page-title-action">%s</a>',
+			esc_url( admin_url( 'admin.php?page=yop-poll&action=bans&ban_action=add' ) ),
+			esc_html__( 'Add new ban', 'yop-poll' )
+		);
+		// Core relocates every admin notice to just after this, so the count
+		// line has to come after it or the notice displaces it.
 		echo '<hr class="wp-header-end">';
 
-		if ( ! empty( $_GET['deleted'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
-			echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Ban deleted.', 'yop-poll' ) . '</p></div>';
-		}
-		if ( ! empty( $_GET['added'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
-			echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Ban added successfully.', 'yop-poll' ) . '</p></div>';
-		}
-		if ( ! empty( $_GET['updated'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
-			echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Ban updated successfully.', 'yop-poll' ) . '</p></div>';
-		}
+		$this->render_notice( $state );
 
-		echo '<form method="get">';
+		printf(
+			'<p class="yop-poll-bans-count">%s</p>',
+			esc_html(
+				$total
+					? sprintf(
+						/* translators: %s: how many bans there are. */
+						_n( '%s ban across this site', '%s bans across this site', $total, 'yop-poll' ),
+						number_format_i18n( $total )
+					)
+					: __( 'No bans yet', 'yop-poll' )
+			)
+		);
+
+		echo '<h3 class="yop-poll-bans-subheading">' . esc_html__( 'Current bans', 'yop-poll' ) . '</h3>';
+
+		echo '<div class="yop-poll-bans-filters">';
+		$table->views();
+
+		// The search is a label and a field at the end of the filter row, as
+		// the design draws it — not `search_box()`, which adds a submit button
+		// the design does not have. Enter still submits the form.
+		echo '<form method="get" action="' . esc_url( admin_url( 'admin.php' ) ) . '" class="yop-poll-bans-search">';
 		echo '<input type="hidden" name="page" value="yop-poll" />';
-	echo '<input type="hidden" name="action" value="bans" />';
-		$table->search_box( __( 'Search Bans', 'yop-poll' ), 'yop-ban-search' );
+		echo '<input type="hidden" name="action" value="bans" />';
+		if ( 'all' !== $state['type'] ) {
+			printf( '<input type="hidden" name="ban_type" value="%s" />', esc_attr( $state['type'] ) );
+		}
+		printf(
+			'<label for="yop-ban-search">%1$s</label>'
+			. '<input type="search" id="yop-ban-search" name="s" value="%2$s" placeholder="%3$s" />',
+			esc_html__( 'Search bans', 'yop-poll' ),
+			esc_attr( $state['search'] ),
+			esc_attr__( 'IP, email or username', 'yop-poll' )
+		);
+		echo '</form>';
+		echo '</div>';
+
+		printf(
+			'<form method="post" action="%s" class="yop-poll-bans-form">',
+			esc_url( $this->list_url( $state ) )
+		);
 		$table->display();
 		echo '</form>';
 		echo '</div>';
@@ -323,194 +551,123 @@ class Admin_Page_Bans {
 		$this->render_confirm_modal();
 	}
 
+	/**
+	 * The Add Ban screen, which React draws.
+	 *
+	 * What used to be here was three fields named from the database — a poll
+	 * dropdown defaulting to every poll on the site, "Ban By", and a "Value"
+	 * whose meaning lived in the dropdown above it — inside a form that
+	 * validated nothing until submit. All of it is now `pages/Bans` on the
+	 * client, saving over REST.
+	 *
+	 * The permission check happens here rather than in the save handler, which
+	 * is where it belonged all along: an author could open a colleague's ban,
+	 * read its value, and only be refused when they pressed the button.
+	 *
+	 * @param string $action `add` or `edit`.
+	 * @param int    $ban_id The ban being edited, or 0.
+	 */
 	private function render_form( $action, $ban_id ) {
-		$ban     = array( 'poll_id' => 0, 'b_by' => 'ip', 'b_value' => '' );
-		$is_edit = 'edit' === $action;
+		$is_edit   = 'edit' === $action;
+		$b_by      = 'ip';
+		$b_value   = '';
+		$poll_id   = 0;
+		$poll_name = '';
 
-		if ( $is_edit && $ban_id ) {
-			// save_ban() checks ownership before writing; this read path did not, so any
-			// ban row on the site could be displayed - banned address, email or username
-			// included - simply by putting its id in the URL.
-			$found = ( new Model_Ban() )->find( $ban_id );
-			if ( $found && ! Permissions::can_edit_item( (int) ( $found['author'] ?? 0 ) ) ) {
-				wp_die(
-					esc_html__( 'You do not have permission to edit this ban.', 'yop-poll' ),
-					'',
-					array( 'response' => 403 )
-				);
+		if ( $is_edit ) {
+			$ban = ( new Model_Ban() )->find( $ban_id );
+			if ( ! $ban || 'deleted' === $ban['status'] ) {
+				wp_die( esc_html__( 'That ban no longer exists.', 'yop-poll' ), 404 );
 			}
-			if ( $found ) {
-				$ban = $found;
+			if ( ! Permissions::can_edit_item( (int) $ban['author'] ) ) {
+				wp_die( esc_html__( 'You do not have permission to perform this action.', 'yop-poll' ), 403 );
 			}
+
+			$b_by    = (string) $ban['b_by'];
+			$b_value = (string) $ban['b_value'];
+			$poll_id = (int) $ban['poll_id'];
+
+			// Passed through so an edit whose poll sits deep in the list opens
+			// with that poll named, rather than showing "One poll" and nothing
+			// chosen until a search happens to turn it up.
+			if ( $poll_id ) {
+				$poll      = ( new Model_Poll() )->find( $poll_id );
+				$poll_name = $poll ? (string) $poll['name'] : '';
+			}
+		} elseif ( ! Permissions::can_add() ) {
+			wp_die( esc_html__( 'You do not have permission to perform this action.', 'yop-poll' ), 403 );
+		} else {
+			// The logs screen links here with the detail its entry would ban
+			// already in hand, which is what the page is usually opened for.
+			// Only prefills the form: the value is validated on save like any
+			// other, and an unknown kind falls back to the default.
+			// phpcs:disable WordPress.Security.NonceVerification -- Prefill only; nothing is written.
+			$asked = isset( $_GET['ban_by'] ) ? sanitize_key( wp_unslash( (string) $_GET['ban_by'] ) ) : '';
+			if ( in_array( $asked, Ban_Validator::types(), true ) ) {
+				$b_by = $asked;
+			}
+			if ( isset( $_GET['ban_value'] ) ) {
+				$b_value = sanitize_text_field( wp_unslash( (string) $_GET['ban_value'] ) );
+			}
+			// phpcs:enable WordPress.Security.NonceVerification
 		}
 
-		// Restore submitted values on validation error.
-		// phpcs:disable WordPress.Security.NonceVerification -- Display-only form repopulation after redirect.
-		if ( ! empty( $_GET['error'] ) ) {
-			$ban['poll_id'] = isset( $_GET['poll_id'] ) ? absint( wp_unslash( $_GET['poll_id'] ) ) : $ban['poll_id'];
-			$ban['b_by']    = isset( $_GET['b_by'] ) ? sanitize_text_field( wp_unslash( $_GET['b_by'] ) ) : $ban['b_by'];
-			$ban['b_value'] = isset( $_GET['b_value'] ) ? sanitize_text_field( wp_unslash( $_GET['b_value'] ) ) : $ban['b_value'];
-		}
-		// phpcs:enable WordPress.Security.NonceVerification
-
-
-		$polls     = ( new Model_Poll() )->all( array( 'orderby' => 'name', 'order' => 'ASC', 'per_page' => 9999 ) );
-		$title     = $is_edit ? __( 'Edit Ban', 'yop-poll' ) : __( 'Add Ban', 'yop-poll' );
-		$btn_label = $is_edit ? __( 'Update Ban', 'yop-poll' ) : __( 'Add New Ban', 'yop-poll' );
+		$title = $is_edit ? __( 'Edit ban', 'yop-poll' ) : __( 'Add ban', 'yop-poll' );
 
 		echo '<div class="wrap">';
-		echo '<h1>' . esc_html( $title ) . '</h1>';
+		// The card the screen draws carries the visible heading, so this one is
+		// for the accessibility tree and for `wp-header-end`, which is where
+		// WordPress relocates every admin notice to.
+		echo '<h1 class="screen-reader-text">' . esc_html( $title ) . '</h1>';
+		echo '<hr class="wp-header-end">';
 
-		$error_messages = array(
-			'value_required'   => __( 'Value is required.', 'yop-poll' ),
-			'invalid_ip'       => __( 'Please enter a valid IP address.', 'yop-poll' ),
-			'invalid_email'    => __( 'Please enter a valid email address.', 'yop-poll' ),
-			'invalid_username' => __( 'Please enter a valid username.', 'yop-poll' ),
+		// No nonce: `build/admin.js` depends on `wp-api-fetch`, whose middleware
+		// signs every REST request already. A second one here would be a
+		// mechanism nothing reads.
+		// Whether this user may ban on every poll. The route refuses a ban on
+		// every poll without `yop_poll_edit_others`, so the form offers that
+		// choice only to someone whose save would be accepted.
+		printf(
+			'<div id="yop-poll-admin" data-page="ban-form" data-ban-id="%1$d" data-ban-by="%2$s" data-ban-value="%3$s" data-ban-poll-id="%4$d" data-ban-poll-name="%5$s" data-can-ban-site-wide="%6$d"></div>',
+			absint( $is_edit ? $ban_id : 0 ),
+			esc_attr( $b_by ),
+			esc_attr( $b_value ),
+			absint( $poll_id ),
+			esc_attr( $poll_name ),
+			Permissions::can_act_on_every_poll() ? 1 : 0
 		);
-		// phpcs:ignore WordPress.Security.NonceVerification -- Display-only error message.
-		$error_key = isset( $_GET['error'] ) ? sanitize_key( wp_unslash( $_GET['error'] ) ) : '';
-		if ( $error_key && isset( $error_messages[ $error_key ] ) ) {
-			echo '<div class="notice notice-error is-dismissible"><p>' . esc_html( $error_messages[ $error_key ] ) . '</p></div>';
-		}
-		?>
-		<style>
-		.yop-poll-ban-form { max-width: 680px; margin-top: 20px; }
-		.yop-poll-ban-form .yop-ban-row {
-			display: flex;
-			align-items: center;
-			margin-bottom: 16px;
-		}
-		.yop-poll-ban-form .yop-ban-label {
-			width: 160px;
-			flex-shrink: 0;
-			font-size: 13px;
-			color: #1d2327;
-		}
-		.yop-poll-ban-form .yop-ban-field {
-			flex: 1;
-		}
-		.yop-poll-ban-form .yop-ban-field select,
-		.yop-poll-ban-form .yop-ban-field input[type="text"] {
-			width: 100%;
-			max-width: 100%;
-			font-size: 13px;
-		}
-		.yop-poll-ban-form .yop-ban-submit { margin-top: 8px; }
-		</style>
-
-		<form method="post" class="yop-poll-ban-form" action="<?php echo esc_url( admin_url( 'admin.php?page=yop-poll&action=bans' ) ); ?>">
-			<?php wp_nonce_field( 'yop_poll_save_ban', 'yop_poll_ban_nonce' ); ?>
-			<?php if ( $is_edit ) : ?>
-				<input type="hidden" name="ban_id" value="<?php echo (int) $ban_id; ?>" />
-			<?php endif; ?>
-
-			<div class="yop-ban-row">
-				<label class="yop-ban-label" for="poll_id"><?php esc_html_e( 'Poll ( required )', 'yop-poll' ); ?></label>
-				<div class="yop-ban-field">
-					<select name="poll_id" id="poll_id">
-						<option value="0"><?php esc_html_e( 'All Polls', 'yop-poll' ); ?></option>
-						<?php foreach ( $polls as $poll ) : ?>
-							<option value="<?php echo (int) $poll['id']; ?>" <?php selected( (int) $ban['poll_id'], (int) $poll['id'] ); ?>>
-								<?php echo esc_html( $poll['name'] ); ?>
-							</option>
-						<?php endforeach; ?>
-					</select>
-				</div>
-			</div>
-
-			<div class="yop-ban-row">
-				<label class="yop-ban-label" for="b_by"><?php esc_html_e( 'Ban By ( required )', 'yop-poll' ); ?></label>
-				<div class="yop-ban-field">
-					<select name="b_by" id="b_by">
-						<option value="ip" <?php selected( $ban['b_by'], 'ip' ); ?>><?php esc_html_e( 'IP', 'yop-poll' ); ?></option>
-						<option value="email" <?php selected( $ban['b_by'], 'email' ); ?>><?php esc_html_e( 'Email', 'yop-poll' ); ?></option>
-						<option value="username" <?php selected( $ban['b_by'], 'username' ); ?>><?php esc_html_e( 'Username', 'yop-poll' ); ?></option>
-					</select>
-				</div>
-			</div>
-
-			<div class="yop-ban-row">
-				<label class="yop-ban-label" for="b_value"><?php esc_html_e( 'Value ( required )', 'yop-poll' ); ?></label>
-				<div class="yop-ban-field">
-					<input type="text" name="b_value" id="b_value" value="<?php echo esc_attr( $ban['b_value'] ); ?>" />
-				</div>
-			</div>
-
-			<div class="yop-ban-submit">
-				<button type="submit" class="button button-primary"><?php echo esc_html( $btn_label ); ?></button>
-			</div>
-		</form>
-		</div>
-		<?php
+		echo '</div>';
 	}
 
+	/**
+	 * The dialog that asks before a removal.
+	 *
+	 * Kept — a removal is undoable now, but a misclick on the wrong row is
+	 * still worth one question. Kept means owned, so it is a real dialog:
+	 * `role="dialog"`, `aria-modal`, named by its own heading, focus moved in
+	 * and held, Escape to close, the page behind it inert, and focus returned
+	 * to whatever opened it. It had none of that.
+	 *
+	 * Its markup is printed here and its behaviour lives in
+	 * `build/bans-list.js`, so this method emits no `<style>` and no
+	 * `<script>` of its own.
+	 */
 	private function render_confirm_modal() {
-		?>
-		<style>
-		#yop-poll-bans-modal-overlay {
-			position: fixed;
-			inset: 0;
-			background: rgba(0,0,0,.5);
-			z-index: 100000;
-			display: flex;
-			align-items: center;
-			justify-content: center;
-		}
-		#yop-poll-bans-modal {
-			background: #fff;
-			width: 420px;
-			max-width: 90vw;
-			border-radius: 3px;
-			overflow: hidden;
-			box-shadow: 0 8px 32px rgba(0,0,0,.28);
-		}
-		#yop-poll-bans-modal-header {
-			background: #e07b39;
-			padding: 14px 20px;
-			color: #fff;
-			font-size: 14px;
-			font-weight: 600;
-		}
-		#yop-poll-bans-modal-body { padding: 20px 20px 24px; font-size: 13px; color: #1d2327; }
-		#yop-poll-bans-modal-footer {
-			border-top: 1px solid #dcdcde;
-			padding: 12px 20px;
-			display: flex;
-			justify-content: flex-end;
-			gap: 8px;
-		}
-		#yop-poll-bans-modal-footer .button { min-width: 80px; text-align: center; }
-		</style>
-		<div id="yop-poll-bans-modal-overlay" style="display:none;">
-			<div id="yop-poll-bans-modal">
-				<div id="yop-poll-bans-modal-header"><?php esc_html_e( 'Warning', 'yop-poll' ); ?></div>
-				<div id="yop-poll-bans-modal-body"><p id="yop-poll-bans-modal-msg" style="margin:0;"></p></div>
-				<div id="yop-poll-bans-modal-footer">
-					<button id="yop-poll-bans-modal-cancel" class="button"><?php esc_html_e( 'Cancel', 'yop-poll' ); ?></button>
-					<a id="yop-poll-bans-modal-ok" href="#" class="button"><?php esc_html_e( 'OK', 'yop-poll' ); ?></a>
+		printf(
+			'<div class="yop-poll-confirm" id="yop-poll-confirm" hidden>
+				<div class="yop-poll-confirm__backdrop" data-yop-confirm-cancel></div>
+				<div class="yop-poll-confirm__box" role="dialog" aria-modal="true" aria-labelledby="yop-poll-confirm-title">
+					<h2 class="yop-poll-confirm__title" id="yop-poll-confirm-title">%1$s</h2>
+					<p class="yop-poll-confirm__body" data-yop-confirm-message></p>
+					<div class="yop-poll-confirm__actions">
+						<button type="button" class="button" data-yop-confirm-cancel>%2$s</button>
+						<a href="#" class="button button-primary" data-yop-confirm-go>%3$s</a>
+					</div>
 				</div>
-			</div>
-		</div>
-		<script>
-		(function() {
-			var overlay = document.getElementById('yop-poll-bans-modal-overlay');
-			var msgEl   = document.getElementById('yop-poll-bans-modal-msg');
-			var okBtn   = document.getElementById('yop-poll-bans-modal-ok');
-			var cancelBtn = document.getElementById('yop-poll-bans-modal-cancel');
-			function close() { overlay.style.display = 'none'; }
-			cancelBtn.addEventListener('click', close);
-			overlay.addEventListener('click', function(e) { if (e.target === overlay) close(); });
-			document.querySelectorAll('.yop-poll-confirm-action').forEach(function(link) {
-				link.addEventListener('click', function(e) {
-					e.preventDefault();
-					msgEl.textContent = link.getAttribute('data-message');
-					okBtn.href        = link.getAttribute('data-href');
-					okBtn.textContent = link.getAttribute('data-label');
-					overlay.style.display = 'flex';
-				});
-			});
-		})();
-		</script>
-		<?php
+			</div>',
+			esc_html__( 'Remove this ban?', 'yop-poll' ),
+			esc_html__( 'Cancel', 'yop-poll' ),
+			esc_html__( 'Remove', 'yop-poll' )
+		);
 	}
 }

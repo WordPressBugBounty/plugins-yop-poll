@@ -7,6 +7,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * @phpstan-import-type PollMeta from \YopPoll\Helpers\Meta_Types
+ */
 class Permissions {
 
 	public static function can_access_admin() {
@@ -16,6 +19,43 @@ class Permissions {
 			}
 		}
 		return false;
+	}
+
+	/**
+	 * The capability that manages the plugin's settings.
+	 *
+	 * `manage_options` by default: the settings hold every captcha secret and
+	 * addon credential, and decide site-wide behaviour -- whether proxy
+	 * headers are trusted for a voter's IP, whether uninstalling drops the
+	 * tables. None of the plugin's own capabilities is administrator-only (a
+	 * default install gives Authors all of them), so none of them will do.
+	 *
+	 * @return string
+	 */
+	public static function settings_capability(): string {
+		$cap = apply_filters( 'yop_poll_settings_capability', 'manage_options' );
+
+		return is_string( $cap ) && '' !== $cap ? $cap : 'manage_options';
+	}
+
+	/**
+	 * Whether the current user may read the credentials and change settings.
+	 *
+	 * @return bool
+	 */
+	public static function can_manage_settings(): bool {
+		return current_user_can( self::settings_capability() );
+	}
+
+	/**
+	 * Whether the current user may act across everybody's polls at once --
+	 * a ban on every poll, say. That reaches polls other people own, so it
+	 * asks for `yop_poll_edit_others`.
+	 *
+	 * @return bool
+	 */
+	public static function can_act_on_every_poll(): bool {
+		return current_user_can( 'yop_poll_edit_others' );
 	}
 
 	public static function can_add() {
@@ -59,22 +99,5 @@ class Permissions {
 		}
 		$id = get_current_user_id();
 		return $id ? (int) $id : 0; // 0 forces empty result for anonymous (defensive).
-	}
-
-	public static function can_manage_polls() {
-		return self::can_access_admin();
-	}
-
-	public static function can_vote( $poll, $user_id = 0 ) {
-		$meta = Migrator::decode_meta( $poll['meta_data'] ?? '' );
-		$access = $meta['options']['access'] ?? array();
-
-		$who_can_vote = $access['whoCanVote'] ?? 'everyone';
-
-		if ( 'registered' === $who_can_vote && ! $user_id ) {
-			return false;
-		}
-
-		return true;
 	}
 }

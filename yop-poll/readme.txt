@@ -4,7 +4,7 @@ Donate Link: https://www.yop-poll.com
 Tags: create poll, poll plugin, poll, voting, WordPress poll
 Requires at least: 6.5
 Tested up to: 7.1
-Stable tag: 7.0.13
+Stable tag: 7.1.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -110,11 +110,13 @@ No — each poll has a single question. If you need multiple questions, create a
 
 Yes. Version 7.0 is a complete rewrite, but it's a drop-in upgrade. All your polls, votes, templates, custom fields, and settings migrate automatically the first time you activate the new version. Your existing shortcodes will continue to work without any changes.
 
-= Signed-in visitors cannot vote after updating to 7.0.11 =
+= Why does a voter see "Too many votes from this device"? =
 
-Version 7.0.11 changed how a vote from a signed-in visitor reaches your site. It now goes through WordPress's own `admin-ajax.php`, rather than through the WordPress REST API, so that no account-wide security token has to be placed on the page. Voting as a guest is unchanged.
+To stop a script from flooding a poll, each poll accepts at most 10 votes a minute from one IP address. A vote past that is refused with this message (HTTP 429), and the next minute it is accepted again. It is separate from the vote limits you set on a poll, and refusals are recorded in the logs.
 
-A few security plugins and hosting firewall rules restrict `admin-ajax.php`, usually as a measure against brute-force or scraping traffic. On those sites, signed-in voting will stop working after the update while guest voting carries on normally — which is the symptom to look for. Allowing `admin-ajax.php` resolves it. The two actions the plugin uses are named `yop_poll_vote` and `yop_poll_results`, and both are refused outright for visitors who are not signed in.
+Visitors who share one address, such as a school or an office behind one connection, can reach it during a busy minute. A developer can raise it, or turn it off by returning 0, with the `yop_poll_vote_rate_limit` filter:
+
+`add_filter( 'yop_poll_vote_rate_limit', function ( $rule ) { $rule['limit'] = 60; return $rule; } );`
 
 = Where do I report a security issue? =
 
@@ -133,6 +135,22 @@ Please report security issues through the [Patchstack Vulnerability Disclosure P
 == Changelog ==
 
 The full notes for every release, in the same wording, are in changelog.txt.
+
+= 7.1.0 =
+* **Faster polls.** Polls load quicker and use less of your visitors' data. Search engines can now read your poll questions and answers too.
+* **New: Elementor support.** You can add a poll to any page with the new YOP Poll widget for Elementor. When you save a poll, YOP Poll now shows you how to add it to a page in the editor your site uses.
+* **Simpler styling.** The Style tab is organised by the parts of a poll, so it's easier to find what you want to change. Pick one Accent colour and every selected answer and button uses it. Polls you've already styled keep their colours.
+* **Easier integrations.** Settings → Integrations now shows all services in a grid you can search.
+* **See votes waiting to be counted.** Votes that aren't counted yet, such as ones waiting for email confirmation, have their own tab in the votes list. The results page shows how many are waiting.
+* **Better permissions.** Authors can only manage the polls they created, the same way posts work in WordPress. Only administrators can open Settings. The keys and passwords you save in Settings are also better protected.
+* **Clearer messages for voters.** If someone has already voted or has no votes left, the poll now tells them so instead of showing "Vote not allowed". The "Limit votes per person" option now only applies when voters have to sign in to vote.
+* **Fixed:** Saving a poll no longer deletes answers that voters added, or the votes on those answers.
+* **Fixed:** Signing in to vote no longer ends with a "Login cancelled" error.
+* **Fixed:** "New vote" emails are sent again for polls where the "From" field wasn't set to an email address.
+* **Fixed:** If you upgraded from version 6, your old email tags and the "show results after the end date" setting work again.
+* **Safer exports.** Exported vote files now open safely in Excel and other spreadsheet apps.
+* **Correct voter addresses behind Cloudflare or similar services.** With "Trust proxy headers" turned on, YOP Poll now uses each voter's real address.
+* **Cleanup.** The old picture captcha has been removed. Use the Built-in check instead, which gives you the same protection. We also removed some unused code behind the scenes.
 
 = 7.0.13 =
 * Fixed "Show results to: Registered" being ignored. On a poll that shows its results only to registered users, guests could still see the results after voting. Guests now see only the thank-you message and no Results button, while signed-in visitors see the results as before. A visitor who signs in from the poll's login popup and then votes now sees the results right away, without reloading the page.
@@ -158,35 +176,5 @@ The full notes for every release, in the same wording, are in changelog.txt.
 * Fixed problems with new-vote notification emails.
 * Fixed minor issues with how results are displayed.
 
-= 7.0.9 =
-* Added an Elementor widget and the option to use an image as the poll background. Fixed polls stuck as "Draft" while the poll's own Options tab showed "Published".
-
-= 7.0.8 =
-* Fixed the admin results screen listing answers in their saved order instead of by popularity.
-
-= 7.0.7 =
-* Added a customizable "Submitting…" label for the vote button, under Settings → Messages.
-
-= 7.0.6 =
-* Fixed a security issue that let someone get around "Block Voters by IP" by faking their IP address. Thanks to Melina Lentini (M3l3n) for the responsible disclosure.
-* Fixed the poll builder sometimes erroring on save, and votes being lost when a visitor created an account in order to vote.
-
-= 7.0.5 =
-* Added a visual editor for the new-vote notification email. Ended polls now show their results when results are set to display after voting.
-
-= 7.0.4 =
-* Added an "Always show the Other text box" option. Fixed answer text not being editable in the builder, "Other" votes not appearing in results, ended polls still accepting votes after upgrading from 6.x, and several CSV export problems.
-
-= 7.0.0 and earlier =
+= 7.0.9 and earlier =
 * See changelog.txt for the complete history, including the 7.0.0 rewrite and all of 6.x.
-
-== Upgrade Notice ==
-
-= 7.0.13 =
-Guests no longer see the results of polls set to show results to registered users only.
-
-= 7.0.12 =
-Fixes a vote limit that kept applying to signed-in visitors on polls open to guests, although the setting was hidden.
-
-= 7.0.11 =
-Security release. Closes a weakness in the "Sign in with WordPress" voting option that could expose a signed-in administrator's account-wide security token to another website, and removes that token from the poll entirely. Recommended for any site whose polls offer WordPress sign-in.

@@ -7,3 +7,46 @@
 .yop-poll-answer input[type="checkbox"] {
 	outline: none;
 }
+
+/* The fill grows from the inline-start edge, and `transform-origin` has no
+   logical keyword to say so. Sized by `width`, the fill needed no rule here at
+   all — a block child already starts at the right edge under `dir="rtl"`. The
+   `scaleX` reveal is what makes this line necessary. */
+.yop-poll-result-fill {
+	transform-origin: right center;
+}
+
+/*
+ * The decoy field.
+ *
+ * Hidden the way a screen-reader-only element is, rather than with
+ * `display: none`: a script driving a real browser is the thing this is for,
+ * and some of them skip what the page says is not displayed. One pixel and
+ * clipped, so it can never widen the poll or add a scrollbar at 320px.
+ */
+.yop-poll .yop-poll-decoy {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
+}
+
+/* The results region, which the script focuses when a vote or the results
+   button replaces the ballot (`showResults()`). Not a control, but it is where
+   keyboard focus now is, so it wears the same ring -- set further off, because
+   the bars and the figures run to its edges and a 2px offset drew the ring
+   across them. `:focus-visible`, so a vote cast with the mouse draws none. */
+.yop-poll .yop-poll-results:focus-visible {
+	outline: 2px solid var(--yop-focus, #0073aa);
+	outline-offset: 4px;
+}
+
+/* And none at all for a mouse vote, which still leaves focus here. Block
+   themes ring anything focused, however it got there --
+   `:where(.wp-site-blocks :focus) { outline-style: solid }` -- and drew a dark
+   box round the whole region on every click of Vote. */
+.yop-poll .yop-poll-results:focus:not(:focus-visible) {
+	outline: none;
+}

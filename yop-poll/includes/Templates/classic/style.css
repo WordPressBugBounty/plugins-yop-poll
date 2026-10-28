@@ -1,8 +1,131 @@
+/* stylelint-disable no-descending-specificity -- The file is ordered by
+   component, not by specificity, and the twelve reports the rule raises are
+   all pairs that set different properties, where order therefore decides
+   nothing. Reordering to satisfy it would scatter each component's rules
+   across the file for no effect on what renders.
+
+   One of the twelve would be an outright regression. The focus ring at the
+   bottom is `:focus-visible` and ties on specificity with the
+   `:focus { outline: none }` suppressors it exists to beat, so it has to be
+   written after them; the rule asks for it to be moved up, which is exactly
+   where it was when the text field drew no focus ring at all. */
+
+/* Free's elements only. Sliders, image answers, media answers and dropdowns
+   are rendered by Pro, and their classic-look styling lives in Pro too, at
+   `assets/classic-elements.css`. It is registered as a dependency of this
+   sheet when the poll's base is classic, so it loads after this file and
+   before Pro's own `assets/style.css`.
+
+   Free shipped that CSS until 2026-09 — roughly 6.8 KB of rules that could
+   never match anything Free renders, downloaded by every visitor to every
+   poll. Don't add a `.yop-poll-slider`, `.yop-poll-image-*`,
+   `.yop-poll-media-*` or `.yop-poll-dropdown` rule here; it belongs in Pro. */
+
 .yop-poll[data-template="classic"] {
 	font-size: 14px;
 	padding: 20px;
 	background: #fff;
 	box-sizing: border-box;
+
+	/* A colour of its own, so the seven `var(--yop-*-tc, inherit)` rules
+	   below inherit from the poll rather than from the theme. They exist so a
+	   saved colour wins, and `inherit` was only ever meant as "whatever the
+	   page uses" — but the card underneath is a hard `#fff`, so on a dark
+	   theme that resolved to light text on white. Unreadable, not merely
+	   different. An author's own colour still overrides this. */
+	color: #1d2327;
+}
+
+/* The results view inside a poll is a `.yop-poll` too, so it took the card's
+   white over whatever colour the poll was given -- a white panel inside a
+   coloured poll (QA L40). Inside a poll it shows the poll's own. Its padding
+   stays: the results are the ballot's height by design. */
+.yop-poll .yop-poll[data-template="classic"] {
+	background: transparent;
+}
+
+/* ── Against a hostile theme ──────────────────────────────────────────────
+
+   `.claude/rules/css.md` opens by saying to assume one, and until now nothing
+   here did. The poll prefixes every class and its stylesheet loads after the
+   theme's, so it wins any tie on a property it declares. It lost two other
+   ways: on properties it never declared at all — this file had no
+   `letter-spacing`, `text-transform` or `text-decoration` anywhere — and on
+   pseudo-classes, where a theme's `button:hover` (0,1,1) outranks a plain
+   `.yop-poll-vote-button` (0,1,0).
+
+   So each control states the whole of its own box, at a specificity a theme's
+   element-plus-pseudo-class rule cannot reach, and every declaration keeps the
+   `var(--yop-*, fallback)` shape so an author's saved settings still decide
+   the values.
+
+   Typography is the deliberate exception, and stays inherited: a poll should
+   read as part of the site it sits on. `line-height` is set on the controls
+   themselves, because a control's height is geometry rather than type. */
+
+.yop-poll,
+.yop-poll *,
+.yop-poll *::before,
+.yop-poll *::after {
+	box-sizing: border-box;
+}
+
+/* Wrappers with no rule of their own until now, so a theme's `div` or `p`
+   margins had them to themselves. */
+.yop-poll .yop-poll-ballot,
+.yop-poll .yop-poll-answer-row,
+.yop-poll .yop-poll-inline-result {
+	margin: 0;
+	padding: 0;
+}
+
+/* And the wrappers that had a rule, but only for the side they cared about.
+   `.yop-poll-question` set its bottom gap, `.yop-poll-footer` its top,
+   `.yop-poll-element` its two vertical margins, `.yop-poll-message` its
+   bottom — every side left unsaid was a side the theme filled in. Stated per
+   side rather than as a blanket `margin: 0`, because the values those rules do
+   set are the poll's own and several of them are the author's. */
+.yop-poll .yop-poll-answers {
+	margin: 0;
+	padding: 0;
+}
+
+.yop-poll .yop-poll-question {
+	margin-block-start: 0;
+	margin-inline: 0;
+	padding: 0;
+}
+
+/* The fieldset a question's answers sit in, with the browser's box undone:
+   its border, its padding, and the `min-inline-size: min-content` that would
+   stop a long answer wrapping at 320px. The legend is the question, sized
+   like the block it replaced -- a legend shrinks to its text otherwise, and
+   centred alignment would centre nothing. */
+.yop-poll .yop-poll-fieldset {
+	border: 0;
+	margin: 0;
+	padding: 0;
+	min-inline-size: 0;
+}
+
+.yop-poll .yop-poll-fieldset > .yop-poll-question {
+	display: block;
+	inline-size: 100%;
+}
+
+.yop-poll .yop-poll-element {
+	margin-inline: 0;
+}
+
+.yop-poll .yop-poll-footer {
+	margin-block-end: 0;
+	margin-inline: 0;
+	padding: 0;
+}
+
+.yop-poll .yop-poll-message {
+	margin-block-start: 0;
+	margin-inline: 0;
 }
 
 .yop-poll-question {
@@ -13,32 +136,264 @@
 	text-align: var(--yop-el-ta, center);
 }
 
+/*
+ * Inter-element spacing, above the first element, has nothing to separate it
+ * from — so it stops being spacing and becomes a second frame inside the
+ * poll's own. On a poll with 10px of container padding that put the question
+ * 21px from the top edge while the vote button sat 11px from the bottom, which
+ * reads as the poll being pushed down rather than as spacing between anything.
+ *
+ * Only the top. The last element's bottom padding sits between the final
+ * answer and the vote button, which is a gap between two things and earns its
+ * place.
+ *
+ * Two selectors because an element carrying its own overrides is wrapped in a
+ * `display: contents` div (`Poll_Renderer::wrap_overrides()`), and that wrapper
+ * is then the ballot's first child. `display: contents` changes the box tree,
+ * not the DOM, so `:first-child` still finds it.
+ */
+.yop-poll-ballot > .yop-poll-element:first-child,
+.yop-poll-ballot > :first-child > .yop-poll-element,
+.yop-poll-results > .yop-poll-element:first-child,
+.yop-poll-results > :first-child > .yop-poll-element {
+	padding-top: 0;
+}
+
+/*
+ * The results view is a second `.yop-poll` inside the first.
+ *
+ * `Poll_Results::render()` builds a standalone fragment — it has to be a
+ * `.yop-poll[data-template]` to carry its own look where nothing else does —
+ * and `showResults()` then writes it over the ballot *inside* the poll it came
+ * from (`results.ts:78`). Nested, it brings two things it should not:
+ *
+ * - a second frame's padding inside the poll's own, which put 20px between the
+ *   message and the first question on top of the 12 the message already has;
+ * - a second `container-name: yop-poll` container. Every `@container yop-poll`
+ *   rule in this file and in the addon's then measures the inner box rather
+ *   than the poll, so a results view narrows by its own padding twice over and
+ *   reaches a breakpoint the ballot beside it has not — a 720px poll drew its
+ *   answers side by side and its results stacked.
+ *
+ * Only when nested: rendered on its own the fragment still needs both.
+ */
+.yop-poll .yop-poll[data-template] {
+	padding: 0;
+	container-type: normal;
+	container-name: none;
+}
+
 /* Element-level padding (controls inter-element spacing) */
 .yop-poll-element {
-	padding-top: var(--yop-el-pt, 0px);
-	padding-right: var(--yop-el-pr, 0px);
-	padding-bottom: var(--yop-el-pb, 0px);
-	padding-left: var(--yop-el-pl, 0px);
+	padding-top: var(--yop-el-pt, 0);
+	padding-right: var(--yop-el-pr, 0);
+	padding-bottom: var(--yop-el-pb, 0);
+	padding-left: var(--yop-el-pl, 0);
+
+	/* The space an author asked for around this one element.
+	   `Poll_Renderer::wrap_overrides()` puts the variables on a
+	   `display: contents` wrapper, which has no box of its own — so the margin
+	   has to land here, on the element, and only the variables ride outside.
+	   Omitted at zero by the renderer, so the fallback overrides nothing. */
+	margin-top: var(--yop-el-mt, 0);
+	margin-bottom: var(--yop-el-mb, 0);
 }
 
 .yop-poll-answers {
 	display: flex;
 	flex-direction: column;
-	gap: 8px;
+	gap: var(--yop-ans-gap, 8px);
 }
 
-.yop-poll-answer {
+/* A `<label>`, and themes style those: `label { display: block; margin-bottom:
+   .5em; font-weight: 600 }` is close to boilerplate. `display` and `padding`
+   were already stated and won; the margin added a gap under every answer and
+   the weight bolded all of them. */
+.yop-poll .yop-poll-answer {
 	display: flex;
 	align-items: center;
-	gap: 8px;
+	gap: var(--yop-ans-mg, 8px);
 	cursor: pointer;
-	padding: var(--yop-ans-pt, 4px) var(--yop-ans-pr, 0px) var(--yop-ans-pb, 4px) var(--yop-ans-pl, 0px);
+	margin: 0;
+	padding: var(--yop-ans-pt, 4px) var(--yop-ans-pr, 0) var(--yop-ans-pb, 4px) var(--yop-ans-pl, 0);
+	font-weight: var(--yop-ans-tw, normal);
+	line-height: 1.4;
+	letter-spacing: normal;
+	text-transform: none;
 }
 
-.yop-poll-answer input[type="radio"],
-.yop-poll-answer input[type="checkbox"] {
+/* The marker, drawn rather than delegated.
+
+   It was the browser's own control until now, sized by `--yop-ans-ms` and
+   tinted by `accent-color`. That made it the same on every theme, which was the
+   point, but not the same on every platform — a native radio is one shape on
+   macOS and another on Windows, and neither is the one in the design. It is
+   ours now: a ring at the author's marker size, `#9aa2ab` idle and the chosen
+   colour once picked, with a dot at 46% of the ring. `#9aa2ab` is fixed in the
+   design and is not a setting.
+
+   The input keeps its own box and its place in the tab order — this restyles
+   the control, it does not replace it with a div. `::before` on an
+   appearance-less input is what wp-admin itself paints its radios with, so the
+   technique is not novel in this exact context.
+
+   `flex-shrink: 0` because the row is flex and a long answer used to squeeze
+   the marker out of round. */
+.yop-poll .yop-poll-answer input[type="radio"],
+.yop-poll .yop-poll-answer input[type="checkbox"],
+.yop-poll .yop-poll-gdpr input[type="checkbox"] {
+
+	/* Prefixed as well as not, and by hand, because this file is the one thing
+	   in the plugin that ships exactly as written: `get_style_asset()` hands
+	   out its own URL, no webpack entry touches it, and `lint:css` is a
+	   lint pass rather than a transform. Unprefixed `appearance` is Safari and
+	   iOS 15.4, so without `-webkit-appearance` every iPhone not updated since
+	   March 2022 keeps the native control and wears our ring on top of it —
+	   and Firefox only renders an input's `::before` when `appearance: none`
+	   is honoured, so the checkbox's tick goes with it. The Pro addon has
+	   written both forms all along (`assets/classic-elements.css`). */
+	-webkit-appearance: none;
+	-moz-appearance: none;
+	appearance: none;
+
+	/* A theme's `min-width` floors one axis while `--yop-ans-ms` shrinks the
+	   other, and the circle becomes an ellipse. Exactly the fault wp-admin
+	   caused in the builder preview, arriving from the theme instead. */
+	min-inline-size: 0;
+	min-block-size: 0;
+	inline-size: var(--yop-ans-ms, 13px);
+	block-size: var(--yop-ans-ms, 13px);
 	margin: 0;
-	outline: none;
+	padding: 0;
+	border: 1.5px solid #9aa2ab;
+
+	/* The inside of an unchosen ring is whatever the poll sits on, so a tinted
+	   or warm-paper preset does not get a white hole in every answer row.
+	   Longhands, not the `background` shorthand: the chosen dot is a
+	   background *image* on this same element, and the shorthand would wipe
+	   it. */
+	background-color: var(--yop-poll-bg, #fff);
+	background-image: none;
+	box-shadow: none;
+	vertical-align: middle;
+	flex-shrink: 0;
+
+	/* `position: relative` is for the checkbox's tick, which is still a
+	   `::before` and centres itself against this box. The radio's dot is not
+	   a box at all any more — see the gradient below. */
+	position: relative;
+	display: inline-flex;
+	cursor: pointer;
+}
+
+.yop-poll .yop-poll-answer input[type="radio"] {
+	border-radius: 50%;
+}
+
+/* A theme that draws its own radios and checkboxes paints a dot or a tick
+   with `::after` — Twenty Twenty-One does, on every one it can reach — and
+   ours are drawn without one, so it landed on top of the poll's own marker
+   (QA M26). The doubled class outranks `input[type=radio]:checked:after`,
+   which this otherwise ties with. */
+.yop-poll.yop-poll input[type="radio"]::after,
+.yop-poll.yop-poll input[type="checkbox"]::after {
+	content: none;
+}
+
+/* A checkbox is the same marker with the corner rounded rather than removed —
+   `markerSize / 6`, floored at 2px, so it stays square-shouldered at 13px and
+   does not turn into a circle at 32px. */
+.yop-poll .yop-poll-answer input[type="checkbox"],
+.yop-poll .yop-poll-gdpr input[type="checkbox"] {
+	border-radius: max(2px, calc(var(--yop-ans-ms, 13px) / 6));
+}
+
+.yop-poll .yop-poll-answer input:checked,
+.yop-poll .yop-poll-gdpr input[type="checkbox"]:checked {
+	border-color: var(--yop-ans-acc, #0073aa);
+}
+
+/* The dot, painted in the ring's own box rather than in a box of its own.
+
+   It was a `::before` for a long time and it was never quite centred. Two
+   goes at that: flex centring on the input, which Chrome does not apply to a
+   pseudo the way it does to a real child, and then absolute centring, which
+   is exact in layout — all four resolved margins equal — and still made no
+   difference at 13px, because a 5.97px circle inside an 11px content box at a
+   fractional `y` rounds its edges to device pixels independently of the ring's.
+   The two magnified crops came out byte-identical. A dot with a box of its own
+   cannot be relied on to sit in the middle of another box.
+
+   A gradient has no box. It resolves against this element's own painting area,
+   so the dot is concentric with the ring by construction, at every marker size
+   and every sub-pixel offset. Two stops at one radius give a hard edge with no
+   interpolation band — no alpha halo — and the engine antialiases it around
+   the true centre. `0.23` is the design's 46% diameter expressed as a radius.
+
+   The outer stop is the same `--yop-poll-bg` the ring's interior is painted,
+   so a tinted preset keeps its interior rather than gaining a white disc.
+
+   `radial-gradient` is Chrome 26, Safari 6.1, iOS 7, Firefox 16 — older than
+   anything else this file leans on, and it needs neither `inset` (iOS 14.5)
+   nor a pseudo-element on a form control.
+
+   The `!important` is inherited from the `content: ""` this replaces, for the
+   reason written there: wp-admin ships rules that erase a hand-drawn chosen
+   state and a theme is free to, and without the dot a chosen answer differs
+   from an unchosen one by the ring's colour alone — 1.4.1 in as many words.
+   It is still the only `!important` in this file bar the tick's. */
+.yop-poll .yop-poll-answer input[type="radio"]:checked {
+	--yop-ans-dot: calc(var(--yop-ans-ms, 13px) * 0.23);
+
+	background-image: radial-gradient(circle at 50% 50%, var(--yop-ans-acc, #0073aa) var(--yop-ans-dot), var(--yop-poll-bg, #fff) var(--yop-ans-dot)) !important;
+}
+
+/* The tick, drawn as two borders on a rotated box rather than a glyph, so it
+   does not depend on a font being present. */
+.yop-poll .yop-poll-answer input[type="checkbox"]:checked::before,
+.yop-poll .yop-poll-gdpr input[type="checkbox"]:checked::before {
+	content: "" !important;
+
+	/* Centred on the ring by half-offset and a half-size translate rather than
+	   by `inset: 0; margin: auto` — same result, and it asks nothing of a
+	   browser that `transform` does not already. `inset` is iOS 14.5, which is
+	   exactly the kind of floor this file is not entitled to assume. The old
+	   `translateY(-9%)` nudge folds into the vertical half. */
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	inline-size: calc(var(--yop-ans-ms, 13px) * 0.28);
+	block-size: calc(var(--yop-ans-ms, 13px) * 0.55);
+	border: solid var(--yop-ans-acc, #0073aa);
+	border-width: 0 2px 2px 0;
+	transform: translate(-50%, -59%) rotate(45deg);
+}
+
+/* Windows high contrast, and any other forced-colours mode, replaces the
+   palette wholesale and drops `background` and `border-color` on their face —
+   a hand-painted control simply vanishes. Handing the marker back to the
+   browser is the documented escape, and the only reason drawing our own is
+   safe to do at all. */
+@media (forced-colors: active) {
+
+	.yop-poll .yop-poll-answer input[type="radio"],
+	.yop-poll .yop-poll-answer input[type="checkbox"],
+	.yop-poll .yop-poll-gdpr input[type="checkbox"] {
+		-webkit-appearance: auto;
+		-moz-appearance: auto;
+		appearance: auto;
+		border: 0;
+
+		/* The dot goes with the rest of the hand-painted control: a background
+		   image is not painted in a forced palette anyway, and the native
+		   control draws its own. */
+		background-image: none;
+	}
+
+	.yop-poll .yop-poll-answer input::before,
+	.yop-poll .yop-poll-gdpr input[type="checkbox"]::before {
+		content: none;
+	}
 }
 
 .yop-poll-answer-text {
@@ -47,40 +402,146 @@
 	font-weight: var(--yop-ans-tw, normal);
 }
 
-.yop-poll-dropdown {
-	width: 100%;
-	padding: 6px 10px;
-	font-size: 14px;
-	border: 1px solid #999;
-	border-radius: 3px;
-	background: #fff;
-	cursor: pointer;
-	outline: none;
-}
-
-.yop-poll-footer {
-	margin-block-start: 12px;
-}
-
-.yop-poll-vote-button {
+/* `.yop-poll` in front of the class on purpose. A theme's `button:hover` is
+   (0,1,1) and beat a plain `.yop-poll-vote-button` (0,1,0), so on hover the
+   background, colour, border and shadow were all the theme's — the rule below
+   only ever reclaimed `filter`. At (0,2,0) it cannot be reached that way. */
+.yop-poll .yop-poll-vote-button {
+	-webkit-appearance: none;
+	-moz-appearance: none;
+	appearance: none;
 	padding: var(--yop-btn-pt, 6px) var(--yop-btn-pr, 16px) var(--yop-btn-pb, 6px) var(--yop-btn-pl, 16px);
+	margin: 0;
+
+	/* The button's height is its padding plus its line box and nothing else.
+	   Tap-target floors — `button { min-height: 44px }` and the like — are
+	   common enough in themes to be boilerplate, and one of them stretched
+	   this button from 46px to 80px with no other change on the page. */
+	min-height: 0;
 	background: var(--yop-btn-bg, #fff);
 	border-width: var(--yop-btn-bw, 1px);
 	border-style: var(--yop-btn-bs, solid);
 	border-color: var(--yop-btn-bc, #999);
 	border-radius: var(--yop-btn-br, 3px);
+	box-shadow: none;
 	color: var(--yop-btn-tc, inherit);
 	font-size: var(--yop-btn-ts, 14px);
 	font-weight: var(--yop-btn-tw, normal);
+
+	/* Declared, so the builder's "46px tall" is arithmetic rather than a guess
+	   at what the browser's `normal` resolves to.
+
+	   1.35 is the design's number, and the button's padding is now the
+	   design's too. The two travel together: height is padding plus this line
+	   box and nothing else, so the presets' vertical padding was raised above
+	   the design's for as long as this said 1.2 — Classic light draws 42px at
+	   1.2 and 44px at 1.35 on the same 12px padding. Change one and the other
+	   has to move, along with `BUTTON_LINE_HEIGHT` in `StylesPanel.jsx` and
+	   the preview's own copy of this rule. */
+	line-height: 1.35;
+
+	/* Three properties this file never mentioned, and three of the most
+	   commonly themed on a button. */
+	letter-spacing: normal;
+	text-transform: none;
+	text-decoration: none;
+	text-align: center;
 	cursor: pointer;
 	outline: none;
 }
 
-.yop-poll-vote-button:hover {
+/* Restated in full rather than as a `filter` alone, so a theme's own hover
+   has nothing left to supply. */
+.yop-poll .yop-poll-vote-button:hover,
+.yop-poll .yop-poll-vote-button:focus,
+.yop-poll .yop-poll-vote-button:active {
+	background: var(--yop-btn-bg, #fff);
+	border-color: var(--yop-btn-bc, #999);
+	box-shadow: none;
+	color: var(--yop-btn-tc, inherit);
+	text-decoration: none;
+
 	/* Darken whatever color the user picked instead of forcing #f5f5f5,
 	   which previously made colored buttons (e.g. orange) almost invisible
 	   on white page backgrounds. */
 	filter: brightness(0.92);
+}
+
+/* Not a hover state, so it takes the resting fill back. */
+.yop-poll .yop-poll-vote-button:focus:not(:hover):not(:active) {
+	filter: none;
+}
+
+/* The way back is not the way on.
+
+   Previous carries `yop-poll-vote-button` so it shares the poll's border,
+   radius, padding and type with Next and the vote button -- everything about
+   the button except the one thing that distinguishes asking from leaving. It
+   is drawn as the outline of that button rather than the button: the fill is
+   what the poll wants pressed, and two filled buttons side by side read as a
+   choice between equals.
+
+   The colours come from the same two variables, so an author who sets a
+   button colour gets it as the outline here without setting anything else.
+   Declared after the rules above, which it overrides by order rather than by
+   weight. */
+.yop-poll .yop-poll-btn-prev,
+.yop-poll .yop-poll-btn-prev:hover,
+.yop-poll .yop-poll-btn-prev:focus,
+.yop-poll .yop-poll-btn-prev:active {
+	background: transparent;
+
+	/* The width and the style are this rule's own, not the poll's. Every
+	   shipped preset gives the vote button `borderSize: 0` and
+	   `borderStyle: none` -- a filled button needs no edge -- and inheriting
+	   that drew this one as bare text. The outline *is* the border here, so it
+	   cannot be nought: `max()` keeps an author's thicker border and puts a
+	   floor under the rest. `solid` for the same reason -- a `none` inherited
+	   from a filled button draws nothing at any width.
+
+	   The colour still comes from the poll, through the border colour and then
+	   the fill, so an author who picks either gets it here without picking
+	   anything else. */
+	border-width: max(1px, var(--yop-btn-bw, 1px));
+	border-style: solid;
+	border-color: var(--yop-btn-bc, var(--yop-btn-bg, #999));
+	color: var(--yop-btn-bc, var(--yop-btn-bg, inherit));
+	filter: none;
+}
+
+/*
+ * The results opener: the same box as Vote, outlined rather than filled.
+ *
+ * Everything that decides the box — padding, radius, type — is inherited from
+ * the rule above, so the two buttons are the same size and restyling Vote
+ * restyles both. Only the paint changes: the fill becomes the ink.
+ *
+ * The border is stated rather than taken from `--yop-btn-bw` / `--yop-btn-bs`,
+ * and that is not an oversight. A poll stores `borderSize: 0` and
+ * `borderStyle: none` for a filled button that needs no outline, so inheriting
+ * them would draw an outlined button with no outline — invisible against the
+ * poll, on every preset that ships.
+ *
+ * It sits after the hover rule because that rule restates background, border
+ * and colour at the same specificity; below it, these win.
+ */
+.yop-poll .yop-poll-vote-button--secondary,
+.yop-poll .yop-poll-vote-button--secondary:hover,
+.yop-poll .yop-poll-vote-button--secondary:focus,
+.yop-poll .yop-poll-vote-button--secondary:active {
+	border-width: 1px;
+	border-style: solid;
+	border-color: var(--yop-btn-bg, #2271b1);
+	background: transparent;
+	color: var(--yop-btn-bg, #2271b1);
+}
+
+/* The fill it does not have cannot be darkened, so hover tints the ink and
+   the outline instead. */
+.yop-poll .yop-poll-vote-button--secondary:hover,
+.yop-poll .yop-poll-vote-button--secondary:active {
+	background: color-mix(in srgb, var(--yop-btn-bg, #2271b1) 8%, transparent);
+	filter: none;
 }
 
 /* Results bar */
@@ -92,10 +553,49 @@
 	overflow: hidden;
 }
 
+/* The fill is sized by the `width` the server rendered, and revealed by the
+   animation below.
+
+   It used to carry `transition: width 0.6s ease-out`, which never ran once. A
+   transition needs two values in two frames, and every route that puts results
+   on screen lands the finished width in a single step: `showResults()` assigns
+   `outerHTML`, and a poll already in its results state is written into the page
+   by PHP with no DOM change at all. React grew the bar from 0% on mount, which
+   took a second paint the server cannot produce.
+
+   A keyframe does not need a second paint — it runs when the element is first
+   rendered, which is exactly what all of those routes have in common. So the
+   markup stays correct on arrival, and the motion is added on top: no
+   JavaScript, and nothing to go wrong for a visitor who has none.
+
+   `transform`, not `width`: compositor-only, and what `css.md` asks for. The
+   track clips it and carries the radius, and the fill has no radius or content
+   of its own, so scaling distorts nothing. */
 .yop-poll-result-fill {
 	background: #0073aa;
 	height: 100%;
-	transition: width 0.6s ease-out;
+
+	/* Physical, because `transform-origin` has no logical keywords — mirrored
+	   in `style-rtl.css`. `width` needed no such rule; this is what the
+	   transform costs. */
+	transform-origin: left center;
+}
+
+/* Declared where motion is welcome rather than switched off where it is not:
+   the animation then cannot be left on by forgetting to turn it off, and the
+   default — no animation — is the safe one. Same shape the builder uses. */
+@media (prefers-reduced-motion: no-preference) {
+
+	@keyframes yop-poll-fill {
+
+		from {
+			transform: scaleX(0);
+		}
+	}
+
+	.yop-poll-result-fill {
+		animation: yop-poll-fill 0.6s ease-out;
+	}
 }
 
 .yop-poll-result-text {
@@ -111,6 +611,62 @@
 .yop-poll-answers--horizontal {
 	flex-direction: row;
 	flex-wrap: wrap;
+}
+
+/* The question a refused Next or Vote is about (QA M1). Words, not only a
+   colour: the complaint is printed under the question, and the mark beside
+   it is a glyph with the sentence as its partner. `#b32d2e` is WordPress's
+   own error red, 5.9:1 on white. */
+.yop-poll .yop-poll-field-error {
+	margin: 6px 0 0;
+	color: #b32d2e;
+	font-size: 0.875em;
+	font-weight: 600;
+	line-height: 1.4;
+}
+
+.yop-poll .yop-poll-field-error::before {
+	content: "! ";
+}
+
+.yop-poll .yop-poll-element--invalid {
+	border-inline-start: 3px solid #b32d2e;
+	padding-inline-start: 10px;
+}
+
+/* A linked answer's link sits beside its answer, outside the label so the
+   label keeps the click that picks the answer (QA M20). The row wraps so a
+   before-vote bar still runs the full width underneath. 24px square at the
+   least, for 2.5.8. */
+.yop-poll .yop-poll-answer-row:has(> .yop-poll-answer-link) {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	column-gap: 4px;
+}
+
+.yop-poll .yop-poll-answer-row:has(> .yop-poll-answer-link) > .yop-poll-inline-result {
+	flex-basis: 100%;
+}
+
+.yop-poll .yop-poll-answer-link {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-inline-size: 24px;
+	min-block-size: 24px;
+	color: var(--yop-ans-acc, #0073aa);
+	text-decoration: none;
+	border-radius: 4px;
+}
+
+.yop-poll .yop-poll-answer-link:hover {
+	text-decoration: underline;
+}
+
+.yop-poll .yop-poll-answer-link:focus-visible {
+	outline: 2px solid currentcolor;
+	outline-offset: 1px;
 }
 
 .yop-poll-answers--horizontal > .yop-poll-answer-row {
@@ -164,311 +720,99 @@
 	justify-content: flex-end;
 }
 
-/* Image answers */
-.yop-poll-image-answer {
-	position: relative;
-	display: inline-flex;
-	flex-direction: column;
-	align-items: center;
-	align-self: flex-start;
-	cursor: pointer;
-}
-
-
 .yop-poll-element[data-element-type="standard-image"] img {
 	max-width: 100%;
 	height: auto;
 	display: block;
 }
 
-.yop-poll-image-answer img {
-	display: block;
-	max-width: 100%;
-	border-radius: 3px;
-}
+/* Text and email inputs.
 
-.yop-poll-image-caption {
-	display: block;
-	font-size: var(--yop-ans-ts, 14px);
-	color: var(--yop-ans-tc, inherit);
-	font-weight: var(--yop-ans-tw, normal);
-	text-align: center;
-	margin-block-start: 4px;
-}
+   Every value here used to be a literal — `height: 30px`, `1px solid #ccc`,
+   `3px`, `14px` — which made the field the one visible part of the ballot no
+   style could reach. It has its own section now, and the fallbacks below are
+   Classic light's, so a poll saved before that section existed draws the
+   design's default rather than the old one.
 
-/* Link inside image answer */
-.yop-poll-image-link {
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-}
+   No `height`. The field's height is its padding plus its line box, which is
+   what makes Classic light's 13px padding come out at 48px and clear the 44px
+   tap target without a media query. A fixed height also clips at 200% zoom and
+   fails 1.4.4, which is why `accessibility.md` asks for `min-height` and never
+   `height` — there is now nothing to reserve, so there is neither. */
+.yop-poll .yop-poll-text-input,
+.yop-poll .yop-poll-other-input,
+.yop-poll .yop-poll-textarea {
 
-/* Image answer indicator */
-.yop-poll-image-indicator {
-	display: block;
-	width: 16px;
-	height: 16px;
-	border: 2px solid #757575;
-	border-radius: 50%;
-	margin: 6px auto 0;
-	box-sizing: border-box;
-	position: relative;
-}
-
-.yop-poll-image-answer--selected .yop-poll-image-indicator {
-	border-color: var(--yop-radio-color, #0073aa);
-}
-
-.yop-poll-image-answer--selected .yop-poll-image-indicator::after {
-	content: '';
-	position: absolute;
-	top: 50%;
-	left: 50%;
-	transform: translate(-50%, -50%);
-	width: 8px;
-	height: 8px;
-	border-radius: 50%;
-	background: var(--yop-radio-color, #0073aa);
-}
-
-.yop-poll-image-indicator--checkbox {
-	border-radius: 3px;
-}
-
-.yop-poll-image-answer--selected .yop-poll-image-indicator--checkbox::after {
-	width: 4px;
-	height: 7px;
-	background: transparent;
-	border-radius: 0;
-	border: solid var(--yop-radio-color, #0073aa);
-	border-width: 0 2px 2px 0;
-	transform: translate(-50%, -70%) rotate(45deg);
-}
-
-/* Media answers (video/audio) */
-.yop-poll .yop-poll-media-answer {
-	display: inline-flex;
-	flex-direction: column;
-	align-items: center;
-	align-self: flex-start;
-	min-width: 0;
-	padding: 8px;
-	border: 1px solid transparent;
-	border-radius: 3px;
-}
-
-.yop-poll .yop-poll-media-answer iframe {
-	width: 100%;
-	max-width: 100%;
-	aspect-ratio: 16 / 9;
-	height: auto;
-}
-
-.yop-poll .yop-poll-media-answer video {
-	width: 100%;
-	max-width: 100%;
-	height: auto;
-}
-
-.yop-poll .yop-poll-media-answer audio {
-	width: 100%;
-	max-width: 100%;
-}
-
-.yop-poll-answers--horizontal .yop-poll-media-answer {
-	flex: 1 1 0;
-}
-
-
-/* Media answer indicator */
-.yop-poll-media-indicator {
-	display: block;
-	width: 16px;
-	height: 16px;
-	border: 2px solid #757575;
-	border-radius: 50%;
-	margin: 6px auto 0;
-	box-sizing: border-box;
-	position: relative;
-}
-
-.yop-poll-answer--selected .yop-poll-media-indicator {
-	border-color: var(--yop-radio-color, #0073aa);
-}
-
-.yop-poll-answer--selected .yop-poll-media-indicator::after {
-	content: '';
-	position: absolute;
-	top: 50%;
-	left: 50%;
-	transform: translate(-50%, -50%);
-	width: 8px;
-	height: 8px;
-	border-radius: 50%;
-	background: var(--yop-radio-color, #0073aa);
-}
-
-.yop-poll-media-indicator--checkbox {
-	border-radius: 3px;
-}
-
-.yop-poll-answer--selected .yop-poll-media-indicator--checkbox::after {
-	width: 4px;
-	height: 7px;
-	background: transparent;
-	border-radius: 0;
-	border: solid var(--yop-radio-color, #0073aa);
-	border-width: 0 2px 2px 0;
-	transform: translate(-50%, -70%) rotate(45deg);
-}
-
-/* Sliders */
-.yop-poll-slider-pips {
-	position: absolute;
-	top: 0;
-	bottom: 0;
-	left: 9px;   /* thumb_width / 2 = 18 / 2 */
-	right: 9px;
-	pointer-events: none;
-}
-
-.yop-poll-slider-pip {
-	position: absolute;
-	top: 50%;
-	width: 8px;
-	height: 8px;
-	border-radius: 50%;
-	border: 2px solid;
-	transform: translate(-50%, -50%);
-	box-sizing: border-box;
-}
-
-.yop-poll-slider-wrap {
-	display: flex;
-	flex-direction: column;
-	gap: 4px;
-}
-
-.yop-poll-slider {
+	/* Off, not auto: a text field has almost no native painting to keep, and
+	   `none` is what stops iOS adding its own inset shadow and a theme adding
+	   anything else — and it is the prefixed form that does the stopping on
+	   the iOS versions that still need one. */
 	-webkit-appearance: none;
+	-moz-appearance: none;
 	appearance: none;
-	display: block;
+	width: 100%;
 	margin: 0;
-	width: 100%;
-	height: 6px;
-	border-radius: 3px;
-	background: var(--yop-slider-track, #434d5a);
-	outline: none;
-	cursor: pointer;
-}
+	min-height: 0;
+	padding: var(--yop-fld-pt, 13px) var(--yop-fld-pr, 12px) var(--yop-fld-pb, 13px) var(--yop-fld-pl, 12px);
 
-.yop-poll-slider::-webkit-slider-thumb {
-	-webkit-appearance: none;
-	width: 18px;
-	height: 18px;
-	border-radius: 50%;
-	background: var(--yop-slider-thumb, #337ab7);
-	cursor: pointer;
-	border: none;
-	margin-top: -6px;
-}
+	/* The theme's font, like everything else in the poll. This sheet sets
+	   `font-family` nowhere on purpose — a poll is meant to read as part of
+	   the page it sits on — but a form control does not inherit one, so
+	   leaving it unsaid does not mean "the theme's", it means "whatever the
+	   browser picked". For a textarea that is monospace, so a multi-line
+	   write-in rendered in Courier beside a single-line one that did not; for
+	   an input it is a UI font that is merely close enough to pass unnoticed.
 
-.yop-poll-slider::-moz-range-thumb {
-	width: 18px;
-	height: 18px;
-	border-radius: 50%;
-	background: var(--yop-slider-thumb, #337ab7);
-	cursor: pointer;
-	border: none;
-}
-
-.yop-poll-slider::-moz-range-track {
-	background: var(--yop-slider-track, #434d5a);
-	height: 6px;
-	border-radius: 3px;
-}
-
-.yop-poll-slider-labels {
-	position: relative;
-	height: 1.5em;
-	margin-top: 8px;
-}
-
-.yop-poll-slider-label {
-	position: absolute;
-	transform: translateX(-50%);
-	font-size: 11px;
-	color: #666;
-	white-space: nowrap;
-}
-
-.yop-poll-slider-inner {
-	position: relative;
-	margin-top: 30px;
-}
-
-.yop-poll-slider-value {
-	position: absolute;
-	bottom: calc(100% + 12px);
-	transform: translateX(-50%);
-	background: #fff;
-	color: #333;
-	border: 2px solid var(--yop-slider-thumb, #337ab7);
-	padding: 4px 10px;
-	border-radius: 6px;
-	font-size: 13px;
-	font-weight: 600;
-	white-space: nowrap;
-	line-height: 1.4;
-	z-index: 10;
-	pointer-events: none;
-	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-}
-
-.yop-poll-slider-value::after {
-	content: '';
-	position: absolute;
-	top: 100%;
-	left: 50%;
-	transform: translateX(-50%);
-	width: 0;
-	height: 0;
-	border-left: 6px solid transparent;
-	border-right: 6px solid transparent;
-	border-top: 6px solid var(--yop-slider-thumb, #337ab7);
-}
-
-/* Text and email inputs */
-.yop-poll-text-input {
-	width: 100%;
-	padding: 6px 10px;
-	height: 30px;
-	font-size: 14px;
-	border: 1px solid #ccc;
-	border-radius: 3px;
+	   It also settles the `ch` in the three width modifiers below, which is
+	   measured in the control's own font and so gave the same Small three
+	   widths across an input, a textarea and a dropdown. */
+	font-family: inherit;
+	font-size: var(--yop-fld-ts, 15px);
+	font-weight: var(--yop-fld-tw, normal);
+	line-height: 1.35;
+	letter-spacing: normal;
+	text-transform: none;
+	color: var(--yop-fld-tc, #1d2327);
+	background-color: var(--yop-fld-bg, #fff);
+	border-width: var(--yop-fld-bw, 1px);
+	border-style: solid;
+	border-color: var(--yop-fld-bc, #8a96a4);
+	border-radius: var(--yop-fld-br, 8px);
+	box-shadow: none;
 	outline: none;
 	box-sizing: border-box;
 }
 
-.yop-poll .yop-poll-text-input:focus {
-	border-color: #aaa;
-	outline: none;
+/* The hint, not the answer. Lighter than the text above it on purpose, and
+   held to 3:1 by the contrast check on the control that sets it — a
+   placeholder nobody can read is a placeholder that is not there. */
+.yop-poll .yop-poll-text-input::placeholder,
+.yop-poll .yop-poll-other-input::placeholder,
+.yop-poll .yop-poll-textarea::placeholder {
+	color: var(--yop-fld-pc, #73767c);
+
+	/* Firefox ships 0.54 here, which would take a colour already chosen to sit
+	   at 3:1 well under it. */
+	opacity: 1;
 }
 
-.yop-poll-textarea {
-	width: 100%;
-	padding: 6px 10px;
-	font-size: 14px;
-	border: 1px solid #ccc;
-	border-radius: 3px;
-	outline: none;
-	resize: vertical;
-	box-sizing: border-box;
-}
-
+/* A text field draws its ring on click as well as on tab, which is why this is
+   `:focus` and not `:focus-visible` — and why these three are not in the
+   `:focus-visible` block at the foot of the file. The border at full strength
+   is the indicator that has to meet 1.4.11's 3:1 (Classic light's `#2271b1` on
+   white is 4.5:1); the translucent halo outside it is decoration, and nothing
+   depends on it. */
+.yop-poll .yop-poll-text-input:focus,
+.yop-poll .yop-poll-other-input:focus,
 .yop-poll .yop-poll-textarea:focus {
-	border-color: #aaa;
+	border-color: var(--yop-fld-fc, #2271b1);
+	box-shadow: 0 0 0 2px color-mix(in srgb, var(--yop-fld-fc, #2271b1) 25%, transparent);
 	outline: none;
+}
+
+.yop-poll .yop-poll-textarea {
+	min-height: var(--yop-fld-tah, 96px);
+	resize: vertical;
 }
 
 /* Other answer */
@@ -494,16 +838,22 @@
 	width: 100%;
 }
 
-.yop-poll-other-input {
-	height: 30px;
-}
-
-.yop-poll-other-input:focus {
-	border-color: #ccc;
-}
+/* `.yop-poll-other-input` used to re-assert `height: 30px` and then pin its
+   focus border back to `#ccc`, which made it the one control in the poll that
+   visibly did not respond to focus. Both are gone: it is a field, and it is
+   styled as one. */
 
 /* Divider */
-.yop-poll-divider {
+
+/* Themes style `hr`, and they disagree about how. Bootstrap-derived ones ship
+   `hr { border: 0; border-top: 1px solid; opacity: .25 }` and others `hr {
+   height: 1px; background: #ddd; border: 0 }` — either lands on top of the
+   border-top this draws with, ghosting or doubling the rule. */
+.yop-poll hr.yop-poll-divider {
+	height: 0;
+	background: none;
+	opacity: 1;
+	box-sizing: content-box;
 	border: none;
 	border-top: 1px solid #000;
 	margin: 0;
@@ -512,6 +862,26 @@
 /* Text block */
 .yop-poll-text-block {
 	font-size: 14px;
+	line-height: 1.5;
+}
+
+/*
+ * The strip above a preview.
+ *
+ * Outside the poll, and drawn in the admin's own colours rather than the
+ * author's: it is the one thing on this page that is not the poll, and a
+ * banner wearing the poll's style would read as part of it. Deliberately
+ * plain — a preview is for looking at the poll, not at the frame around it.
+ */
+.yop-poll-preview-banner {
+	margin-block-end: 16px;
+	border: 1px solid #c3c4c7;
+	border-left: 4px solid #2271b1;
+	border-radius: 4px;
+	background: #f6f7f7;
+	padding: 10px 14px;
+	color: #1d2327;
+	font-size: 13px;
 	line-height: 1.5;
 }
 
@@ -527,9 +897,72 @@
 	color: #666;
 }
 
-/* Countdown */
+/* Countdown. Figures of one width, so the line does not jitter as a digit
+   changes; the spans are empty until `countdown.ts` fills them, and the
+   author's words around them already hold the line open. */
 .yop-poll-countdown {
 	font-size: 14px;
+	font-variant-numeric: tabular-nums;
+}
+
+/* Until `countdown.ts` has filled it the line is units with no numbers --
+   "Closes in d h m s" (QA L36) -- so it is kept and not shown: `visibility`
+   holds its height, and showing it moves nothing. */
+.yop-poll-countdown:not([data-yop-countdown-live]) {
+	visibility: hidden;
+}
+
+/* Pie results (premium; falls back to bars when no addon provides it). The
+   chart is decoration: every figure is text in the legend beside it. */
+.yop-poll-results-pie {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 16px;
+	margin: 8px 0;
+}
+
+.yop-poll-results-pie__chart {
+	flex: 0 0 auto;
+	display: block;
+}
+
+.yop-poll-results-pie__legend {
+	flex: 1 1 160px;
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.yop-poll-results-pie__legend-item {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+	padding: 2px 0;
+	font-size: 14px;
+}
+
+.yop-poll-results-pie__swatch {
+	flex: 0 0 auto;
+	width: 12px;
+	height: 12px;
+	border-radius: 2px;
+}
+
+.yop-poll-results-pie__legend-item .yop-poll-result-label {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+/* The write-ins under "Other", on a line of their own. */
+.yop-poll-results-pie__legend-item .yop-poll-other-answers-list {
+	flex: 1 0 100%;
+}
+
+.yop-poll-results-pie__legend-detail {
+	flex: 0 0 auto;
+	color: #666;
 }
 
 /* GDPR */
@@ -538,6 +971,23 @@
 	align-items: center;
 	gap: 8px;
 	line-height: 1.4;
+}
+
+/* Where the author put it (7.0.10-7.0.13 offered it; X-L5). */
+.yop-poll-gdpr--center {
+	justify-content: center;
+}
+
+.yop-poll-gdpr--right {
+	justify-content: flex-end;
+}
+
+/* The consent sentence is read like an answer, so it wears the answers'
+   colour. It took the poll's own dark ink, which on a dark poll is dark on
+   dark: only the box showed (MIG-M10). On the label itself, at (0,2,1),
+   because a theme's `label { color }` outranks anything inherited. */
+.yop-poll .yop-poll-gdpr label {
+	color: var(--yop-ans-tc, inherit);
 }
 
 .yop-poll-gdpr input[type="checkbox"]:focus {
@@ -553,82 +1003,206 @@
 	font-size: 14px;
 }
 
-.yop-poll-captcha input {
-	width: 60px;
-	padding: 4px 8px;
-	outline: none;
-	border: 1px solid #ccc;
-	border-radius: 3px;
+/* Messages */
+
+/* The region is always in the markup and takes no room until it says something.
+   Nothing here gives it height: the type, the colour and the line-height draw
+   nothing without text, so an empty region is 0px tall and the question sits
+   where the poll's own padding puts it.
+
+   It used to reserve a line — `min-height: calc(1.5em + padding)` — so a
+   validation error could not push the form down. That cost every poll roughly
+   55px of nothing, on every view, to protect a shift that never counted:
+   `announce()` is called from seven places and every one of them follows a
+   click, and a shift within 500ms of user input is outside CLS by definition.
+   The React renderer this replaced drew no node at all when it had nothing to
+   say; the always-present one arrived as a side-effect of moving the region to
+   the top, and brought the floor with it.
+
+   The node itself stays, unconditional. `announce()` early-returns when it is
+   absent, so a node built on first use is a node missing exactly when the
+   first message is the one that matters. */
+.yop-poll-message {
+	box-sizing: border-box;
+	color: var(--yop-msg-tc, #000);
+	font-size: var(--yop-msg-ts, 14px);
+	font-weight: var(--yop-msg-tw, normal);
+
+	/* Declared, so the box a message takes is arithmetic rather than the
+	   theme's guess. */
+	line-height: 1.5;
 }
 
-/* Messages */
-.yop-poll-message {
-	border-left-width: var( --yop-msg-blw, 10px );
+/* Everything that makes a box lives here, on the two classes `announce()`
+   toggles — which are the truth about whether there is a message, the same
+   reason the old idle rule keyed on them rather than on `:empty`. Clearing a
+   message removes both, and the region collapses again with no extra work.
+
+   `min-height` rather than a height, still: a message that wraps, or a reader
+   at 200% zoom, has to be able to grow it (1.4.4).
+
+   Unset, the wash is mixed from this message's own accent, so a success reads
+   green and a refusal reads red without either being authored. `transparent`
+   rather than white in the mix: the result composites over whatever the poll
+   sits on instead of assuming a light background. An authored Tint still wins —
+   that is what the `var()` fallback is for, and why `--yop-msg-bg` is the one
+   message variable emitted conditionally. */
+.yop-poll-message--success,
+.yop-poll-message--error {
+	min-height: calc(1.5em + var(--yop-msg-pt, 0px) + var(--yop-msg-pb, 0px));
+	border-left-width: var(--yop-msg-blw, 10px);
 	border-left-style: solid;
-	padding-top: var( --yop-msg-pt, 0px );
-	padding-bottom: var( --yop-msg-pb, 0px );
-	padding-left: 10px;
-	padding-right: 10px;
-	color: var( --yop-msg-tc, #000000 );
-	font-size: var( --yop-msg-ts, 14px );
-	font-weight: var( --yop-msg-tw, normal );
+	border-radius: var(--yop-msg-br, 0);
+	padding-top: var(--yop-msg-pt, 0);
+	padding-bottom: var(--yop-msg-pb, 0);
+	padding-left: var(--yop-msg-pl, 10px);
+	padding-right: var(--yop-msg-pr, 10px);
 	margin-bottom: 12px;
 }
 
 .yop-poll-message--success {
-	border-left-color: var( --yop-msg-bcs, #008000 );
+	border-left-color: var(--yop-msg-bcs, #008000);
+	background-color: var(--yop-msg-bg, color-mix(in srgb, var(--yop-msg-bcs, #008000) 12%, transparent));
 }
 
 .yop-poll-message--error {
-	border-left-color: var( --yop-msg-bce, #ff0000 );
+	border-left-color: var(--yop-msg-bce, #f00);
+	background-color: var(--yop-msg-bg, color-mix(in srgb, var(--yop-msg-bce, #f00) 12%, transparent));
 }
 
-/* Slider size */
-.yop-poll-slider-wrap--small  { max-width: 200px; }
-.yop-poll-slider-wrap--medium { max-width: 300px; }
-.yop-poll-slider-wrap--large  { width: 100%; }
+/* The provider's widget is injected by its own script, long after first paint.
+   Without a floor the container is 0px tall and the whole page below the poll
+   jumps by the widget's full height when it mounts. The numbers are the
+   published sizes: reCAPTCHA v2 checkbox and hCaptcha are 302x76, Turnstile is
+   300x65. The two invisible providers render nothing in the flow and so
+   reserve nothing. `min-height` throughout, never `height`. */
+.yop-poll-captcha__external-container[data-yop-captcha="recaptcha_v2_checkbox"],
+.yop-poll-captcha__external-container[data-yop-captcha="hcaptcha"] {
+	min-height: 76px;
+}
 
-/* Slider align */
-.yop-poll-slider-wrap--left   { margin-left: 0; margin-right: auto; }
-.yop-poll-slider-wrap--center { margin-left: auto; margin-right: auto; }
-.yop-poll-slider-wrap--right  { margin-left: auto; margin-right: 0; }
+.yop-poll-captcha__external-container[data-yop-captcha="turnstile"] {
+	min-height: 65px;
+}
 
-/* Dropdown size/align */
-.yop-poll-answers--size-small  .yop-poll-dropdown { max-width: 200px; }
-.yop-poll-answers--size-medium .yop-poll-dropdown { max-width: 400px; }
-.yop-poll-answers--size-large  .yop-poll-dropdown { width: 100%; }
-.yop-poll-answers--left   { text-align: left; }
-.yop-poll-answers--center { text-align: center; }
-.yop-poll-answers--right  { text-align: right; }
+/* The author's Field size, at the same weight as the rule it overrides.
+   `.yop-poll` in front is not decoration here: the base rule was raised to
+   `.yop-poll .yop-poll-text-input` so a theme's own `input` rules could not
+   reach it, and that lifted its `width: 100%` above these three as a side
+   effect — a Small field then drew full width. They tie now, and these come
+   later, which is what settles it. Same for the textarea's three below.
 
-/* Dropdown "other" input: 5px gap (gap: 8px − 3px = 5px) */
-.yop-poll-dropdown ~ .yop-poll-other-wrap { margin-top: -3px; }
+   The character floor under each percentage is what makes Small usable on a
+   phone. A percentage is a share of the container, but what a field needs is
+   room for a name or an address — and those two agree on a desktop and part
+   company on a 320px screen, where 50% of the container is about sixteen
+   characters. `ch` is the field's own zero-width, so the floor is stated in
+   the thing that actually matters, and it grows with `--yop-fld-ts`: a poll
+   with 24px field type gets a proportionally wider field without a second
+   rule. `min(100%, ...)` keeps it inside the container at every size.
 
-/* Other input size */
-.yop-poll-text-input--small  { width: 50%; }
-.yop-poll-text-input--medium { width: 75%; }
-.yop-poll-text-input--large  { width: 100%; }
+   A browser without `min()`/`max()` drops the declaration and falls back to
+   the base `width: 100%` above — full width, which is the safe direction. */
+.yop-poll .yop-poll-text-input--small {
+	width: min(100%, max(50%, 22ch));
+}
 
-.yop-poll-text-input--left   { display: block; margin-left: 0; margin-right: auto; }
-.yop-poll-text-input--center { display: block; margin-left: auto; margin-right: auto; }
-.yop-poll-text-input--right  { display: block; margin-left: auto; margin-right: 0; }
+.yop-poll .yop-poll-text-input--medium {
+	width: min(100%, max(75%, 34ch));
+}
 
-.yop-poll-textarea--small  { width: 50%; }
-.yop-poll-textarea--medium { width: 75%; }
-.yop-poll-textarea--large  { width: 100%; }
+.yop-poll .yop-poll-text-input--large {
+	width: 100%;
+}
 
-.yop-poll-textarea--left   { display: block; margin-left: 0; margin-right: auto; }
-.yop-poll-textarea--center { display: block; margin-left: auto; margin-right: auto; }
-.yop-poll-textarea--right  { display: block; margin-left: auto; margin-right: 0; }
+.yop-poll-text-input--left {
+	display: block;
+	margin-left: 0;
+	margin-right: auto;
+}
 
-/* Media caption */
-.yop-poll-media-caption { display: block; margin-top: 4px; font-size: 0.9em; }
+.yop-poll-text-input--center {
+	display: block;
+	margin-left: auto;
+	margin-right: auto;
+}
+
+.yop-poll-text-input--right {
+	display: block;
+	margin-left: auto;
+	margin-right: 0;
+}
+
+.yop-poll .yop-poll-textarea--small {
+	width: min(100%, max(50%, 22ch));
+}
+
+.yop-poll .yop-poll-textarea--medium {
+	width: min(100%, max(75%, 34ch));
+}
+
+.yop-poll .yop-poll-textarea--large {
+	width: 100%;
+}
+
+.yop-poll-textarea--left {
+	display: block;
+	margin-left: 0;
+	margin-right: auto;
+}
+
+.yop-poll-textarea--center {
+	display: block;
+	margin-left: auto;
+	margin-right: auto;
+}
+
+.yop-poll-textarea--right {
+	display: block;
+	margin-left: auto;
+	margin-right: 0;
+}
+
+/* On a phone the author's Field size stops helping. Half of a phone-width poll
+   is about sixteen characters, and no size setting makes that a name or an
+   email address — so below 400px of poll every field is full width, whatever
+   was picked. Above it the setting is the author's again.
+
+   400px is measured on the poll, not the screen, which is the whole point of
+   the query: a narrow sidebar gets the same treatment as a phone. It sits
+   between the two widths the builder's preview already names — its Mobile
+   ballot is 320px and its Tablet 480px. The container itself is declared on
+   `.yop-poll` further down, beside the `position: relative` the sheet needs;
+   order does not matter to `@container`, only ancestry does.
+
+   The `ch` floors above are not replaced. They still cover the band from here
+   up to about 440px, and on an engine without `@container` they are the whole
+   safety net — the same graceful direction the note above describes for
+   `min()`/`max()`. `--large` is already full width and needs no saying. */
+@container yop-poll (max-width: 400px) {
+
+	.yop-poll .yop-poll-text-input--small,
+	.yop-poll .yop-poll-text-input--medium,
+	.yop-poll .yop-poll-textarea--small,
+	.yop-poll .yop-poll-textarea--medium {
+		width: 100%;
+	}
+}
 
 /* Page-break navigation */
 .yop-poll-page-nav {
 	display: flex;
 	gap: 8px;
 	margin-block-start: 12px;
+}
+
+/* Both draw themselves with `display`, which outranks the UA's `[hidden]`, and
+   `pages.ts` hides them when the pages after this one are empty and the Vote
+   is drawn under it: the page's Next, and a Previous with nowhere to go (QA
+   re-test N4). */
+.yop-poll-page-nav[hidden],
+.yop-poll .yop-poll-btn-prev[hidden] {
+	display: none;
 }
 
 .yop-poll-page-nav--center {
@@ -643,8 +1217,34 @@
 	display: flex;
 	gap: 12px;
 	flex-wrap: wrap;
+	margin-block-start: 12px;
 }
 
+/*
+ * Everything in the footer that is not a button takes a line of its own.
+ *
+ * The footer is a wrapping row, and consent, the captcha and the totals were
+ * plain items in it — so "0 votes · 0 answers" sat beside the Vote button
+ * rather than above it, and a poll with all three lined them up across the
+ * row. Each of them is a statement about the poll, not a control to be pressed
+ * next to another one.
+ *
+ * This is what the builder's canvas has always drawn: `.yop-v2-ballot__footer`
+ * is a column holding exactly these three, with the buttons in a row of their
+ * own beneath it. The front end says the same thing here.
+ */
+.yop-poll-footer > .yop-poll-gdpr,
+.yop-poll-footer > .yop-poll-captcha,
+.yop-poll-footer > .yop-poll-total-votes {
+	flex: 1 1 100%;
+}
+
+/* A returning voter's "Already voted" line, where the vote button was (QA
+   L23). A paragraph, so a theme's paragraph margins are taken off it: the
+   footer's own gap is the spacing. */
+.yop-poll-voted-note {
+	margin: 0;
+}
 
 .yop-poll-footer--center {
 	justify-content: center;
@@ -652,6 +1252,41 @@
 
 .yop-poll-footer--right {
 	justify-content: flex-end;
+}
+
+/*
+ * Full width: every button in the footer takes the whole line, so the vote
+ * button and the results opener stack as two rows. `flex-wrap: wrap` above is
+ * what turns a 100% basis into a row of its own; `box-sizing` because 100% is
+ * otherwise measured on the content box, and a theme that stops buttons
+ * shrinking would push the padding and border past the footer's edge.
+ */
+.yop-poll-footer--full > .yop-poll-vote-button {
+	flex: 1 1 100%;
+	box-sizing: border-box;
+}
+
+/*
+ * Voting and looking, stacked and sharing a width.
+ *
+ * `inline-flex` so the box shrinks to its widest child and the footer's own
+ * `justify-content` can place it; `stretch` so the narrower button grows to
+ * meet the wider rather than sitting short of it. Without this the two were
+ * siblings in a wrapping row and shared a line whenever both fit — which is
+ * every poll whose captions are short.
+ */
+.yop-poll-actions {
+	display: inline-flex;
+	flex-direction: column;
+	align-items: stretch;
+	gap: 12px;
+	box-sizing: border-box;
+}
+
+/* Full width stretches the pair, and the pair stretches its buttons. */
+.yop-poll-footer--full > .yop-poll-actions {
+	display: flex;
+	flex: 1 1 100%;
 }
 
 /* "Other" free-text answers in results */
@@ -667,71 +1302,148 @@
 	padding: 2px 0;
 }
 
-/* Visual captcha */
-.yop-poll-captcha__question {
-	margin-bottom: 12px;
-}
+/* ── The "how would you like to vote?" sheet ───────────────
+ *
+ * Scoped to the poll, not the page: this is a widget that may sit in a
+ * sidebar, and dimming a whole article to ask which account someone wants to
+ * use would be a wild over-reaction. `position: absolute` against the root's
+ * `position: relative` below is what keeps it over the poll and nothing else.
+ */
 
-.yop-poll-captcha__images {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	gap: 8px;
-	margin-bottom: 8px;
-}
+/* Two unrelated things the root has to be, in one rule because it is one
+   selector. `position: relative` is the sheet's, described above.
 
-.yop-poll-captcha__image-btn {
-	width: 60px;
-	height: 60px;
-	padding: 6px;
-	border: 2px solid transparent;
-	border-radius: 6px;
-	background: #f5f5f5;
-	cursor: pointer;
-	outline: none;
-}
+   The container is the field widths', up at the `--small` / `--medium`
+   modifiers: a field asks how much room it actually has, and the viewport is
+   the wrong thing to ask it. `.yop-poll` has no width of its own, so a poll
+   dropped in a 300px sidebar on a 1920px desktop has the narrow problem a
+   `@media` rule would miss, while a wide poll on a narrow phone gets caught by
+   one it does not need. Named, so the query binds to the poll and not to some
+   container a theme established further up.
 
-.yop-poll-captcha__image-btn.is-selected {
-	border-color: #1976d2;
-	background: #e3f2fd;
-}
-
-.yop-poll-captcha__image-btn img {
-	width: 100%;
-	height: 100%;
-	object-fit: contain;
-}
-
-.yop-poll-captcha__refresh {
-	background: none;
-	border: none;
-	cursor: pointer;
-	font-size: 18px;
-	outline: none;
-}
-
-/* ── Multi-permission overlay ─────────────────── */
+   `inline-size` contains the inline axis only, so nothing about the poll's
+   height changes. It also makes the root a containing block for positioned
+   descendants — which `position: relative` already did, so the sheet is
+   unaffected — and a new formatting context, which nothing here crosses. */
 .yop-poll {
+	container-name: yop-poll;
+	container-type: inline-size;
 	position: relative;
+
+	/* A poll is a column of text and choices, and stretched across a
+	   full-width layout -- 1140px under Hello Elementor, 1290px under
+	   Blocksy -- its picture tiles grew to 420px each and the question read
+	   small (QA L42). Capped at a reading width; a theme's constrained
+	   layout still centres it, and a site that wants it wider sets the
+	   property. */
+	max-width: var(--yop-poll-max-width, 760px);
 }
 
 .yop-poll .yop-poll-perm-overlay {
 	position: absolute;
-	inset: 0;
+
+	/* Pinned to the poll's top and sides, but not to its bottom: a poll can
+	   easily be shorter than the sheet it has to show — three sign-in options
+	   over a two-line question — and a scrim locked to the poll's own height
+	   either clips the card or scrolls it inside a box 200px tall. Growing
+	   downward instead keeps every option and the Cancel control on screen,
+	   and keeps the dim layer over all of them. */
+	inset: 0 0 auto;
+	min-height: 100%;
 	background: rgba(0, 0, 0, 0.5);
 	display: flex;
 	align-items: center;
 	justify-content: center;
+
+	/* So the card never touches the poll's edges on a short poll, and never
+	   reaches the viewport edge at 320px. */
+	padding: 12px;
 	z-index: 100;
 }
 
+/*
+ * `display: flex` above outranks the UA stylesheet's `[hidden] { display:
+ * none }` rule on specificity, so without this the picker opens over the
+ * ballot from first paint on every multi-permission poll — the `hidden`
+ * attribute PHP always sets stops being enough to hide it.
+ */
+.yop-poll-perm-overlay[hidden] {
+	display: none;
+}
+
+/* The dialog itself. Its own paint rather than the poll's: a sheet tinted by
+   whatever the author chose for the poll behind it stops reading as a layer
+   above that poll, which is the one thing it has to read as. */
 .yop-poll .yop-poll-perm-overlay__inner {
 	display: flex;
 	flex-direction: column;
-	gap: 8px;
+	gap: 12px;
 	width: 100%;
-	max-width: 280px;
-	padding: 0 16px;
+	max-width: 320px;
+
+	padding: 20px;
+	background: #fff;
+	border-radius: 12px;
+	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.24);
+	text-align: start;
+}
+
+.yop-poll .yop-poll-perm-overlay__title {
+	margin: 0;
+	font-size: 16px;
+	font-weight: 600;
+	line-height: 1.3;
+	color: #1e1e1e;
+}
+
+.yop-poll .yop-poll-perm-overlay__blurb,
+.yop-poll .yop-poll-perm-option__note {
+	margin: 0;
+	font-size: 13px;
+	line-height: 1.4;
+
+	/* 7.4:1 on white. The note is the part that says what an option actually
+	   does, so it is quiet type, not decorative type. */
+	color: #50575e;
+}
+
+.yop-poll .yop-poll-perm-overlay__options {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.yop-poll .yop-poll-perm-option {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+/* The options are the ballot's own Vote button at full width — same padding,
+   same radius, same type — so the sheet offers the control the voter already
+   recognises, and restyling Vote restyles all of them. They are not ranked
+   against each other; `render_permission_controls()` says why. */
+.yop-poll .yop-poll-perm-option .yop-poll-vote-button {
+	width: 100%;
+}
+
+/* Not one of the options, so it is not shaped like one. Its target is stated
+   because it has no padding worth the name of its own. */
+.yop-poll .yop-poll-perm-overlay__cancel {
+	-webkit-appearance: none;
+	-moz-appearance: none;
+	appearance: none;
+	align-self: center;
+	min-height: 44px;
+	padding: 8px 16px;
+	background: none;
+	border: 0;
+	border-radius: 3px;
+	color: #50575e;
+	font-size: 13px;
+	line-height: 1.4;
+	text-decoration: underline;
+	cursor: pointer;
 }
 
 .yop-poll-inline-detail {
@@ -739,4 +1451,89 @@
 	font-size: 0.875em;
 	color: var(--yop-ans-tc, #666);
 	white-space: nowrap;
+}
+
+/* One focus ring for the whole poll.
+
+   Last in the file on purpose. `outline: none` appears a dozen times above,
+   and had no replacement anywhere, so what a keyboard visitor saw depended
+   entirely on their theme — which is the opposite of the point, and is the
+   failure `css.md` names in as many words: "`outline: none` without a
+   replacement meeting 3:1 is a failure, not a style choice".
+
+   Specificity alone does not beat them. `.yop-poll .yop-poll-text-input:focus`
+   and `.yop-poll-gdpr input[type="checkbox"]:focus` tie with the selectors
+   below rather than losing to them, so whichever is written later wins, and
+   written earlier this block lost every tie — the text field kept
+   `outline-style: none` and drew no ring at all under keyboard focus. Order
+   settles it, so the block sits at the bottom.
+
+   The suppressors stay: they are what keeps a mouse click from drawing a ring,
+   which is the whole reason to key this on `:focus-visible`. Listed control by
+   control rather than left at `.yop-poll :focus-visible` so the ring lands on
+   the poll's own controls and not on anything an author pasted into a question.
+   The offset keeps it clear of the control's own border; `#0073aa` is 4.6:1 on
+   white, past the 3:1 a focus indicator owes.
+
+   The text fields are not in the list. They have a ring of their own, in the
+   poll's own focus colour, drawn on `:focus` rather than `:focus-visible` —
+   which is what a text field should do on a click as well as on a tab. Two
+   rings on one field is one too many.
+
+   Which is why the answer's entry names the two marker types rather than
+   saying `input`. It said `input`, and the write-in box beside "Other" is an
+   `input` inside `<label class="yop-poll-answer">` — so it was in the list
+   after all, by descent rather than by class, and drew this ring on top of its
+   own. `outline: none` from the field's `:focus` rule lost the tie by one
+   element and by source order, and the border-and-halo underneath never
+   competed at all, so the box wore both. This ring belongs to the marker; the
+   selector now says so. */
+.yop-poll .yop-poll-answer input[type="radio"]:focus-visible,
+.yop-poll .yop-poll-answer input[type="checkbox"]:focus-visible,
+.yop-poll .yop-poll-gdpr input:focus-visible,
+.yop-poll .yop-poll-vote-button:focus-visible,
+.yop-poll .yop-poll-perm-overlay__cancel:focus-visible {
+	outline: 2px solid var(--yop-focus, #0073aa);
+	outline-offset: 2px;
+}
+
+/*
+ * The decoy field.
+ *
+ * Hidden the way a screen-reader-only element is, rather than with
+ * `display: none`: a script driving a real browser is the thing this is for,
+ * and some of them skip what the page says is not displayed. One pixel and
+ * clipped, so it can never widen the poll or add a scrollbar at 320px.
+ */
+.yop-poll .yop-poll-decoy {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
+}
+
+/* The results region, which the script focuses when a vote or the results
+   button replaces the ballot (`showResults()`). Not a control, but it is where
+   keyboard focus now is, so it wears the same ring -- set further off, because
+   the bars and the figures run to its edges and a 2px offset drew the ring
+   across them. `:focus-visible`, so a vote cast with the mouse draws none. */
+.yop-poll .yop-poll-results:focus-visible {
+	outline: 2px solid var(--yop-focus, #0073aa);
+	outline-offset: 4px;
+}
+
+/* And none at all for a mouse vote, which still leaves focus here. Block
+   themes ring anything focused, however it got there --
+   `:where(.wp-site-blocks :focus) { outline-style: solid }` -- and drew a dark
+   box round the whole region on every click of Vote. */
+.yop-poll .yop-poll-results:focus:not(:focus-visible) {
+	outline: none;
+}
+
+/* The same for a page turned to with the mouse, which takes focus so reading
+   starts at its top (QA M3): no box round the whole page on every Next. */
+.yop-poll .yop-poll-ballot:focus:not(:focus-visible) {
+	outline: none;
 }

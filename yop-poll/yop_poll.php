@@ -3,7 +3,7 @@
  * Plugin Name:       YOP Poll
  * Plugin URI:        https://yop-poll.com
  * Description:       The flexible WordPress poll plugin — rebuilt for speed, security, and ease of use.
- * Version:           7.0.13
+ * Version:           7.1.0
  * Requires at least: 6.5
  * Requires PHP:      7.4
  * Author:            YOP
@@ -18,7 +18,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'YOP_POLL_VERSION', '7.0.13' ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- YOP_POLL_ is the established plugin prefix; distribution slug is yop-poll.
+define( 'YOP_POLL_VERSION', '7.1.0' ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- YOP_POLL_ is the established plugin prefix; distribution slug is yop-poll.
+// Duplicates Addon_API::VERSION, which cannot be read here — the autoloader is
+// not up yet and this file only defines and registers. The two are held
+// together by AddonApiTest::test_core_exposes_versioned_addon_api; if that test
+// fails, one of the pair was raised and the other was not.
+define( 'YOP_POLL_ADDON_API_VERSION', '1.7.0' ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- Public compatibility contract for addons.
 define( 'YOP_POLL_FILE', __FILE__ ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- YOP_POLL_ is the established plugin prefix; distribution slug is yop-poll.
 define( 'YOP_POLL_DIR', plugin_dir_path( __FILE__ ) ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- YOP_POLL_ is the established plugin prefix; distribution slug is yop-poll.
 define( 'YOP_POLL_URL', plugin_dir_url( __FILE__ ) ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- YOP_POLL_ is the established plugin prefix; distribution slug is yop-poll.
@@ -69,7 +74,7 @@ if ( file_exists( YOP_POLL_DIR . 'vendor/autoload.php' ) ) {
  *
  * @return string[] Empty when the package is complete.
  */
-function yop_poll_missing_files() { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- yop_poll_ is the established plugin prefix; distribution slug is yop-poll.
+function yop_poll_missing_files() {
 	static $missing = null;
 
 	if ( null !== $missing ) {
@@ -116,7 +121,7 @@ function yop_poll_missing_files() { // phpcs:ignore WordPress.NamingConventions.
  * this point, so this notice is the only thing standing between the user and a
  * plugin that looks active but does nothing.
  */
-function yop_poll_incomplete_package_notice() { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- yop_poll_ is the established plugin prefix; distribution slug is yop-poll.
+function yop_poll_incomplete_package_notice() {
 	if ( ! current_user_can( 'activate_plugins' ) ) {
 		return;
 	}
@@ -177,14 +182,22 @@ add_action( 'plugins_loaded', function () {
 	\YopPoll\Database\Migrator::maybe_setup();
 	\YopPoll\Database\Migrator::maybe_resume_background_migration();
 	\YopPoll\Database\Migrator::maybe_upgrade_schema();
-	\YopPoll\Database\Migrator::maybe_sanitize_stored_meta();
+	// One option read once the flag is set, which is every request after the
+	// first on every install.
+	\YopPoll\Database\Migrator::migrate_built_in_captcha();
+	\YopPoll\Database\Migrator::migrate_refusal_messages();
+	\YopPoll\Database\Migrator::migrate_consent_message();
+	\YopPoll\Database\Migrator::clean_stored_meta_html();
+	\YopPoll\Database\Migrator::migrate_results_moment();
+	\YopPoll\Database\Migrator::follow_up_v6();
+	\YopPoll\Database\Migrator::activate_v6_bans();
 }, 5 );
 
 add_action( 'yop_poll_run_migration', function () {
 	if ( yop_poll_missing_files() ) {
 		return;
 	}
-	\YopPoll\Database\Migrator::run_batch();
+	\YopPoll\Database\Migrator::run_batches();
 } );
 
 // Boot the plugin.

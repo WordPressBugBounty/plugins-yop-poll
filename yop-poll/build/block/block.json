@@ -18,6 +18,7 @@
   },
   "textdomain": "yop-poll",
   "editorScript": "file:./index.js",
+  "viewStyle": "yop-poll-classic",
   "attributes": {
     "pollId": {
       "type": "number",

@@ -2,7 +2,11 @@
 /**
  * Classic poll template.
  *
- * Variables available: $poll, $elements
+ * Variables available: $poll, $elements — supplied by the template engine from
+ * the including scope, which is why they are declared rather than assigned.
+ *
+ * @var array             $poll     The poll row.
+ * @var array<int, array> $elements Its active elements, each with subelements.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {

@@ -28,17 +28,19 @@ class Widget extends \WP_Widget {
 	}
 
 	public function form( $instance ) {
-		$title       = isset( $instance['title'] )       ? (string) $instance['title']       : '';
-		$poll_id     = isset( $instance['poll_id'] )     ? (int) $instance['poll_id']        : 0;
+		$title       = isset( $instance['title'] ) ? (string) $instance['title'] : '';
+		$poll_id     = isset( $instance['poll_id'] ) ? (int) $instance['poll_id'] : 0;
 		$tracking_id = isset( $instance['tracking_id'] ) ? (string) $instance['tracking_id'] : '';
 
 		$model = new Model_Poll();
-		$polls = $model->all( array(
-			'where'    => array( 'status' => 'published' ),
-			'orderby'  => 'id',
-			'order'    => 'DESC',
-			'per_page' => 1000,
-		) );
+		$polls = $model->all(
+			array(
+				'where'    => array( 'status' => 'published' ),
+				'orderby'  => 'id',
+				'order'    => 'DESC',
+				'per_page' => 1000,
+			)
+		);
 		?>
 		<p>
 			<label for="<?php echo esc_attr( $this->get_field_id( 'title' ) ); ?>">
@@ -57,17 +59,17 @@ class Widget extends \WP_Widget {
 			<select class="widefat"
 				id="<?php echo esc_attr( $this->get_field_id( 'poll_id' ) ); ?>"
 				name="<?php echo esc_attr( $this->get_field_name( 'poll_id' ) ); ?>">
-				<option value="0"  <?php selected( 0,  $poll_id ); ?>><?php esc_html_e( "Don't Display Poll (Disable)", 'yop-poll' ); ?></option>
-				<option value="-1" <?php selected( -1, $poll_id ); ?>><?php esc_html_e( 'Display Current Active Poll',   'yop-poll' ); ?></option>
-				<option value="-2" <?php selected( -2, $poll_id ); ?>><?php esc_html_e( 'Display Latest Poll',           'yop-poll' ); ?></option>
-				<option value="-3" <?php selected( -3, $poll_id ); ?>><?php esc_html_e( 'Display Random Poll',           'yop-poll' ); ?></option>
+				<option value="0"  <?php selected( 0, $poll_id ); ?>><?php esc_html_e( "Don't Display Poll (Disable)", 'yop-poll' ); ?></option>
+				<option value="-1" <?php selected( -1, $poll_id ); ?>><?php esc_html_e( 'Display Current Active Poll', 'yop-poll' ); ?></option>
+				<option value="-2" <?php selected( -2, $poll_id ); ?>><?php esc_html_e( 'Display Latest Poll', 'yop-poll' ); ?></option>
+				<option value="-3" <?php selected( -3, $poll_id ); ?>><?php esc_html_e( 'Display Random Poll', 'yop-poll' ); ?></option>
 				<?php
 				if ( is_array( $polls ) ) {
 					foreach ( $polls as $poll ) {
-						$pid   = (int) ( $poll['id']   ?? 0 );
+						$pid   = (int) ( $poll['id'] ?? 0 );
 						$pname = (string) ( $poll['name'] ?? '' );
 						?>
-						<option value="<?php echo esc_attr( $pid ); ?>" <?php selected( $pid, $poll_id ); ?>>
+						<option value="<?php echo absint( $pid ); ?>" <?php selected( $pid, $poll_id ); ?>>
 							<?php echo esc_html( $pname ); ?>
 						</option>
 						<?php
@@ -91,8 +93,8 @@ class Widget extends \WP_Widget {
 
 	public function update( $new_instance, $old_instance ) {
 		return array(
-			'title'       => isset( $new_instance['title'] )       ? sanitize_text_field( wp_unslash( $new_instance['title'] ) )       : '',
-			'poll_id'     => isset( $new_instance['poll_id'] )     ? (int) $new_instance['poll_id']                                    : 0,
+			'title'       => isset( $new_instance['title'] ) ? sanitize_text_field( wp_unslash( $new_instance['title'] ) ) : '',
+			'poll_id'     => isset( $new_instance['poll_id'] ) ? (int) $new_instance['poll_id'] : 0,
 			'tracking_id' => isset( $new_instance['tracking_id'] ) ? sanitize_text_field( wp_unslash( $new_instance['tracking_id'] ) ) : '',
 		);
 	}
@@ -103,10 +105,10 @@ class Widget extends \WP_Widget {
 			return;
 		}
 
-		$title       = isset( $instance['title'] )       ? (string) $instance['title']       : '';
+		$title       = isset( $instance['title'] ) ? (string) $instance['title'] : '';
 		$tracking_id = isset( $instance['tracking_id'] ) ? (string) $instance['tracking_id'] : '';
 
-		$shortcode = sprintf(
+		$shortcode   = sprintf(
 			'[yop_poll id="%d" tracking_id="%s"]',
 			$poll_id,
 			esc_attr( $tracking_id )

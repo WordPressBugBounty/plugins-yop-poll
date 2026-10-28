@@ -25,7 +25,7 @@ class Admin_Page_Add_New {
 		echo '<div class="wrap yop-poll-wrap">';
 		printf(
 			'<div id="yop-poll-admin" data-poll-id="%d"></div>',
-			esc_attr( $poll_id )
+			absint( $poll_id )
 		);
 		echo '</div>';
 	}

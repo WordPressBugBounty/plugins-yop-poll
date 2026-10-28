@@ -8,6 +8,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Shared helpers for the plugin's REST controllers.
+ *
+ * @phpstan-import-type PollAccessOptions from \YopPoll\Helpers\Meta_Types
+ */
 abstract class REST_Base extends \WP_REST_Controller {
 
 	protected $namespace = 'yop-poll/v1';
@@ -31,45 +36,17 @@ abstract class REST_Base extends \WP_REST_Controller {
 		return new \WP_REST_Response( $data, $status );
 	}
 
-	protected function error( $message, $status = 400 ) {
-		return new \WP_Error( 'yop_poll_error', $message, array( 'status' => $status ) );
-	}
-
 	/**
-	 * Emit a handler result over admin-ajax in the shape the REST API would have used.
+	 * A refusal, with its HTTP status and anything the ballot can act on.
 	 *
-	 * The vote and poll-data handlers are shared by two transports: the REST routes and
-	 * the admin-ajax actions that authenticated visitors use. They keep returning
-	 * WP_REST_Response / WP_Error so the REST adapters stay pass-throughs and cannot
-	 * drift; this converts that to JSON for the ajax adapters.
-	 *
-	 * The envelope has to match byte for byte. The frontend throws the parsed body on any
-	 * non-2xx and branches on `code` - yop_poll_limit_reached, yop_poll_block_reached,
-	 * yop_poll_ban_reached - and reads `data.poll_data` off the limit error. Emit a
-	 * different shape here and every refusal silently renders as a generic failure.
-	 *
-	 * @param \WP_REST_Response|\WP_Error|mixed $result Handler result.
+	 * @param string $message What the visitor reads.
+	 * @param int    $status  HTTP status.
+	 * @param array  $data    More for the client: `element_id` names the
+	 *                        question or field a refusal is about.
+	 * @return \WP_Error
 	 */
-	public function send_ajax_result( $result ): void {
-		if ( is_wp_error( $result ) ) {
-			$data   = $result->get_error_data();
-			$status = ( is_array( $data ) && isset( $data['status'] ) ) ? (int) $data['status'] : 400;
-
-			wp_send_json(
-				array(
-					'code'    => $result->get_error_code(),
-					'message' => $result->get_error_message(),
-					'data'    => is_array( $data ) ? $data : array( 'status' => $status ),
-				),
-				$status
-			);
-		}
-
-		if ( $result instanceof \WP_REST_Response ) {
-			wp_send_json( $result->get_data(), $result->get_status() );
-		}
-
-		wp_send_json( $result );
+	protected function error( $message, $status = 400, array $data = array() ) {
+		return new \WP_Error( 'yop_poll_error', $message, array_merge( $data, array( 'status' => $status ) ) );
 	}
 
 	protected function get_int_param( $request, $key, $default = 0 ) {
@@ -95,21 +72,91 @@ abstract class REST_Base extends \WP_REST_Controller {
 			return $remote_addr;
 		}
 
-		if ( ! empty( $_SERVER['HTTP_CLIENT_IP'] ) ) {
-			$ip = trim( sanitize_text_field( wp_unslash( $_SERVER['HTTP_CLIENT_IP'] ) ) );
-			if ( filter_var( $ip, FILTER_VALIDATE_IP ) ) {
-				return $ip;
-			}
+		// Only the part of X-Forwarded-For a proxy wrote. A proxy appends the
+		// address it saw on the right and keeps whatever the client sent on
+		// the left, so the voter is the rightmost address that is neither a
+		// private hop nor a proxy the site names. Client-IP is no proxy's
+		// header -- anyone sets it -- and is never read.
+		if ( empty( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ) {
+			return $remote_addr;
 		}
-		if ( ! empty( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ) {
-			$forwarded = sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_FORWARDED_FOR'] ) );
-			$ip        = trim( explode( ',', $forwarded )[0] );
-			if ( filter_var( $ip, FILTER_VALIDATE_IP ) ) {
-				return $ip;
+
+		$hops = array_reverse(
+			array_map( 'trim', explode( ',', sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ) ) )
+		);
+
+		/**
+		 * Proxies in front of the site whose addresses are public -- a CDN
+		 * edge ahead of the site's own proxy, say -- to skip when reading
+		 * X-Forwarded-For. Addresses or CIDR ranges, IPv4 or IPv6.
+		 *
+		 * @param string[] $proxies Addresses or ranges.
+		 */
+		$trusted = array_filter( array_map( 'strval', (array) apply_filters( 'yop_poll_trusted_proxies', array() ) ) );
+		$nearest = '';
+
+		foreach ( $hops as $hop ) {
+			if ( ! filter_var( $hop, FILTER_VALIDATE_IP ) || self::ip_in_any( $hop, $trusted ) ) {
+				continue;
+			}
+
+			if ( filter_var( $hop, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE ) ) {
+				return $hop;
+			}
+
+			// A network with no public address in the chain at all: the
+			// nearest hop the site did not name.
+			if ( '' === $nearest ) {
+				$nearest = $hop;
 			}
 		}
 
+		if ( '' !== $nearest ) {
+			return $nearest;
+		}
+
 		return $remote_addr;
+	}
+
+	/**
+	 * Whether an address is one of these addresses or inside one of these ranges.
+	 *
+	 * @param string   $ip     An address.
+	 * @param string[] $ranges Addresses, or `address/bits` ranges.
+	 * @return bool
+	 */
+	private static function ip_in_any( string $ip, array $ranges ): bool {
+		$packed = inet_pton( $ip );
+		if ( false === $packed ) {
+			return false;
+		}
+
+		foreach ( $ranges as $range ) {
+			$parts = explode( '/', trim( $range ), 2 );
+			$base  = inet_pton( $parts[0] );
+
+			if ( false === $base || strlen( $base ) !== strlen( $packed ) ) {
+				continue;
+			}
+
+			$bits  = isset( $parts[1] ) ? max( 0, min( 8 * strlen( $base ), (int) $parts[1] ) ) : 8 * strlen( $base );
+			$bytes = intdiv( $bits, 8 );
+			$rest  = $bits % 8;
+
+			if ( substr( $packed, 0, $bytes ) !== substr( $base, 0, $bytes ) ) {
+				continue;
+			}
+			if ( 0 === $rest ) {
+				return true;
+			}
+
+			$mask = ( 0xFF << ( 8 - $rest ) ) & 0xFF;
+			if ( ( ord( $packed[ $bytes ] ) & $mask ) === ( ord( $base[ $bytes ] ) & $mask ) ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/**
@@ -139,6 +186,10 @@ abstract class REST_Base extends \WP_REST_Controller {
 		}
 	}
 
+	/**
+	 * @param array $access `meta_data.options.access`.
+	 * @phpstan-param PollAccessOptions $access
+	 */
 	public function check_blocks(
 		array $access,
 		Model_Vote $vote_model,
@@ -161,27 +212,21 @@ abstract class REST_Base extends \WP_REST_Controller {
 
 		$block_period = $access['blockLengthType'] ?? 'forever';
 
-		// An unrecognised block type used to `continue 2`, so a poll configured with a
-		// value this edition does not implement (by-fingerprint / by-email from the paid
-		// editions on shared tables, or a v6 spelling the migrator never mapped) blocked
-		// nobody while the UI reported blocking as on. Track what actually ran: if the
-		// only types present are ones we cannot honour, deny rather than wave the vote
-		// through. A mixed list such as ['by-ip','by-fingerprint'] still works normally,
-		// so this only bites when blocking would otherwise be a complete no-op.
-		$applied     = false;
-		$unsupported = false;
-
 		foreach ( $block_voters as $block_type ) {
 			$args = array();
 
 			switch ( $block_type ) {
 				case 'by-cookie':
-					if ( '' === $voter_id ) continue 2;
+					if ( '' === $voter_id ) {
+						continue 2;
+					}
 					$args['voter_id'] = $voter_id;
 					break;
 
 				case 'by-ip':
-					if ( '' === $ip ) continue 2;
+					if ( '' === $ip ) {
+						continue 2;
+					}
 					$args['ipaddress'] = $ip;
 					break;
 
@@ -196,12 +241,36 @@ abstract class REST_Base extends \WP_REST_Controller {
 					break;
 
 				default:
-					$unsupported = true;
-					continue 2;
+					// Identity types an addon owns. Core keeps the lookup and
+					// the block-window logic; the addon only says which column
+					// identifies the voter for its type. Returning no args
+					// means the identity is unavailable for this request,
+					// which must skip the check rather than block, or a voter
+					// whose identity could not be resolved would be refused
+					// outright.
+					$args = apply_filters(
+						'yop_poll_block_identity_args',
+						array(),
+						$block_type,
+						array(
+							'poll_id'           => $poll_id,
+							'ipaddress'         => $ip,
+							'user_id'           => $user_id,
+							'voter_id'          => $voter_id,
+							'tracking_id'       => $tracking_id,
+							'voter_fingerprint' => $fingerprint,
+							'user_email'        => $user_email,
+						)
+					);
+
+					if ( ! is_array( $args ) || empty( $args ) ) {
+						continue 2;
+					}
+					break;
 			}
 
-			$applied   = true;
 			$last_vote = $vote_model->get_last_vote( $poll_id, $args );
+			$last_vote = apply_filters( 'yop_poll_last_vote_for_identity', $last_vote, $poll_id, $args );
 			if ( ! $last_vote ) {
 				continue;
 			}
@@ -235,59 +304,56 @@ abstract class REST_Base extends \WP_REST_Controller {
 			// Elapsed — this block type is cleared; continue checking other types.
 		}
 
-		// Every configured type was one we cannot honour: fail closed. A supported type
-		// that simply had no identity to match on (say by-cookie once GDPR anonymisation
-		// has cleared voter_id) does not set $unsupported, so it still allows the vote.
-		if ( $unsupported && ! $applied ) {
-			return false;
-		}
-
 		return true;
 	}
 
 	/**
-	 * Whether the per-user vote limit is in force for a poll.
+	 * Whether this voter may cast another vote under the poll's vote limit.
 	 *
-	 * The builder offers the limit only when Guest is not a vote permission, and hides it
-	 * the moment Guest is ticked. The saved value stays in the meta (so unticking Guest
-	 * brings the setting back), and was still being enforced - a limit the admin could no
-	 * longer see or turn off. Mirror the builder: with Guest allowed there is no limit.
+	 * The limit counts people who signed in, so it applies only to a poll
+	 * that takes sign-ins and nothing else, and only to a vote cast through a
+	 * method that poll lists. A poll that also takes guests ignores it: anyone
+	 * limited could simply vote again as a guest, and the builder hides the
+	 * setting there -- a limit nobody can see must not go on refusing people.
+	 *
+	 * Counted by account where there is one, else by the address the
+	 * sign-in vouched for.
+	 *
+	 * @param array      $access     `meta_data.options.access`.
+	 * @param Model_Vote $vote_model Vote model.
+	 * @param int        $poll_id    The poll.
+	 * @param string     $permission The method the vote is cast through.
+	 * @param int        $user_id    The voter's account, or 0.
+	 * @param string     $user_email The address the method vouched for.
+	 * @phpstan-param PollAccessOptions $access
+	 * @return bool False once the limit is reached.
 	 */
-	public static function limit_applies( array $access ): bool {
+	protected function check_limits( array $access, Model_Vote $vote_model, int $poll_id, string $permission, int $user_id, string $user_email ): bool {
 		if ( 'yes' !== ( $access['limitVotesPerUser'] ?? 'no' ) ) {
-			return false;
-		}
-
-		$perms = $access['votePermissions'] ?? array( 'guest' );
-		if ( ! is_array( $perms ) ) {
-			$perms = array( $perms );
-		}
-
-		return ! in_array( 'guest', $perms, true );
-	}
-
-	protected function check_limits( array $access, Model_Vote $vote_model, int $poll_id, string $user_type, int $user_id, string $user_email ): bool {
-		if ( ! self::limit_applies( $access ) ) {
 			return true;
 		}
 
-		$max = max( 1, (int) ( $access['votesPerUserAllowed'] ?? 1 ) );
+		$permission = sanitize_key( $permission );
+		$accepted   = $access['votePermissions'] ?? array( 'guest' );
+		$accepted   = array_map( 'sanitize_key', is_array( $accepted ) ? $accepted : array( $accepted ) );
 
-		if ( 'wordpress' === $user_type && $user_id > 0 ) {
+		if ( in_array( 'guest', $accepted, true ) || ! in_array( $permission, $accepted, true ) ) {
+			return true;
+		}
+
+		if ( $user_id > 0 ) {
 			$args = array( 'user_id' => $user_id );
-		} elseif ( 'social' === $user_type && '' !== $user_email ) {
-			$args = array( 'user_email' => $user_email );
 		} elseif ( '' !== $user_email ) {
-			// Email-identified voter: enforce limit by email address.
 			$args = array( 'user_email' => $user_email );
 		} else {
 			// No stable identity: cannot enforce limit.
 			return true;
 		}
 
+		$max   = max( 1, (int) ( $access['votesPerUserAllowed'] ?? 1 ) );
 		$count = $vote_model->count_active_for_user( $poll_id, $args );
+		$count = max( 0, (int) apply_filters( 'yop_poll_active_vote_count', $count, $poll_id, $args ) );
 
 		return $count < $max;
 	}
-
 }

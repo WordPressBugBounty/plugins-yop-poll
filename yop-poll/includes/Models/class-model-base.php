@@ -25,12 +25,12 @@ abstract class Model_Base {
 		$table = $this->get_table();
 
 		$defaults = array(
-			'orderby'  => 'id',
-			'order'    => 'DESC',
-			'per_page' => 20,
-			'page'     => 1,
-			'where'    => array(),
-			'search'   => '',
+			'orderby'        => 'id',
+			'order'          => 'DESC',
+			'per_page'       => 20,
+			'page'           => 1,
+			'where'          => array(),
+			'search'         => '',
 			'search_columns' => array(),
 		);
 
@@ -65,7 +65,7 @@ abstract class Model_Base {
 		$offset   = ( max( 1, (int) $args['page'] ) - 1 ) * (int) $args['per_page'];
 		$per_page = (int) $args['per_page'];
 
-		$sql = "SELECT * FROM {$table} {$where_sql} ORDER BY {$orderby} {$order} LIMIT %d OFFSET %d";
+		$sql            = "SELECT * FROM {$table} {$where_sql} ORDER BY {$orderby} {$order} LIMIT %d OFFSET %d";
 		$where_values[] = $per_page;
 		$where_values[] = $offset;
 

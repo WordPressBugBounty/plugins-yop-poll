@@ -20,6 +20,11 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 	require_once __DIR__ . '/includes/Helpers/class-capabilities.php';
 	\YopPoll\Helpers\Capabilities::uninstall();
 
+	// Before the polls table goes: each poll's own page holds nothing but
+	// its shortcode, and would be left published and empty (QA L43).
+	require_once __DIR__ . '/includes/Helpers/class-poll-page.php';
+	\YopPoll\Helpers\Poll_Page::trash_all_for_uninstall();
+
 	global $wpdb;
 
 	$prefix = $wpdb->prefix . 'yoppoll_';
@@ -48,4 +53,17 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 	delete_option( 'yop_poll_settings' );
 	delete_option( 'yop_poll_migration_status' );
 	delete_option( 'yop_poll_migration_offset' );
+	delete_option( 'yop_poll_captcha_pow_migrated' );
+	delete_option( 'yop_poll_refusal_messages_migrated' );
+	delete_option( 'yop_poll_meta_html_cleaned' );
+	delete_option( 'yop_poll_results_moment_migrated' );
+	delete_option( 'yop_poll_caps_installed' );
+	delete_option( 'yop_poll_author_others_revoked' );
+	delete_option( 'yop_poll_optin_stats' );
+
+	// The Starter Kit card's per-user state, and the first-run guide's from
+	// before it.
+	foreach ( array( 'yop_poll_starter_kit_subscribed', 'yop_poll_starter_kit_dismissed', 'yop_poll_guide_dismissed' ) as $meta_key ) {
+		delete_metadata( 'user', 0, $meta_key, '', true );
+	}
 } )();

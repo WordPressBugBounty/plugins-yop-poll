@@ -40,10 +40,10 @@ class Deactivation_Feedback {
 	 * "~all"/"-all" — kills this channel silently: no bounce, just an inbox that
 	 * stops filling up. Move to an HTTPS endpoint before hardening that DNS.
 	 */
-	const FROM_NAME    = 'Wordpress Deactivation Notice';
-	const FROM_EMAIL   = 'deactivate@yop-poll.com';
-	const SUBJECT      = 'YOP Poll Deactivation Notification';
-	const MAX_DETAILS  = 1000;
+	const FROM_NAME   = 'Wordpress Deactivation Notice';
+	const FROM_EMAIL  = 'deactivate@yop-poll.com';
+	const SUBJECT     = 'YOP Poll Deactivation Notification';
+	const MAX_DETAILS = 1000;
 
 	public function init() {
 		add_action( 'admin_footer-plugins.php', array( $this, 'render' ) );
