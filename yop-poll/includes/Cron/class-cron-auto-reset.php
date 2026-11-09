@@ -73,7 +73,12 @@ class Cron_Auto_Reset {
 			return;
 		}
 
-		$enabled = apply_filters( 'yop_poll_auto_reset_enabled', false, $poll, $meta_data );
+		// The reset is a Free feature: the poll's own switch turns it on, and
+		// only the email sent before it is Pro's. Until 7.1.1 this started at
+		// false and waited for Pro to say yes, so on Free alone the switch
+		// saved and nothing ever ran. The filter stays as a veto.
+		$switched_on = 'yes' === ( $meta_data['options']['poll']['resetPollStatsAutomatically'] ?? 'no' );
+		$enabled     = apply_filters( 'yop_poll_auto_reset_enabled', $switched_on, $poll, $meta_data );
 		if ( true !== $enabled ) {
 			return;
 		}

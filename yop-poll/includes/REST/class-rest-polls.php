@@ -7,6 +7,8 @@
 
 namespace YopPoll\REST;
 
+use YopPoll\Frontend\Messages;
+
 use YopPoll\Models\Model_Poll;
 use YopPoll\Models\Model_Element;
 use YopPoll\Models\Model_Subelement;
@@ -25,6 +27,7 @@ use YopPoll\Plugin;
 use YopPoll\Templates\Template_Engine;
 use YopPoll\Frontend\Shortcode;
 use YopPoll\Frontend\Earlier_Vote;
+use YopPoll\Frontend\Poll_Renderer;
 use YopPoll\Frontend\Elements\Element_Question_Text;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -254,6 +257,14 @@ class REST_Polls extends REST_Base {
 					'methods'             => \WP_REST_Server::READABLE,
 					'callback'            => array( $this, 'get_results' ),
 					'permission_callback' => '__return_true',
+					'args'                => array(
+						// The Results button was pressed. Honoured only on a
+						// poll that draws one; see `get_results()`.
+						'show_results' => array(
+							'type'    => 'string',
+							'default' => '',
+						),
+					),
 				),
 			)
 		);
@@ -388,7 +399,7 @@ class REST_Polls extends REST_Base {
 		$poll    = ( new Model_Poll() )->find( $poll_id );
 
 		if ( ! $poll || 'published' !== $poll['status'] ) {
-			return $this->error( __( 'Poll not found or not active.', 'yop-poll' ), 404 );
+			return $this->error( Messages::get( Messages::from_option(), 'voting', 'invalid-poll', __( 'Poll not found or not active.', 'yop-poll' ) ), 404 );
 		}
 
 		$payload = array(
@@ -1045,9 +1056,20 @@ class REST_Polls extends REST_Base {
 
 		// Having voted earns the figures only where the poll shows them after
 		// a vote -- the same question the server-rendered page asks.
+		//
+		// Pressing the Results button earns them whatever When says, as it
+		// did in 6.x: the button is the author's way of letting a visitor
+		// look without voting. The flag is anyone's to send, so it counts
+		// only where the author drew the button, and Who still has the last
+		// word (`sanitize_for_public()`). The load-time fetch sends no flag
+		// and follows When alone, so the figures reach a page only when a
+		// visitor asks for them.
+		$pressed = '1' === (string) $request['show_results']
+			&& Poll_Renderer::offers_results_button( (array) ( $data['poll']['meta_data'] ?? array() ) );
+
 		$public_data = self::sanitize_for_public(
 			$data,
-			$already_voted && Shortcode::voted_may_see_results( $data['poll'] ?? array() )
+			$pressed || ( $already_voted && Shortcode::voted_may_see_results( $data['poll'] ?? array() ) )
 		);
 
 		// The same rendering `create_vote` returns after a vote
@@ -1257,10 +1279,12 @@ class REST_Polls extends REST_Base {
 	 * A poll's data with everything a visitor may not see taken out.
 	 *
 	 * @param array $data         The poll's data.
-	 * @param bool  $force_counts Keep the vote counts whatever the results setting says.
+	 * @param bool  $force_counts Keep the vote counts whatever When says.
+	 * @param bool  $placed_open  Keep them whatever Who says too: the author
+	 *                            placed the results on the page themselves.
 	 * @return array The public data.
 	 */
-	public static function sanitize_for_public( array $data, bool $force_counts = false ): array {
+	public static function sanitize_for_public( array $data, bool $force_counts = false, bool $placed_open = false ): array {
 		// --- Conditional vote counts ---
 
 		$results_meta     = $data['poll']['meta_data']['options']['results'] ?? array();
@@ -1297,11 +1321,11 @@ class REST_Polls extends REST_Base {
 			// 'never': never include counts.
 		}
 
-		// A Results button is a way to look, not a reason to show. It used to
-		// include the counts whenever the poll had one, so a poll showing
-		// results once it closes showed them the moment anyone pressed it or
-		// voted (QA H5). When and Who decide; the button is told what they
-		// decided (`Shortcode::render_results_or_notice()`).
+		// A Results button is not read here. It used to include the counts
+		// whenever the poll had one, so a poll showing results once it closes
+		// showed them the moment anyone voted (QA H5). Pressing the button
+		// is a request, and `get_results()` passes it in as `$force_counts`;
+		// the vote response and the page follow When alone.
 
 		/*
 		 * Who may see them at all, which is a different question from when.
@@ -1315,6 +1339,13 @@ class REST_Polls extends REST_Base {
 		 * An empty list is nobody, which is what the builder's own warning
 		 * says: "Nobody is selected, so no visitor sees the results."
 		 *
+		 * Except where the author placed the results themselves: a
+		 * results-only shortcode or block (`$placed_open`) is written onto a
+		 * page to show the figures to whoever reads it, and 6.x drew them
+		 * there without asking When or Who. The press of a Results button
+		 * and the response to a vote are a visitor's request, not the
+		 * author's placement, so Who still answers those.
+		 *
 		 * The poll-level totals below are a separate opt-in about the ballot
 		 * rather than the per-answer figures, so they are not gated here.
 		 */
@@ -1324,6 +1355,10 @@ class REST_Polls extends REST_Base {
 		}
 		$audience_ok = in_array( 'guest', $show_to, true )
 			|| ( in_array( 'registered', $show_to, true ) && is_user_logged_in() );
+
+		if ( $placed_open ) {
+			$audience_ok = true;
+		}
 
 		if ( ! $audience_ok ) {
 			$include_counts = false;

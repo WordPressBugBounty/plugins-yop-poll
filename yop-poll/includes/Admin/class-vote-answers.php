@@ -145,7 +145,7 @@ class Vote_Answers {
 			return $stext;
 		}
 
-		return $stext . ' — ' . $label;
+		return $stext . ' - ' . $label;
 	}
 
 	/**

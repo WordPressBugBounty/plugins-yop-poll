@@ -172,31 +172,10 @@ final class Validation_Rules {
 	 */
 	public static function message( array $context, string $key, string $fallback, array $tokens = array() ): string {
 		$messages = isset( $context['messages'] ) && is_array( $context['messages'] ) ? $context['messages'] : array();
-		$voting   = isset( $messages['voting'] ) && is_array( $messages['voting'] ) ? $messages['voting'] : array();
-		$template = ! empty( $voting[ $key ] ) ? (string) $voting[ $key ] : $fallback;
-		$filled   = self::fill_tokens( $template, $tokens );
 
-		return '' !== trim( $filled ) ? $filled : self::fill_tokens( $fallback, $tokens );
-	}
-
-	/**
-	 * Replace `{token}` placeholders in a template.
-	 *
-	 * An unresolved token — one absent from `$tokens` — becomes nothing
-	 * rather than being left as literal `{token}` text.
-	 *
-	 * @param string $template Text with `{token}` placeholders.
-	 * @param array  $tokens   `{token}` replacements.
-	 * @return string
-	 */
-	private static function fill_tokens( string $template, array $tokens ): string {
-		return (string) preg_replace_callback(
-			'/\{(\w+)\}/',
-			static function ( array $matches ) use ( $tokens ) {
-				return isset( $tokens[ $matches[1] ] ) ? (string) $tokens[ $matches[1] ] : '';
-			},
-			$template
-		);
+		// `Messages::get()` holds the rule; this is the `voting` shorthand
+		// every element renderer and the Pro addon call.
+		return Messages::get( $messages, 'voting', $key, $fallback, $tokens );
 	}
 
 	/**

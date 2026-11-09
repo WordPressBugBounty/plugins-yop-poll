@@ -39,6 +39,35 @@ class Element_Meta_Policy {
 	/** Alignments the builder offers. */
 	const DIVIDER_ALIGNMENTS = array( 'left', 'center', 'right' );
 
+	/** The feature an addon advertises to allow several write-in boxes. */
+	const EXTRA_OTHER_ANSWERS = 'extra-other-answers';
+
+	/** Write-in boxes a question may draw with that feature. */
+	const MAX_WRITE_IN_BOXES = 20;
+
+	/**
+	 * How many write-in boxes a question draws.
+	 *
+	 * Free allows one. Several are Pro's, under the same feature as the
+	 * multi-line field, and the builder offered 1 to 10 with no badge while
+	 * the renderer drew all of them. The renderer, the vote check and the
+	 * save all read this, so they agree with each other.
+	 *
+	 * @param array $meta The element's meta.
+	 * @return int At least one.
+	 */
+	public static function write_in_boxes( array $meta ): int {
+		if ( ! \YopPoll\Plugin::instance()->addon_api()->has_feature( self::EXTRA_OTHER_ANSWERS ) ) {
+			return 1;
+		}
+
+		$count = isset( $meta['otherAnswersCount'] ) && is_numeric( $meta['otherAnswersCount'] )
+			? (int) $meta['otherAnswersCount']
+			: 1;
+
+		return max( 1, min( self::MAX_WRITE_IN_BOXES, $count ) );
+	}
+
 	/**
 	 * Attach both filters.
 	 */
@@ -81,6 +110,13 @@ class Element_Meta_Policy {
 	 * @return array
 	 */
 	public function sanitize( array $meta, array $context ): array {
+		// Held to one box on a save made without the feature. The addon's own
+		// filter bounds the count when it is there.
+		if ( array_key_exists( 'otherAnswersCount', $meta )
+			&& ! \YopPoll\Plugin::instance()->addon_api()->has_feature( self::EXTRA_OTHER_ANSWERS ) ) {
+			$meta['otherAnswersCount'] = 1;
+		}
+
 		if ( 'standard-divider' !== ( $context['etype'] ?? '' ) ) {
 			return $meta;
 		}

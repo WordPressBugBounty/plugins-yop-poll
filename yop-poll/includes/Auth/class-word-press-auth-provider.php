@@ -1,6 +1,8 @@
 <?php
 namespace YopPoll\Auth;
 
+use YopPoll\Frontend\Messages;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -17,7 +19,7 @@ final class WordPress_Auth_Provider implements Vote_Auth_Provider {
 		if ( ! $user ) {
 			return new \WP_Error(
 				'yop_poll_auth_required',
-				__( 'Please log in with WordPress before voting.', 'yop-poll' ),
+				Messages::get( Messages::from_option(), 'voting', 'login-required', __( 'Please log in with WordPress before voting.', 'yop-poll' ) ),
 				array( 'status' => 401 )
 			);
 		}

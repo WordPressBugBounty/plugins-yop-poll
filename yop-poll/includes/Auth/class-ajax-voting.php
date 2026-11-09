@@ -7,6 +7,8 @@
 
 namespace YopPoll\Auth;
 
+use YopPoll\Frontend\Messages;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -112,7 +114,7 @@ final class Ajax_Voting {
 				'status' => 400,
 				'data'   => array(
 					'code'    => 'yop_poll_error',
-					'message' => __( 'Your vote could not be recorded.', 'yop-poll' ),
+					'message' => Messages::get( Messages::from_option(), 'voting', 'vote-not-recorded', __( 'Your vote could not be recorded.', 'yop-poll' ) ),
 				),
 			);
 		}
@@ -127,7 +129,7 @@ final class Ajax_Voting {
 				'status' => 403,
 				'data'   => array(
 					'code'    => 'yop_poll_invalid_nonce',
-					'message' => __( 'Invalid or expired security token. Please refresh the page and try again.', 'yop-poll' ),
+					'message' => Messages::get( Messages::from_option(), 'voting', 'invalid-nonce', __( 'Invalid or expired security token. Please refresh the page and try again.', 'yop-poll' ) ),
 				),
 			);
 		}

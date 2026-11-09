@@ -91,7 +91,7 @@ class Captcha_Renderer {
 		}
 
 		if ( isset( self::$external_settings_key[ $type ] ) ) {
-			$html = self::render_external( $type );
+			$html = self::render_external( $type, isset( $context['messages'] ) && is_array( $context['messages'] ) ? $context['messages'] : array() );
 		} else {
 			// An addon may register a captcha type Core has never heard of;
 			// that addon draws it, not this fallback, so this stays silent
@@ -149,10 +149,11 @@ class Captcha_Renderer {
 	 * here as a data attribute exposes nothing. This attribute is the only
 	 * place the front end reads it from.
 	 *
-	 * @param string $type `useCaptcha` value naming the provider.
+	 * @param string $type     `useCaptcha` value naming the provider.
+	 * @param array  $messages The site's messages.
 	 * @return string
 	 */
-	private static function render_external( string $type ): string {
+	private static function render_external( string $type, array $messages = array() ): string {
 		$site_key = self::site_key( $type );
 
 		if ( '' === $site_key ) {
@@ -164,7 +165,7 @@ class Captcha_Renderer {
 			// actually is.
 			return sprintf(
 				'<div class="yop-poll-element"><div class="yop-poll-captcha__not-configured">%s</div></div>',
-				esc_html__( 'Captcha not configured.', 'yop-poll' )
+				esc_html( Messages::get( $messages, 'voting', 'captcha-not-configured' ) )
 			);
 		}
 

@@ -4,7 +4,7 @@ Donate Link: https://www.yop-poll.com
 Tags: create poll, poll plugin, poll, voting, WordPress poll
 Requires at least: 6.5
 Tested up to: 7.1
-Stable tag: 7.1.0
+Stable tag: 7.1.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -28,18 +28,19 @@ After more than a decade of powering polls on WordPress sites, YOP Poll has been
 
 * Run unlimited polls at the same time, with no artificial limits
 * Schedule polls to start and end automatically — perfect for time-bound campaigns
+* Clear a poll's votes automatically on a schedule, once or every few hours, days, or months
 * Choose between single-choice and multiple-choice questions
 * Allow voters to add their own "Other" answers
-* Sort answers in any order — exact, alphabetical, by votes, ascending, or descending
+* Sort the results as written, alphabetically, or by votes, in ascending or descending order
 * Display results before voting, after voting, on a custom date, after the poll ends, or never
 * Show results as numbers, percentages, or both
-* Collect extra information from voters with custom fields (name, email, age, anything you need)
+* Collect extra information from voters with a short text field, such as a name or a city
 * Set who can vote: guests, registered users, or both
 * Block voters by cookie, IP, or username
 * Display polls anywhere with shortcodes, widgets, or by poll ID
 * Show a random active poll, the latest poll, or any specific poll
 * Browse a full archive of past polls with statistics
-* View detailed logs of every vote, with sorting, search, and export
+* View detailed logs of every vote, with sorting and search, and export the votes list to CSV
 * Manage bans by email, username, or IP — globally or per poll
 * Built-in protection against spam votes, including Cloudflare Turnstile support
 
@@ -135,6 +136,14 @@ Please report security issues through the [Patchstack Vulnerability Disclosure P
 == Changelog ==
 
 The full notes for every release, in the same wording, are in changelog.txt.
+
+= 7.1.1 =
+* **Edit more of what voters see.** Settings → Messages now holds about forty more of the sentences a poll shows a visitor, including the results notices, the dates on a closed or not-yet-open poll, the error messages and the field labels. Four new groups make them easy to find. Any field you leave blank uses the default wording.
+* **The Results button works the way it did in version 6.** When you turn on the Results button, visitors can open the results without voting, whatever the "When" setting says, including on polls set to Never. The "Show results to visitors" setting still decides who can see them.
+* **Results-only polls show the results to everyone.** A poll you add to a page as "Show results only" now shows its results to every visitor, including guests on a poll whose results are only for signed-in users.
+* **Fixed:** On a poll that stops repeat voting by IP address, someone who had already voted and opened the poll in a second browser was shown the ballot and then told their vote wasn't allowed. They now see the results, or the thank-you message, straight away.
+* **Fixed:** Clicking or tabbing into the "Other" answer's text box now selects Other, so you no longer have to start typing first.
+* **Fixed:** "Reset stats automatically" now clears a poll's votes on the schedule you set. Before, the setting saved but the votes were never reset.
 
 = 7.1.0 =
 * **Faster polls.** Polls load quicker and use less of your visitors' data. Search engines can now read your poll questions and answers too.

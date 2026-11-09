@@ -48,8 +48,13 @@ final class Addon_API {
 	 * `yop_poll_results_votes_note` to word the line under the poll's name,
 	 * and `yop_poll_poll_row_notes` to say on the polls list that a poll has
 	 * something waiting.
+	 *
+	 * 1.8.0 adds `yop_poll_message_defaults`, so a sentence an addon puts on a
+	 * poll -- a sign-in method's button and its note on the chooser -- is
+	 * declared by the addon and editable in Settings → Messages, instead of
+	 * shipping in Core for a feature Core does not have.
 	 */
-	public const VERSION = '1.7.0';
+	public const VERSION = '1.8.0';
 
 	/** @var string[] */
 	private const CAPABILITIES = array(

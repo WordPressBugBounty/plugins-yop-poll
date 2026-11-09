@@ -15,8 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$yop_poll_upgrade_url = Admin_Page_Upgrade_To_Pro::SALES_PAGE_URL;
-$yop_poll_new_tab     = '<svg viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path fill="currentColor" d="M11 3h6v6h-2V6.41l-6.29 6.3-1.42-1.42L13.59 5H11V3zM5 5h4v2H5v8h8v-4h2v6H3V5h2z"/></svg>';
+$yop_poll_new_tab = '<svg viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path fill="currentColor" d="M11 3h6v6h-2V6.41l-6.29 6.3-1.42-1.42L13.59 5H11V3zM5 5h4v2H5v8h8v-4h2v6H3V5h2z"/></svg>';
 ?>
 <div class="wrap yop-poll-upg">
 
@@ -25,7 +24,7 @@ $yop_poll_new_tab     = '<svg viewBox="0 0 20 20" aria-hidden="true" focusable="
 		<h1 id="yop-poll-upg-title">Discover what YOP Poll Pro adds to your polls.</h1>
 		<p class="yop-poll-upg-lede">Go beyond single-question polls with visual choices, ratings, relevant follow-ups, stronger vote controls, and clearer results. Explore the features that fit what you want to ask—and how you want to use the answers.</p>
 		<div class="yop-poll-upg-cta">
-			<a class="yop-poll-upg-button" href="<?php echo esc_url( $yop_poll_upgrade_url ); ?>" target="_blank" rel="noopener" data-cta="pro-sales-page">
+			<a class="yop-poll-upg-button" href="<?php echo esc_url( Admin_Page_Upgrade_To_Pro::sales_page_url( 'header' ) ); ?>" target="_blank" rel="noopener" data-cta="pro-sales-page">
 				Explore Pro features and plans
 				<?php echo $yop_poll_new_tab; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- a fixed SVG literal. ?>
 				<span class="screen-reader-text">(opens in a new tab)</span>
@@ -67,7 +66,7 @@ $yop_poll_new_tab     = '<svg viewBox="0 0 20 20" aria-hidden="true" focusable="
 			<p class="yop-poll-upg-final-text">Try the interactive examples, explore what’s included, and compare plans on the YOP Poll website.</p>
 		</div>
 		<div class="yop-poll-upg-cta">
-			<a class="yop-poll-upg-button" href="<?php echo esc_url( $yop_poll_upgrade_url ); ?>" target="_blank" rel="noopener" data-cta="pro-sales-page">
+			<a class="yop-poll-upg-button" href="<?php echo esc_url( Admin_Page_Upgrade_To_Pro::sales_page_url( 'footer' ) ); ?>" target="_blank" rel="noopener" data-cta="pro-sales-page">
 				Explore Pro features and plans
 				<?php echo $yop_poll_new_tab; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- a fixed SVG literal. ?>
 				<span class="screen-reader-text">(opens in a new tab)</span>

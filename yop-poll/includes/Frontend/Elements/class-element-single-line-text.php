@@ -8,6 +8,8 @@
 
 namespace YopPoll\Frontend\Elements;
 
+use YopPoll\Frontend\Messages;
+
 use YopPoll\Frontend\Poll_Renderer;
 use YopPoll\Frontend\Validation_Rules;
 
@@ -87,7 +89,7 @@ class Element_Single_Line_Text {
 			$el_id,
 			$extra,
 			$label,
-			self::render_input( $meta, $etext, '' !== $etext ? $label_id : '' )
+			self::render_input( $meta, $etext, '' !== $etext ? $label_id : '', isset( $context['messages'] ) && is_array( $context['messages'] ) ? $context['messages'] : array() )
 		);
 	}
 
@@ -103,9 +105,10 @@ class Element_Single_Line_Text {
 	 * @phpstan-param ElementMeta $meta
 	 * @param string $etext    The element's raw label HTML, '' when unlabelled.
 	 * @param string $label_id Id of the label div, '' when unlabelled.
+	 * @param array  $words    The site's messages.
 	 * @return string
 	 */
-	private static function render_input( array $meta, string $etext, string $label_id ): string {
+	private static function render_input( array $meta, string $etext, string $label_id, array $words = array() ): string {
 		$size  = ! empty( $meta['size'] ) ? (string) $meta['size'] : 'small';
 		$align = ! empty( $meta['align'] ) ? (string) $meta['align'] : 'left';
 
@@ -127,7 +130,7 @@ class Element_Single_Line_Text {
 		 */
 		$attributes .= sprintf(
 			' placeholder="%s"',
-			esc_attr__( 'Your answer', 'yop-poll' )
+			esc_attr( Messages::get( $words, 'fields', 'text-placeholder' ) )
 		);
 
 		$max_chars = isset( $meta['maxCharsAllowed'] ) ? (int) $meta['maxCharsAllowed'] : 0;

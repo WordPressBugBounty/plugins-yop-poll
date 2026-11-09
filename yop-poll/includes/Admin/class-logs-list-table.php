@@ -407,7 +407,7 @@ class Logs_List_Table extends \WP_List_Table {
 		printf(
 			'<span class="yop-poll-logs-empty"><strong class="yop-poll-logs-empty__title">%s</strong><span class="yop-poll-logs-empty__body">%s</span></span>',
 			esc_html__( 'No log entries yet', 'yop-poll' ),
-			esc_html__( 'Entries appear here the first time somebody votes — or is refused. Nothing has been recorded for this site yet.', 'yop-poll' )
+			esc_html__( 'Entries appear here the first time somebody votes - or is refused. Nothing has been recorded for this site yet.', 'yop-poll' )
 		);
 	}
 

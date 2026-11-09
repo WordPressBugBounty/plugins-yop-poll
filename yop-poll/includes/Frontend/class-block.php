@@ -176,7 +176,7 @@ class Block {
 		}
 
 		// Nobody's own state goes into the page: see `Shortcode::render_poll()`.
-		$poll_data            = REST_Polls::sanitize_for_public( REST_Polls::get_cached_poll_data( $poll_id ), $show_results_only );
+		$poll_data            = REST_Polls::sanitize_for_public( REST_Polls::get_cached_poll_data( $poll_id ), $show_results_only, $show_results_only );
 		$block_post_id        = $block instanceof \WP_Block ? (int) ( $block->context['postId'] ?? 0 ) : 0;
 		$poll_data['page_id'] = $block_post_id ?: get_the_ID() ?: get_queried_object_id() ?: 0;
 

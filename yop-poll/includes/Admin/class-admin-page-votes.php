@@ -611,7 +611,7 @@ class Admin_Page_Votes {
 			'nothing'  => __( 'Nothing to add yet', 'yop-poll' ),
 			'nothingN' => __( 'Enter how many votes to add to each answer. Existing votes are not changed.', 'yop-poll' ),
 			/* translators: 1: a number of votes, 2: the answer they are added to. */
-			'adds'     => __( 'Adds %1$s — %2$s', 'yop-poll' ),
+			'adds'     => __( 'Adds %1$s - %2$s', 'yop-poll' ),
 			/* translators: %s: the poll's new total of votes. */
 			'becomes'  => __( 'The total becomes %s. These votes have no voter, IP or date of their own, so they are marked “Added by hand” in the votes list.', 'yop-poll' ),
 			/* translators: 1: an answer's votes now, 2: its percentage of the total. */
@@ -635,7 +635,7 @@ class Admin_Page_Votes {
 				<div class="yop-poll-manual__head">
 					<span class="yop-poll-manual__headtext">
 						<h2 id="yop-manual-title"><?php esc_html_e( 'Add votes manually', 'yop-poll' ); ?></h2>
-						<span><?php esc_html_e( 'For votes collected somewhere else — on paper, or in a room.', 'yop-poll' ); ?></span>
+						<span><?php esc_html_e( 'For votes collected somewhere else - on paper, or in a room.', 'yop-poll' ); ?></span>
 					</span>
 					<button type="button" class="yop-poll-manual__close" id="yop-add-votes-close" aria-label="<?php esc_attr_e( 'Close', 'yop-poll' ); ?>" data-manual-close>&#10005;</button>
 				</div>

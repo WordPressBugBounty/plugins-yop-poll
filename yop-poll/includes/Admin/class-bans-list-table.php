@@ -417,7 +417,7 @@ class Bans_List_Table extends \WP_List_Table {
 
 		$body = $any
 			? __( 'Clear the search or choose another filter to see the rest.', 'yop-poll' )
-			: __( 'Add one when you need to stop a voter. Most polls never need any — repeat voting is better handled by the Access settings.', 'yop-poll' );
+			: __( 'Add one when you need to stop a voter. Most polls never need any - repeat voting is better handled by the Access settings.', 'yop-poll' );
 
 		printf(
 			'<div class="yop-poll-bans-empty">'

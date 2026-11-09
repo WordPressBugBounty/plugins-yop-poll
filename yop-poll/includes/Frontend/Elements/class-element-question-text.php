@@ -7,6 +7,8 @@
 
 namespace YopPoll\Frontend\Elements;
 
+use YopPoll\Frontend\Messages;
+
 use YopPoll\Frontend\Poll_Renderer;
 use YopPoll\Frontend\Validation_Rules;
 
@@ -163,6 +165,7 @@ class Element_Question_Text {
 	 */
 	private static function render_answers( array $element, array $meta, array $context ): string {
 		$el_id       = isset( $element['id'] ) ? (int) $element['id'] : 0;
+		$words       = isset( $context['messages'] ) && is_array( $context['messages'] ) ? $context['messages'] : array();
 		$poll_meta   = self::poll_meta( $context );
 		$template    = isset( $context['poll']['template_base'] ) ? (string) $context['poll']['template_base'] : '';
 		$is_multiple = isset( $meta['allowMultipleAnswers'] ) && 'yes' === $meta['allowMultipleAnswers'];
@@ -217,8 +220,7 @@ class Element_Question_Text {
 				? sprintf(
 					'<a class="yop-poll-answer-link" href="%1$s" target="_blank" rel="noopener noreferrer" aria-label="%2$s"><span aria-hidden="true">&#8599;</span></a>',
 					esc_url( (string) $sub_meta['link'] ),
-					/* translators: %s: the answer's text. */
-					esc_attr( sprintf( __( 'More about %s (opens in a new tab)', 'yop-poll' ), wp_strip_all_tags( $stext ) ) )
+					esc_attr( Messages::get( $words, 'fields', 'more-about', '', array( 'answer' => wp_strip_all_tags( $stext ) ) ) )
 				)
 				: '';
 
@@ -247,7 +249,7 @@ class Element_Question_Text {
 			);
 		}
 
-		$rows .= self::render_other_answer( $meta, $mark, $is_multiple, $radio_color, $name, $el_id );
+		$rows .= self::render_other_answer( $meta, $mark, $is_multiple, $radio_color, $name, $el_id, $words );
 
 		return sprintf(
 			'<div class="%s">%s</div>',
@@ -366,24 +368,23 @@ class Element_Question_Text {
 	 * @param string $radio_color The poll's answer colour scheme.
 	 * @param string $name        Input name, shared by the whole group.
 	 * @param int    $el_id       Element id, used to key the fields.
+	 * @param array  $words       The site's messages.
 	 * @return string
 	 */
-	private static function render_other_answer( array $meta, string $mark, bool $is_multiple, string $radio_color, string $name, int $el_id ): string {
+	private static function render_other_answer( array $meta, string $mark, bool $is_multiple, string $radio_color, string $name, int $el_id, array $words = array() ): string {
 		if ( ! isset( $meta['allowOtherAnswers'] ) || 'yes' !== $meta['allowOtherAnswers'] ) {
 			return '';
 		}
 
 		$always_visible = ! isset( $meta['otherFieldAlwaysVisible'] ) || 'no' !== $meta['otherFieldAlwaysVisible'];
-		$count          = isset( $meta['otherAnswersCount'] ) && is_numeric( $meta['otherAnswersCount'] )
-			? (int) $meta['otherAnswersCount']
-			: 1;
+		$count          = \YopPoll\Elements\Element_Meta_Policy::write_in_boxes( $meta );
 		$size           = ! empty( $meta['otherFieldSize'] ) ? (string) $meta['otherFieldSize'] : 'small';
 		$max_chars      = isset( $meta['otherMaxCharsAllowed'] ) ? (int) $meta['otherMaxCharsAllowed'] : 0;
 		$maxlength      = $max_chars > 0 ? sprintf( ' maxlength="%d"', $max_chars ) : '';
 		$is_textarea    = isset( $meta['otherFieldType'] ) && 'multi-line' === $meta['otherFieldType'];
 		$label          = ! empty( $meta['otherAnswersLabel'] )
 			? (string) $meta['otherAnswersLabel']
-			: __( 'Other', 'yop-poll' );
+			: Messages::get( $words, 'fields', 'other-label' );
 
 		/*
 		 * The write-in's own hint, from the design. Different words from a
@@ -393,7 +394,7 @@ class Element_Question_Text {
 		 */
 		$placeholder = sprintf(
 			' placeholder="%s"',
-			esc_attr__( 'Tell us which one', 'yop-poll' )
+			esc_attr( Messages::get( $words, 'fields', 'other-placeholder' ) )
 		);
 
 		$fields = '';

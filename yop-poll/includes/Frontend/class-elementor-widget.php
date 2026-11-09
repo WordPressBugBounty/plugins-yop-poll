@@ -195,7 +195,7 @@ class Elementor_Widget extends \Elementor\Widget_Base {
 			'results_only',
 			array(
 				'label'        => __( 'Show results only', 'yop-poll' ),
-				'description'  => __( 'Shows the tally instead of the ballot. Nobody can vote from here.', 'yop-poll' ),
+				'description'  => __( 'Shows the tally instead of the ballot, to everyone. Nobody can vote from here.', 'yop-poll' ),
 				'type'         => \Elementor\Controls_Manager::SWITCHER,
 				'return_value' => 'yes',
 				'default'      => '',

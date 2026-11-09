@@ -223,18 +223,12 @@ class Poll_Renderer {
 			$actions = self::render_permission_controls( $context, $poll_opts, $messages, self::vote_permissions( $context ), false, $inert );
 		}
 
-		// Never has nothing to show, so it gets no button to show it with.
-		// Any other moment keeps it, because whether that moment has come is
-		// for the visitor's request to decide, not this cached shell; until
-		// it has, the button says when it will (QA H5).
-		$moments = (array) ( $poll_meta['options']['results']['showResultsMoment'] ?? array( 'after-vote' ) );
-
-		if ( 'yes' === ( $poll_opts['showResultsLink'] ?? 'no' ) && array( 'never' ) !== array_values( $moments ) ) {
+		if ( self::offers_results_button( $poll_meta ) ) {
 			// The base class stays on it: the modifier only changes the paint,
 			// and the two are still the same control in two weights.
 			$actions .= sprintf(
 				'<button type="button" class="yop-poll-vote-button yop-poll-vote-button--secondary has-background has-text-color" data-yop-show-results>%s</button>',
-				esc_html( ! empty( $poll_opts['resultsLabelText'] ) ? (string) $poll_opts['resultsLabelText'] : __( 'Results', 'yop-poll' ) )
+				esc_html( ! empty( $poll_opts['resultsLabelText'] ) ? (string) $poll_opts['resultsLabelText'] : Messages::get( $messages, 'buttons', 'results' ) )
 			);
 		}
 
@@ -569,8 +563,7 @@ class Poll_Renderer {
 			);
 			$at      = Poll_Schedule::opens_at( $poll_meta );
 			$tag     = '%START-DATE%';
-			/* translators: %s: the date and time the poll opens. */
-			$then = __( 'It opens on %s.', 'yop-poll' );
+			$then    = 'opens-on';
 		} else {
 			$message = Validation_Rules::message(
 				$context,
@@ -579,8 +572,7 @@ class Poll_Renderer {
 			);
 			$at      = Poll_Schedule::closes_at( $poll_meta );
 			$tag     = '%END-DATE%';
-			/* translators: %s: the date and time the poll closed. */
-			$then = __( 'It closed on %s.', 'yop-poll' );
+			$then    = 'closed-on';
 		}
 
 		if ( null === $at ) {
@@ -593,7 +585,7 @@ class Poll_Renderer {
 			return str_replace( $tag, $date, $message );
 		}
 
-		return rtrim( $message, " \t." ) . '. ' . sprintf( $then, $date );
+		return rtrim( $message, " \t." ) . '. ' . Messages::get( self::messages( $context ), 'schedule', $then, '', array( 'date' => $date ) );
 	}
 
 	/**
@@ -640,20 +632,12 @@ class Poll_Renderer {
 			$text = trim( (string) ( $opts['endDateText'] ?? '' ) );
 			$text = '' !== $text
 				? self::with_end_date_tags( $text, 'as_defined' )
-				/* translators: %s: the date and time the poll closes. */
-				: sprintf( __( 'This poll closes on %s.', 'yop-poll' ), '%END-DATE%' );
+				: Messages::get( self::messages( $context ), 'schedule', 'closes-on', '', array( 'date' => '%END-DATE%' ) );
 		} else {
 			$text = trim( (string) ( $opts['endDateCountdownText'] ?? '' ) );
 			$text = '' !== $text
 				? self::with_end_date_tags( $text, 'countdown' )
-				: sprintf(
-					/* translators: 1: days left, 2: hours left, 3: minutes left, 4: seconds left. Each is followed by its unit's abbreviation. */
-					__( 'Closes in %1$sd %2$sh %3$sm %4$ss', 'yop-poll' ),
-					'%DAYS%',
-					'%HOURS%',
-					'%MINUTES%',
-					'%SECONDS%'
-				);
+				: Messages::get( self::messages( $context ), 'schedule', 'countdown', '', self::countdown_tokens() );
 		}
 
 		// Every tag is filled whichever mode named it, so a visitor never
@@ -724,17 +708,34 @@ class Poll_Renderer {
 				return $text;
 			}
 
-			return rtrim( $text ) . ' ' . sprintf(
-				/* translators: 1: days left, 2: hours left, 3: minutes left, 4: seconds left. Each is followed by its unit's abbreviation. */
-				__( '%1$sd %2$sh %3$sm %4$ss', 'yop-poll' ),
-				'%DAYS%',
-				'%HOURS%',
-				'%MINUTES%',
-				'%SECONDS%'
-			);
+			return rtrim( $text ) . ' ' . Messages::get( Messages::from_option(), 'schedule', 'countdown-units', '', self::countdown_tokens() );
 		}
 
 		return false !== strpos( $text, '%END-DATE%' ) ? $text : rtrim( $text ) . ' %END-DATE%';
+	}
+
+	/**
+	 * The countdown's `{token}`s, each standing for the tag `countdown.ts` fills.
+	 *
+	 * @return array<string, string>
+	 */
+	private static function countdown_tokens(): array {
+		return array(
+			'days'    => '%DAYS%',
+			'hours'   => '%HOURS%',
+			'minutes' => '%MINUTES%',
+			'seconds' => '%SECONDS%',
+		);
+	}
+
+	/**
+	 * The site's messages, as the rendering context carries them.
+	 *
+	 * @param array $context Rendering context.
+	 * @return array The `messages` branch, or an empty array.
+	 */
+	private static function messages( array $context ): array {
+		return isset( $context['messages'] ) && is_array( $context['messages'] ) ? $context['messages'] : array();
 	}
 
 	/**
@@ -780,8 +781,9 @@ class Poll_Renderer {
 	 * A single sign-in method keeps its own wording, which tells a
 	 * signed-out visitor what pressing it does.
 	 *
-	 * An unknown permission -- `email`, or one an addon registered -- reads
-	 * as a guest would, rather than as nothing.
+	 * A permission an addon registered signs in under its own name when the
+	 * addon declared that button's words. One that declared none -- `email`,
+	 * say -- reads as a guest would, rather than as nothing.
 	 *
 	 * @param string $permission Permission slug.
 	 * @param array  $poll_opts  `meta_data.options.poll`.
@@ -790,33 +792,36 @@ class Poll_Renderer {
 	 * @return string
 	 */
 	private static function permission_label( string $permission, array $poll_opts, array $messages, bool $choosing = false ): string {
-		$keys      = array(
+		$keys = array(
 			'guest'     => 'anonymous',
 			'wordpress' => 'wordpress',
-			'facebook'  => 'facebook',
-			'google'    => 'google',
 		);
-		$fallbacks = array(
-			'wordpress' => __( 'Sign in with WordPress', 'yop-poll' ),
-			'facebook'  => __( 'Sign in with Facebook', 'yop-poll' ),
-			'google'    => __( 'Sign in with Google', 'yop-poll' ),
-		);
-		$signs_in  = isset( $fallbacks[ $permission ] );
+
+		// A sign-in method an addon registered names its own button once it
+		// declares that button's words on `yop_poll_message_defaults`. Only
+		// a key the addon added counts: a permission slug that happens to
+		// match one of Core's buttons ("next", "results") is still unknown.
+		if ( ! isset( $keys[ $permission ] ) && self::addon_declares( 'buttons', $permission ) ) {
+			$keys[ $permission ] = $permission;
+		}
+		$signs_in = 'guest' !== $permission && isset( $keys[ $permission ] );
 
 		if ( ! $choosing && ! $signs_in ) {
 			return ! empty( $poll_opts['voteButtonLabel'] )
 				? (string) $poll_opts['voteButtonLabel']
-				: __( 'Vote', 'yop-poll' );
+				: Messages::get( $messages, 'buttons', 'vote' );
 		}
 
-		$key      = $keys[ $permission ] ?? 'anonymous';
-		$fallback = $fallbacks[ $permission ] ?? __( 'Vote Now', 'yop-poll' );
+		// A permission Core has not heard of wears the guest button's words
+		// when the site has any, and "Vote Now" otherwise.
+		$key = $keys[ $permission ] ?? 'anonymous';
 
-		if ( ! empty( $messages['buttons'][ $key ] ) ) {
-			return (string) $messages['buttons'][ $key ];
-		}
-
-		return $fallback;
+		return Messages::get(
+			$messages,
+			'buttons',
+			$key,
+			isset( $keys[ $permission ] ) ? '' : Messages::get( $messages, 'buttons', 'vote-now' )
+		);
 	}
 
 	/**
@@ -848,25 +853,35 @@ class Poll_Renderer {
 	 * sentences and deliberately not author-editable — an author who renames
 	 * the button does not thereby change what the button does.
 	 *
-	 * A permission Core has never heard of — one an addon registered through
-	 * `yop_poll_vote_auth_providers` — gets the generic sign-in sentence
-	 * rather than nothing: every provider Core can imagine authenticates, and
-	 * a blank note under one option in a list of three reads as a rendering
-	 * bug.
+	 * A permission an addon registered through `yop_poll_vote_auth_providers`
+	 * gets the note it declared as `chooser` → `note-{slug}` on
+	 * `yop_poll_message_defaults`. One that declared none gets the generic
+	 * sign-in sentence rather than nothing: every provider Core can imagine
+	 * authenticates, and a blank note under one option in a list of three
+	 * reads as a rendering bug.
 	 *
 	 * @param string $permission Permission slug.
+	 * @param array  $messages   The site's messages.
 	 * @return string
 	 */
-	private static function permission_note( string $permission ): string {
-		$notes = array(
-			'guest'     => __( 'Recorded without an account. Nothing ties the vote back to you.', 'yop-poll' ),
-			'wordpress' => __( 'You sign in first. The vote is recorded against your account on this site.', 'yop-poll' ),
-			'facebook'  => __( 'You sign in with Facebook first. The vote is recorded against that account.', 'yop-poll' ),
-			'google'    => __( 'You sign in with Google first. The vote is recorded against that account.', 'yop-poll' ),
-			'email'     => __( 'You confirm your email address first. The vote is recorded against it.', 'yop-poll' ),
-		);
+	private static function permission_note( string $permission, array $messages ): string {
+		$key = 'note-' . $permission;
+		if ( ! in_array( $permission, array( 'guest', 'wordpress' ), true ) && ! self::addon_declares( 'chooser', $key ) ) {
+			$key = 'note-other';
+		}
 
-		return $notes[ $permission ] ?? __( 'You sign in first. The vote is recorded against that account.', 'yop-poll' );
+		return Messages::get( $messages, 'chooser', $key );
+	}
+
+	/**
+	 * Whether an addon declared this message, as opposed to Core shipping it.
+	 *
+	 * @param string $group Message group.
+	 * @param string $key   Message key.
+	 * @return bool
+	 */
+	private static function addon_declares( string $group, string $key ): bool {
+		return isset( Messages::defaults()[ $group ][ $key ] ) && ! isset( Messages::core_defaults()[ $group ][ $key ] );
 	}
 
 	/**
@@ -983,8 +998,8 @@ class Poll_Renderer {
 				esc_attr( $note_id ),
 				$disabled ? ' disabled' : '',
 				esc_html( self::permission_label( (string) $permission, array(), $messages, true ) ),
-				esc_html( self::permission_note( (string) $permission ) ),
-				self::signed_in_label_attribute( (string) $permission, __( 'Vote with your account', 'yop-poll' ) )
+				esc_html( self::permission_note( (string) $permission, $messages ) ),
+				self::signed_in_label_attribute( (string) $permission, Messages::get( $messages, 'buttons', 'signed-in' ) )
 			);
 		}
 
@@ -998,10 +1013,10 @@ class Poll_Renderer {
 			. '</div>'
 			. '</div>',
 			esc_attr( $title_id ),
-			esc_html__( 'How would you like to vote?', 'yop-poll' ),
-			esc_html__( 'Your answer is ready. This poll accepts more than one way to record it.', 'yop-poll' ),
+			esc_html( Messages::get( $messages, 'chooser', 'title' ) ),
+			esc_html( Messages::get( $messages, 'chooser', 'intro' ) ),
 			$choices,
-			esc_html__( 'Cancel', 'yop-poll' )
+			esc_html( Messages::get( $messages, 'buttons', 'cancel' ) )
 		);
 
 		if ( ! $with_opener ) {
@@ -1013,7 +1028,7 @@ class Poll_Renderer {
 		// the question read "Anonymous Vote" — naming an answer to it.
 		$opener_label = ! empty( $poll_opts['voteButtonLabel'] )
 			? (string) $poll_opts['voteButtonLabel']
-			: __( 'Vote', 'yop-poll' );
+			: Messages::get( $messages, 'buttons', 'vote' );
 
 		return sprintf(
 			'<button type="button" class="yop-poll-vote-button has-background has-text-color" data-yop-perm-open aria-haspopup="dialog" aria-expanded="false"%s>%s</button>%s',
@@ -1043,7 +1058,7 @@ class Poll_Renderer {
 		$align = (string) Meta_Aliases::resolve( $break_meta, 'btn_align', '' );
 		$align = '' !== $align ? $align : 'center';
 		$next  = (string) Meta_Aliases::resolve( $break_meta, 'next_label', '' );
-		$next  = '' !== $next ? $next : __( 'Next', 'yop-poll' );
+		$next  = '' !== $next ? $next : Messages::get( Messages::from_option(), 'buttons', 'next' );
 		$prev  = $page > 0 ? self::render_prev_button( $break_meta ) : '';
 
 		return sprintf(
@@ -1076,7 +1091,7 @@ class Poll_Renderer {
 
 		return sprintf(
 			'<button type="button" class="yop-poll-vote-button yop-poll-btn-prev has-background has-text-color" data-yop-prev>%s</button>',
-			esc_html( '' !== $label ? $label : __( 'Previous', 'yop-poll' ) )
+			esc_html( '' !== $label ? $label : Messages::get( Messages::from_option(), 'buttons', 'previous' ) )
 		);
 	}
 
@@ -1167,6 +1182,26 @@ class Poll_Renderer {
 		'standard-captcha',
 		'advanced-email',
 	);
+
+	/**
+	 * Whether the ballot carries a Results button.
+	 *
+	 * The author's choice to let a visitor look without voting, as in 6.x:
+	 * pressing it opens the results whatever When says, Never included, so
+	 * When governs only what a vote or the page shows on its own.
+	 *
+	 * Poll configuration, so cache-safe; and the same answer for the shell
+	 * that draws the button and the results route that honours the press
+	 * (`REST_Polls::get_results()`).
+	 *
+	 * @param array $poll_meta The poll's decoded `meta_data`.
+	 * @return bool
+	 */
+	public static function offers_results_button( array $poll_meta ): bool {
+		$poll_opts = (array) ( $poll_meta['options']['poll'] ?? array() );
+
+		return 'yes' === ( $poll_opts['showResultsLink'] ?? 'no' );
+	}
 
 	/**
 	 * Does picking an answer cast the vote?

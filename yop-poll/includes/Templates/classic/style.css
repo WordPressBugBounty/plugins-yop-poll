@@ -1239,13 +1239,6 @@
 	flex: 1 1 100%;
 }
 
-/* A returning voter's "Already voted" line, where the vote button was (QA
-   L23). A paragraph, so a theme's paragraph margins are taken off it: the
-   footer's own gap is the spacing. */
-.yop-poll-voted-note {
-	margin: 0;
-}
-
 .yop-poll-footer--center {
 	justify-content: center;
 }

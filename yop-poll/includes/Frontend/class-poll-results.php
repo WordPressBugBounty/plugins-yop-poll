@@ -127,7 +127,7 @@ class Poll_Results {
 			// one the moment the votes arrive.
 			'' === $box_states ? '' : ' ' . esc_attr( $box_states ),
 			esc_attr( (string) ( $poll['css_template_base'] ?? ( $poll['template_base'] ?? 'classic' ) ) ),
-			esc_attr__( 'Results', 'yop-poll' ),
+			esc_attr( Messages::get( $messages, 'results', 'region-label' ) ),
 			// The poll's totals, where the author asked for them: with the
 			// figures they sum up, and only where those are shown (QA M7).
 			$body . Poll_Renderer::render_total_votes(
@@ -148,11 +148,15 @@ class Poll_Results {
 	 * way back would lead to a ballot that cannot be cast. Absent, as it is
 	 * for every caller with no voter in front of it, means offer it.
 	 *
-	 * A visitor who comes back to a poll they voted in gets the site's
-	 * "Already voted" message there instead (QA L23). Only from a caller that
-	 * knows the visitor, which is a REST response and never the cached page,
-	 * and not straight after the vote, when the message region has just said
-	 * thank you. In the button's own row, so nothing moves to make room.
+	 * A visitor who comes back to a poll they voted in is told so with the
+	 * site's "Already voted" message (QA L23). Only from a caller that knows
+	 * the visitor, which is a REST response and never the cached page, and
+	 * not straight after the vote, when the message region has just said
+	 * thank you. It is said in that same region: the note travels hidden in
+	 * the results and `showResults()` (`src/frontend/results.ts`) moves it
+	 * there, so it follows "Where messages appear" and the Style tab's
+	 * success message, as the thank-you does. It sat in this row until
+	 * 7.1.1, centred under the bars whatever the poll asked for.
 	 *
 	 * @param array $poll_data The caller's data: `can_vote_again`,
 	 *                         `already_voted`, `just_voted`.
@@ -164,7 +168,7 @@ class Poll_Results {
 	 */
 	private static function render_footer( array $poll_data, array $results, array $poll_meta, array $messages ): string {
 		if ( false !== ( $poll_data['can_vote_again'] ?? null ) ) {
-			return self::render_back_to_vote( $results, $poll_meta );
+			return self::render_back_to_vote( $results, $poll_meta, $messages );
 		}
 
 		if ( empty( $poll_data['already_voted'] ) || ! empty( $poll_data['just_voted'] ) ) {
@@ -172,8 +176,7 @@ class Poll_Results {
 		}
 
 		return sprintf(
-			'<div class="yop-poll-footer yop-poll-footer--%s"><p class="yop-poll-voted-note">%s</p></div>',
-			esc_attr( Poll_Style::get_footer_align( $poll_meta ) ),
+			'<p class="yop-poll-voted-note" data-yop-voted-note hidden>%s</p>',
 			esc_html(
 				Validation_Rules::message(
 					array( 'messages' => $messages ),
@@ -313,7 +316,7 @@ class Poll_Results {
 		if ( $has_other ) {
 			$other_colour = sanitize_hex_color( (string) ( $meta['resultsColorForOtherAnswers'] ?? '' ) );
 			$entries[]    = array(
-				'content'  => self::inline( ! empty( $meta['otherAnswersLabel'] ) ? (string) $meta['otherAnswersLabel'] : __( 'Other', 'yop-poll' ) ),
+				'content'  => self::inline( ! empty( $meta['otherAnswersLabel'] ) ? (string) $meta['otherAnswersLabel'] : Messages::get( (array) ( $view['messages'] ?? array() ), 'fields', 'other-label' ) ),
 				'votes'    => $other,
 				'percent'  => $other_percent,
 				'color'    => $other_colour ? $other_colour : '#058dc7',
@@ -744,16 +747,17 @@ class Poll_Results {
 	 * @param array $results   `meta_data.options.results`.
 	 * @param array $poll_meta Decoded poll meta_data, for the placement.
 	 * @phpstan-param PollMeta $poll_meta
+	 * @param array $messages  The site's messages.
 	 * @return string
 	 */
-	private static function render_back_to_vote( array $results, array $poll_meta ): string {
+	private static function render_back_to_vote( array $results, array $poll_meta, array $messages ): string {
 		if ( 'yes' !== ( $results['backToVoteOption'] ?? 'no' ) ) {
 			return '';
 		}
 
 		$caption = ! empty( $results['backToVoteCaption'] )
 			? (string) $results['backToVoteCaption']
-			: __( '← Back to vote', 'yop-poll' );
+			: Messages::get( $messages, 'buttons', 'back-to-vote' );
 
 		/*
 		 * The same stack the ballot's footer uses, holding one button here.

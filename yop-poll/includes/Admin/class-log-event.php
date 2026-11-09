@@ -168,7 +168,7 @@ class Log_Event {
 			case 'vote':
 				return __( 'The vote was accepted and counted in the results.', 'yop-poll' );
 			case 'blocked':
-				return __( 'The vote was refused by a rule you set in Access — repeat voting or a ban.', 'yop-poll' );
+				return __( 'The vote was refused by a rule you set in Access - repeat voting or a ban.', 'yop-poll' );
 		}
 
 		return __( 'The vote could not be accepted. The visitor saw your error message and could try again.', 'yop-poll' );

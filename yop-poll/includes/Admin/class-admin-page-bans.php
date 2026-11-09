@@ -394,7 +394,7 @@ class Admin_Page_Bans {
 				$text = $ban
 					? sprintf(
 						/* translators: %s: the banned value. */
-						__( 'The ban on %s was removed — they can vote again.', 'yop-poll' ),
+						__( 'The ban on %s was removed - they can vote again.', 'yop-poll' ),
 						$ban['b_value']
 					)
 					: sprintf(
@@ -424,7 +424,7 @@ class Admin_Page_Bans {
 
 			case 'nothing_to_undo':
 				$type = 'warning';
-				$text = __( 'Nothing to undo — those bans have already changed.', 'yop-poll' );
+				$text = __( 'Nothing to undo - those bans have already changed.', 'yop-poll' );
 				break;
 
 			case 'none_selected':

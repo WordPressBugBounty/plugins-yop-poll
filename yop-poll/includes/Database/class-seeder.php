@@ -1,6 +1,8 @@
 <?php
 namespace YopPoll\Database;
 
+use YopPoll\Frontend\Messages;
+
 use YopPoll\Templates\Template_Registry;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -145,41 +147,7 @@ class Seeder {
 					'server-prefix' => '',
 				),
 			),
-			'messages'      => array(
-				'buttons' => array(
-					'anonymous'  => 'Vote',
-					'wordpress'  => 'Sign in with WordPress',
-					'facebook'   => 'Sign in with Facebook',
-					'google'     => 'Sign in with Google',
-					'submitting' => 'Submitting…',
-				),
-				'voting'  => array(
-					'poll-ended'                      => 'This poll is no longer accepting votes',
-					'poll-not-started'                => 'This poll is not accepting votes yet',
-					'already-voted-on-poll'           => 'Thank you for your vote',
-					'invalid-poll'                    => 'Invalid Poll',
-					'no-answers-selected'             => 'No answer selected',
-					'min-answers-required'            => 'At least {min_answers_allowed} answer(s) required',
-					'max-answers-required'            => 'A max of {max_answers_allowed} answer(s) accepted',
-					'no-answer-for-other'             => 'No other answer entered',
-					'answer-for-other-too-long'       => 'Answer for other is too long',
-					'no-value-for-custom-field'       => '{custom_field_name} is required',
-					'too-many-chars-for-custom-field' => 'Text for {custom_field_name} is too long',
-					'invalid-value-for-email'         => 'Please enter a valid email address.',
-					'consent-not-checked'             => 'Please tick the box to agree before you vote.',
-					'no-captcha-selected'             => 'Captcha is required',
-					'not-allowed-by-ban'              => 'Vote not allowed',
-					'not-allowed-by-block'            => 'You have already voted on this poll.',
-					'not-allowed-by-limit'            => 'You have reached the maximum number of votes allowed on this poll.',
-					'thank-you'                       => 'Thank you for your vote',
-				),
-				'results' => array(
-					'single-vote'      => 'vote',
-					'multiple-votes'   => 'votes',
-					'single-answer'    => 'answer',
-					'multiple-answers' => 'answers',
-				),
-			),
+			'messages'      => Messages::defaults(),
 		);
 
 		add_option( 'yop_poll_settings', wp_json_encode( $defaults ) );

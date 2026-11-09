@@ -108,7 +108,7 @@ class Log_Detail {
 				// phpcs:ignore WordPress.WP.CapitalPDangit.MisspelledInText -- the stored type, not the name.
 				'wordpress' === strtolower( (string) ( $item['user_type'] ?? '' ) )
 					? __( 'Signed in to WordPress', 'yop-poll' )
-					: __( 'Guest — not signed in', 'yop-poll' ),
+					: __( 'Guest - not signed in', 'yop-poll' ),
 				false,
 			),
 			array( __( 'Username', 'yop-poll' ), '' !== $username ? $username : $not_recorded, false ),

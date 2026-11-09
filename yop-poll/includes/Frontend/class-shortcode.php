@@ -81,8 +81,9 @@ class Shortcode {
 		$tracking_id  = '' !== $atts['tracking_id'] ? sanitize_text_field( $atts['tracking_id'] ) : '';
 
 		// Results-only is not asked again: it opens the figures whatever the
-		// author chose, which a shortcode writer may do on their own page and
-		// a public route must not do for whoever calls it.
+		// author chose under When and Who, as 6.x did, which a shortcode
+		// writer may do on their own page and a public route must not do for
+		// whoever calls it.
 		return $this->render_poll( $poll_id, $force_counts, $tracking_id, $force_counts ? 0 : $request );
 	}
 
@@ -207,7 +208,7 @@ class Shortcode {
 		 * the results. Served from a cache, that gave the next reader the
 		 * figures, no ballot, and no way back to one.
 		 */
-		$poll_data = REST_Polls::sanitize_for_public( REST_Polls::get_cached_poll_data( $poll_id ), $force_counts );
+		$poll_data = REST_Polls::sanitize_for_public( REST_Polls::get_cached_poll_data( $poll_id ), $force_counts, $force_counts );
 
 		// No nonce: this markup is cached and served to everybody for hours.
 		// The ballot fetches its own before every vote (`ensureToken()`).
@@ -273,16 +274,18 @@ class Shortcode {
 	 * `src/frontend/results.ts`).
 	 *
 	 * - `'1'`: every visitor asks, sending what their browser knows of
-	 *   itself. `needs_client_block_check()` decides this.
+	 *   itself. `needs_client_block_check()` decides this, and so does a
+	 *   block by address: the server settles that one on its own, and
+	 *   asking is how a second browser behind the same address is shown
+	 *   the results instead of a ballot it will be refused -- which is what
+	 *   6.x drew for them at render time, and what the product owner asked
+	 *   for again (2026-10-30). The price is one no-store request on every
+	 *   load of such a poll, from every visitor.
 	 * - `'session'`: only a signed-in visitor asks, and sends nothing but
-	 *   their session. For a block the account or the address settles and a
-	 *   browser identifier does not -- by IP -- and for a poll that must not
-	 *   be sent one at all, where the account is still enough to know them.
+	 *   their session. For a poll that must not be sent a browser
+	 *   identifier at all -- "do not store" and "anonymise" -- where the
+	 *   account is still enough to know them.
 	 * - `''`: nobody asks. The poll shuts nobody out.
-	 *
-	 * A guest on a poll blocked by IP alone is not asked about, as they never
-	 * were: their page costs no request, and a second vote is refused when it
-	 * is cast.
 	 *
 	 * @param array $poll The poll row, raw.
 	 * @return string
@@ -303,7 +306,28 @@ class Shortcode {
 			return '';
 		}
 
+		if ( in_array( 'by-ip', $block_voters, true ) && ! self::keeps_no_identifier( $meta ) ) {
+			return '1';
+		}
+
 		return array() !== array_intersect( array( 'by-user-id', 'by-ip' ), $block_voters ) ? 'session' : '';
+	}
+
+	/**
+	 * Whether the poll's privacy setting forbids a browser identifier.
+	 *
+	 * "Do not store" and "anonymise" keep no `voter_id` or fingerprint on
+	 * the vote row, so a load-time request carrying one could never match
+	 * and would only put the identifier in the web server's access log.
+	 *
+	 * @param array $meta Decoded poll meta.
+	 * @return bool
+	 */
+	private static function keeps_no_identifier( array $meta ): bool {
+		$gdpr = $meta['options']['poll'] ?? array();
+
+		return 'yes' === ( $gdpr['enableGdpr'] ?? '' )
+			&& in_array( $gdpr['gdprSolution'] ?? '', array( 'anonymize', 'do_not_store' ), true );
 	}
 
 	/**
@@ -345,7 +369,6 @@ class Shortcode {
 	public static function needs_client_block_check( array $poll ): bool {
 		$meta   = Migrator::decode_meta( $poll['meta_data'] ?? '' );
 		$access = $meta['options']['access'] ?? array();
-		$gdpr   = $meta['options']['poll'] ?? array();
 
 		// `create_vote` deliberately clears the fingerprint and voter_id
 		// before storage on a poll like this (`class-rest-votes.php`), so
@@ -358,9 +381,7 @@ class Shortcode {
 		// avoid, so this returns before the filter below runs: an addon
 		// must not be able to reinstate a round trip that can only leak,
 		// never resolve, on a poll like this.
-		if ( 'yes' === ( $gdpr['enableGdpr'] ?? '' )
-			&& in_array( $gdpr['gdprSolution'] ?? '', array( 'anonymize', 'do_not_store' ), true )
-		) {
+		if ( self::keeps_no_identifier( $meta ) ) {
 			return false;
 		}
 
@@ -435,9 +456,10 @@ class Shortcode {
 	 * Voted message is what Settings → Messages has always carried for this,
 	 * and nothing had ever shown it.
 	 *
-	 * Someone who has not voted reaches it through the Results button or a
-	 * results-only placement. When Show Results To keeps them out, the view
-	 * would put every answer at 0%, so they are told who the results are for.
+	 * Someone who has not voted reaches it through the Results button, where
+	 * Show Results To may keep them out: the view would put every answer at
+	 * 0%, so they are told who the results are for. A results-only placement
+	 * never withholds anything (`render_poll()`).
 	 *
 	 * @param array $poll      The poll.
 	 * @param array $poll_data Public poll data, carrying `results_visible`
@@ -465,7 +487,7 @@ class Shortcode {
 		if ( empty( $poll_data['already_voted'] ) ) {
 			return sprintf(
 				'<div class="yop-poll-message" role="status">%s</div>',
-				esc_html( '' !== $when ? $when : __( 'The results of this poll are not public.', 'yop-poll' ) )
+				esc_html( '' !== $when ? $when : Messages::get( self::messages( $poll_data ), 'results', 'not-public' ) )
 			);
 		}
 
@@ -477,7 +499,7 @@ class Shortcode {
 			$audience = self::audience_notice( $poll, array_merge( $poll_data, array( 'already_voted' => false ) ) );
 
 			if ( '' === $audience ) {
-				$audience = '' !== $when ? $when : __( 'The results of this poll are not public.', 'yop-poll' );
+				$audience = '' !== $when ? $when : Messages::get( self::messages( $poll_data ), 'results', 'not-public' );
 			}
 
 			return sprintf( '<div class="yop-poll-message" role="status">%s</div>', esc_html( $audience ) );
@@ -499,9 +521,11 @@ class Shortcode {
 	/**
 	 * What the Results button says instead of opening, or '' when it opens.
 	 *
-	 * For someone who has not voted and may not see the figures yet: who they
+	 * For someone who has not voted and may not see the figures: who they
 	 * are for, or else when they will be shown. The ballot stays, so they can
-	 * still vote.
+	 * still vote. A press on a poll that draws the button opens the results
+	 * whatever When says (`REST_Polls::get_results()`), so When is reached
+	 * here only when the flag arrived on a poll with no button.
 	 *
 	 * @param array $poll      The poll.
 	 * @param array $poll_data Public poll data, carrying `results_visible`,
@@ -521,7 +545,7 @@ class Shortcode {
 
 		$when = self::results_when( $poll, $poll_data );
 
-		return '' !== $when ? $when : __( 'The results of this poll are not public.', 'yop-poll' );
+		return '' !== $when ? $when : Messages::get( self::messages( $poll_data ), 'results', 'not-public' );
 	}
 
 	/**
@@ -541,13 +565,13 @@ class Shortcode {
 		$moments = (array) ( $results['showResultsMoment'] ?? array( 'after-vote' ) );
 		$format  = (string) ( $poll_data['date_format'] ?? get_option( 'date_format', 'F j, Y' ) ) . ' ' . get_option( 'time_format', 'g:i a' );
 		$now     = time();
+		$words   = self::messages( $poll_data );
 
 		if ( in_array( 'custom-date', $moments, true ) ) {
 			$at = Poll_Schedule::parse_moment( (string) ( $results['customDateResults'] ?? '' ) );
 
 			if ( null !== $at && $at > $now ) {
-				/* translators: %s: the date and time the results are shown. */
-				return sprintf( __( 'The results will be shown on %s.', 'yop-poll' ), wp_date( $format, $at ) );
+				return Messages::get( $words, 'results', 'shown-on-date', '', array( 'date' => wp_date( $format, $at ) ) );
 			}
 		}
 
@@ -555,18 +579,27 @@ class Shortcode {
 			$closes = Poll_Schedule::closes_at( $meta );
 
 			if ( null !== $closes && $closes > $now ) {
-				/* translators: %s: the date and time the poll closes. */
-				return sprintf( __( 'The results will be shown when the poll closes, on %s.', 'yop-poll' ), wp_date( $format, $closes ) );
+				return Messages::get( $words, 'results', 'shown-when-closed-on', '', array( 'date' => wp_date( $format, $closes ) ) );
 			}
 
-			return __( 'The results will be shown when the poll closes.', 'yop-poll' );
+			return Messages::get( $words, 'results', 'shown-when-closed' );
 		}
 
 		if ( in_array( 'after-vote', $moments, true ) && empty( $poll_data['already_voted'] ) ) {
-			return __( 'The results are shown once you have voted.', 'yop-poll' );
+			return Messages::get( $words, 'results', 'shown-after-vote' );
 		}
 
 		return '';
+	}
+
+	/**
+	 * The site's messages, as the public poll data carries them.
+	 *
+	 * @param array $poll_data Public poll data.
+	 * @return array The `messages` branch, or an empty array.
+	 */
+	private static function messages( array $poll_data ): array {
+		return isset( $poll_data['messages'] ) && is_array( $poll_data['messages'] ) ? $poll_data['messages'] : array();
 	}
 
 	/**
@@ -591,8 +624,8 @@ class Shortcode {
 		$show_to = $meta['options']['results']['showResultsTo'] ?? array( 'guest' );
 
 		return in_array( 'registered', (array) $show_to, true )
-			? __( 'Sign in to see the results.', 'yop-poll' )
-			: __( 'The results of this poll are not public.', 'yop-poll' );
+			? Messages::get( self::messages( $poll_data ), 'results', 'sign-in-to-see' )
+			: Messages::get( self::messages( $poll_data ), 'results', 'not-public' );
 	}
 
 	public function render_poll_markup( int $poll_id, array $poll_data ): string {
@@ -805,6 +838,7 @@ class Shortcode {
 			'<div class="yop-poll yop-poll-container%s" data-template="%s" data-yop-poll-id="%d" data-yop-state="%s"'
 			. ' data-yop-tracking="%s" data-yop-page-id="%d"'
 			. ' data-yop-msg-auth-failed="%s" data-yop-msg-no-provider="%s"'
+			. ' data-yop-msg-not-recorded="%s" data-yop-msg-send-failed="%s"'
 			. ' data-yop-msg-not-started="%s" data-yop-msg-ended="%s"%s%s%s%s%s%s%s>'
 			// First child, not last: `$appended` has to stay immediately before
 			// the noscript note -- that adjacency is the addon contract, and
@@ -848,6 +882,11 @@ class Shortcode {
 					__( 'That sign-in method is unavailable.', 'yop-poll' )
 				)
 			),
+			// What the browser says when a vote comes back without a sentence
+			// or never reaches the server. The bundle carries no translation
+			// and no settings; the page hands it both at once.
+			esc_attr( Messages::get( self::messages( $poll_data ), 'voting', 'vote-not-recorded' ) ),
+			esc_attr( Messages::get( self::messages( $poll_data ), 'voting', 'send-failed' ) ),
 			// The same two sentences the notice beside the ballot uses and the
 			// vote endpoint answers with. An instant poll has no button to
 			// render `disabled`, so `cast()` reads these and refuses the pick
@@ -872,7 +911,7 @@ class Shortcode {
 			$notify_end,
 			$css_tag,
 			$appended,
-			esc_html__( 'Voting in this poll requires JavaScript.', 'yop-poll' )
+			esc_html( Messages::get( self::messages( $poll_data ), 'voting', 'requires-javascript' ) )
 		);
 	}
 

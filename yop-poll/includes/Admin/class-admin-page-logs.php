@@ -450,7 +450,7 @@ class Admin_Page_Logs {
 			esc_url( $this->list_url( $state ) ),
 			esc_html__( 'Cancel', 'yop-poll' ),
 			esc_html( $action ),
-			esc_html__( 'Recorded votes and results are unaffected — only the log is cleared.', 'yop-poll' )
+			esc_html__( 'Recorded votes and results are unaffected - only the log is cleared.', 'yop-poll' )
 		);
 	}
 

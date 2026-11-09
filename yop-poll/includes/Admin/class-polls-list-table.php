@@ -407,7 +407,7 @@ class Polls_List_Table extends \WP_List_Table {
 			printf(
 				'<span class="yop-poll-polls-empty"><strong class="yop-poll-polls-empty__title">%1$s</strong><span class="yop-poll-polls-empty__body">%2$s</span><a class="button button-primary" href="%3$s">%4$s</a></span>',
 				esc_html__( 'No polls yet', 'yop-poll' ),
-				esc_html__( 'A poll is a set of questions you place on a page with a block or a shortcode. Start with one question — you can add pages later.', 'yop-poll' ),
+				esc_html__( 'A poll is a set of questions you place on a page with a block or a shortcode. Start with one question - you can add pages later.', 'yop-poll' ),
 				esc_url( admin_url( 'admin.php?page=yop-poll&action=add' ) ),
 				esc_html__( 'Create your first poll', 'yop-poll' )
 			);
@@ -828,7 +828,7 @@ class Polls_List_Table extends \WP_List_Table {
 		);
 
 		if ( ! $shape['questions'] ) {
-			return __( 'Empty — no questions yet', 'yop-poll' );
+			return __( 'Empty - no questions yet', 'yop-poll' );
 		}
 
 		$questions = sprintf(

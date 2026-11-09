@@ -62,6 +62,7 @@ return array(
 	'includes/Frontend/class-earlier-vote.php',
 	'includes/Frontend/class-elementor-widget.php',
 	'includes/Frontend/class-frontend.php',
+	'includes/Frontend/class-messages.php',
 	'includes/Frontend/class-meta-aliases.php',
 	'includes/Frontend/class-poll-renderer.php',
 	'includes/Frontend/class-poll-results.php',

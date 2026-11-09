@@ -7,6 +7,8 @@
 
 namespace YopPoll\REST;
 
+use YopPoll\Frontend\Messages;
+
 use YopPoll\Models\Model_Poll;
 use YopPoll\Validation\Question_Limit;
 use YopPoll\Models\Model_Vote;
@@ -118,19 +120,11 @@ class REST_Votes extends REST_Base {
 	 * @return string
 	 */
 	private function voting_message( $key, $fallback, array $tokens = array() ) {
-		$raw      = get_option( 'yop_poll_settings', '{}' );
-		$settings = is_array( $raw ) ? $raw : ( json_decode( $raw, true ) ?? array() );
-
-		// Through `Validation_Rules::message()` so `{token}` filling has one
+		// Through `Messages::get()` so `{token}` filling has one
 		// implementation: the messages a field carries as `data-yop-msg-*`
 		// and the messages this endpoint answers with are the same strings,
 		// and a second token filler is how the two would come to disagree.
-		return Validation_Rules::message(
-			array( 'messages' => $settings['messages'] ?? array() ),
-			$key,
-			$fallback,
-			$tokens
-		);
+		return Messages::get( Messages::from_option(), 'voting', $key, $fallback, $tokens );
 	}
 
 	/**
@@ -200,7 +194,10 @@ class REST_Votes extends REST_Base {
 
 		return new \WP_Error(
 			'yop_poll_rate_limited',
-			__( 'Too many votes from this device. Please wait a moment and try again.', 'yop-poll' ),
+			$this->voting_message(
+				'too-many-requests',
+				__( 'Too many votes from this device. Please wait a moment and try again.', 'yop-poll' )
+			),
 			array( 'status' => 429 )
 		);
 	}
@@ -314,7 +311,7 @@ class REST_Votes extends REST_Base {
 			// stop filling it, and the field is only worth anything for as
 			// long as nobody is told it is there.
 			return $this->error(
-				__( 'Your vote could not be recorded.', 'yop-poll' ),
+				$this->voting_message( 'vote-not-recorded', __( 'Your vote could not be recorded.', 'yop-poll' ) ),
 				422
 			);
 		}
@@ -349,7 +346,10 @@ class REST_Votes extends REST_Base {
 				// a distinguishable code lets the browser tell them apart.
 				return new \WP_Error(
 					'yop_poll_invalid_nonce',
-					__( 'Invalid or expired security token. Please refresh the page and try again.', 'yop-poll' ),
+					$this->voting_message(
+						'invalid-nonce',
+						__( 'Invalid or expired security token. Please refresh the page and try again.', 'yop-poll' )
+					),
 					array( 'status' => 403 )
 				);
 			}
@@ -463,7 +463,9 @@ class REST_Votes extends REST_Base {
 		$anonymous_requested = 'yes' === ( $access['enableAnonymousVoting'] ?? 'no' )
 			|| 'yes' === ( $access['anonymousVotingEnabled'] ?? 'no' );
 		if ( $anonymous_requested && ! apply_filters( 'yop_poll_vote_privacy_available', false, $identity_context ) ) {
-			return $this->error( __( 'This poll requires an inactive voting privacy extension.', 'yop-poll' ), 503 );
+			// A site misconfiguration, not the voter's doing: they are told the
+			// vote did not land, in the site's words, and the status says why.
+			return $this->error( $this->voting_message( 'vote-not-recorded', __( 'Your vote could not be recorded.', 'yop-poll' ) ), 503 );
 		}
 		$prepared_log = apply_filters(
 			'yop_poll_prepare_vote_log',
@@ -482,7 +484,7 @@ class REST_Votes extends REST_Base {
 		$perm_result = $this->check_vote_permissions( $access, $auth_permission );
 		if ( true !== $perm_result ) {
 			$this->log_attempt( $log_model, $base_log, $vote_data_json, 'not-allowed-by-permissions' );
-			return $this->error( __( 'You do not have permission to vote on this poll.', 'yop-poll' ), 403 );
+			return $this->error( $this->voting_message( 'no-permission', __( 'You do not have permission to vote on this poll.', 'yop-poll' ) ), 403 );
 		}
 
 		// ── 5. Check bans ─────────────────────────────────────────────────────
@@ -543,7 +545,7 @@ class REST_Votes extends REST_Base {
 				|| (int) ( $replacement['id'] ?? 0 ) <= 0
 				|| (int) ( $replacement['poll_id'] ?? 0 ) !== $poll_id
 				|| 'active' !== ( $replacement['status'] ?? '' ) ) {
-				return $this->error( __( 'A poll extension returned an invalid replacement vote.', 'yop-poll' ), 500 );
+				return $this->error( $this->voting_message( 'vote-not-recorded', __( 'Your vote could not be recorded.', 'yop-poll' ) ), 500 );
 			}
 		}
 
@@ -646,13 +648,12 @@ class REST_Votes extends REST_Base {
 			$owned = ( new Model_Subelement() )->active_ids_for_poll( $poll_id );
 
 			if ( array_diff( $named, $owned ) ) {
-				// A literal rather than `voting_message()`: there is no
-				// configurable key for this, and borrowing `invalid-poll`
-				// meant a site whose wording is "Invalid Poll" told a voter
-				// their poll was broken when it is their copy of the answers
-				// that is out of date.
+				// Its own key rather than `invalid-poll`: borrowing that meant
+				// a site whose wording is "Invalid Poll" told a voter their
+				// poll was broken when it is their copy of the answers that is
+				// out of date.
 				return $this->error(
-					__( 'This poll has changed. Please reload the page and vote again.', 'yop-poll' ),
+					$this->voting_message( 'poll-changed', __( 'This poll has changed. Please reload the page and vote again.', 'yop-poll' ) ),
 					422
 				);
 			}
@@ -733,7 +734,10 @@ class REST_Votes extends REST_Base {
 			}
 
 			if ( count( $answered ) > Question_Limit::FREE_LIMIT ) {
-				return $this->error( __( 'This poll asks more questions than YOP Poll Free records. Please contact the site owner.', 'yop-poll' ), 422 );
+				return $this->error(
+					$this->voting_message( 'free-question-limit', __( 'This poll asks more questions than YOP Poll Free records. Please contact the site owner.', 'yop-poll' ) ),
+					422
+				);
 			}
 		}
 
@@ -801,14 +805,17 @@ class REST_Votes extends REST_Base {
 			}
 
 			if ( ! Validation_Rules::was_answered( $eid, $answers ) ) {
+				// The same sentence the field carries as `data-yop-msg-required`
+				// for the browser's own check, so a vote posted straight to the
+				// route is refused in the site's words too.
 				$label = wp_strip_all_tags( $el['etext'] ?? '' );
 				$msg   = $label
-					? sprintf(
-						/* translators: %s: field label */
-						__( '%s is required.', 'yop-poll' ),
-						$label
+					? $this->voting_message(
+						'no-value-for-custom-field',
+						__( '{custom_field_name} is required', 'yop-poll' ),
+						array( 'custom_field_name' => $label )
 					)
-					: __( 'Please fill in all required fields.', 'yop-poll' );
+					: $this->voting_message( 'required-fields', __( 'Please fill in all required fields.', 'yop-poll' ) );
 				// Named, so the ballot can take the voter to it on whatever
 				// page it is (QA re-test N5).
 				return $this->error( $msg, 422, array( 'element_id' => $eid ) );
@@ -922,7 +929,7 @@ class REST_Votes extends REST_Base {
 				$response_token = sanitize_text_field( $body['captcha_response'] ?? '' );
 
 				if ( empty( $response_token ) || empty( $secret_key ) ) {
-					return $this->error( __( 'Captcha is required', 'yop-poll' ), 422 );
+					return $this->error( $this->voting_message( 'no-captcha-selected', __( 'Captcha is required', 'yop-poll' ) ), 422 );
 				}
 
 				$verify_result = wp_remote_post(
@@ -936,13 +943,13 @@ class REST_Votes extends REST_Base {
 				);
 
 				if ( is_wp_error( $verify_result ) ) {
-					return $this->error( __( 'Captcha verification failed', 'yop-poll' ), 422 );
+					return $this->error( $this->voting_message( 'captcha-failed', __( 'Captcha verification failed', 'yop-poll' ) ), 422 );
 				}
 
 				$verify_data = json_decode( wp_remote_retrieve_body( $verify_result ), true );
 
 				if ( empty( $verify_data['success'] ) ) {
-					return $this->error( __( 'Captcha verification failed', 'yop-poll' ), 422 );
+					return $this->error( $this->voting_message( 'captcha-failed', __( 'Captcha verification failed', 'yop-poll' ) ), 422 );
 				}
 
 				if ( 'recaptcha_v3' === $captcha_type ) {
@@ -950,20 +957,20 @@ class REST_Votes extends REST_Base {
 					// Google asks every site to check the action it gets back:
 					// a token solved for another form on this key buys nothing.
 					if ( 'vote' !== ( $verify_data['action'] ?? '' ) ) {
-						return $this->error( __( 'Captcha verification failed', 'yop-poll' ), 422 );
+						return $this->error( $this->voting_message( 'captcha-failed', __( 'Captcha verification failed', 'yop-poll' ) ), 422 );
 					}
 
 					$min_raw   = $settings['integrations']['reCaptchaV3']['min-allowed-score'] ?? '';
 					$min_score = (float) ( $min_raw ? $min_raw : 0.5 );
 					if ( (float) ( $verify_data['score'] ?? 0 ) < $min_score ) {
-						return $this->error( __( 'Captcha score too low', 'yop-poll' ), 422 );
+						return $this->error( $this->voting_message( 'captcha-score-low', __( 'Captcha score too low', 'yop-poll' ) ), 422 );
 					}
 				}
 			} else {
 				// A setting nothing here recognises. The author asked for
 				// protection of some kind, so no check at all is not an answer:
 				// refused, until the poll is saved with a captcha that exists.
-				return $this->error( __( 'Captcha verification failed', 'yop-poll' ), 422 );
+				return $this->error( $this->voting_message( 'captcha-failed', __( 'Captcha verification failed', 'yop-poll' ) ), 422 );
 			}
 		}
 
@@ -979,7 +986,7 @@ class REST_Votes extends REST_Base {
 			return $vote_validation;
 		}
 		if ( false === $vote_validation ) {
-			return $this->error( __( 'This vote was rejected by a poll extension.', 'yop-poll' ), 422 );
+			return $this->error( $this->voting_message( 'vote-rejected', __( 'This vote was rejected by a poll extension.', 'yop-poll' ) ), 422 );
 		}
 
 		do_action( 'yop_poll_before_vote', $vote_context );
@@ -1004,7 +1011,7 @@ class REST_Votes extends REST_Base {
 			return $vote_row;
 		}
 		if ( ! is_array( $vote_row ) ) {
-			return $this->error( __( 'A poll extension returned an invalid vote record.', 'yop-poll' ), 500 );
+			return $this->error( $this->voting_message( 'vote-not-recorded', __( 'Your vote could not be recorded.', 'yop-poll' ) ), 500 );
 		}
 
 		/*
@@ -1030,13 +1037,13 @@ class REST_Votes extends REST_Base {
 		if ( null !== $replacement ) {
 			$vote_id = (int) $replacement['id'];
 			if ( false === $vote_model->update( $vote_id, $vote_row ) ) {
-				return $this->error( __( 'The existing vote could not be updated.', 'yop-poll' ), 500 );
+				return $this->error( $this->voting_message( 'vote-not-recorded', __( 'Your vote could not be recorded.', 'yop-poll' ) ), 500 );
 			}
 			$old_answer_count = $vote_model->reverse_answer_counters( $replacement );
 		} else {
 			$vote_id = (int) $vote_model->insert( $vote_row );
 			if ( $vote_id <= 0 ) {
-				return $this->error( __( 'The vote could not be recorded.', 'yop-poll' ), 500 );
+				return $this->error( $this->voting_message( 'vote-not-recorded', __( 'Your vote could not be recorded.', 'yop-poll' ) ), 500 );
 			}
 		}
 
@@ -1488,7 +1495,8 @@ class REST_Votes extends REST_Base {
 	 * - A repeated answer counts once. No renderer draws the same answer twice
 	 *   in one question, so the only repeat is a forged one.
 	 * - A question takes no more write-ins than it draws boxes for
-	 *   (`otherAnswersCount`, one unless the author asked for more).
+	 *   (`Element_Meta_Policy::write_in_boxes()`: one on Free, and up to
+	 *   `otherAnswersCount` where an addon allows several).
 	 *
 	 * And to Core's own `question-text`, the rules its ballot applies: one
 	 * answer unless several are allowed, and then the author's minimum and
@@ -1514,7 +1522,7 @@ class REST_Votes extends REST_Base {
 		// matches the poll means the page they have is out of date.
 		$changed = new \WP_Error(
 			'yop_poll_error',
-			__( 'This poll has changed. Please reload the page and vote again.', 'yop-poll' ),
+			$this->voting_message( 'poll-changed', __( 'This poll has changed. Please reload the page and vote again.', 'yop-poll' ) ),
 			array( 'status' => 422 )
 		);
 
@@ -1572,7 +1580,7 @@ class REST_Votes extends REST_Base {
 
 		foreach ( $write_ins as $element_id => $count ) {
 			$meta  = Migrator::decode_meta( (string) ( $elements[ $element_id ]['meta_data'] ?? '' ) );
-			$boxes = max( 1, min( 20, (int) ( $meta['otherAnswersCount'] ?? 1 ) ) );
+			$boxes = \YopPoll\Elements\Element_Meta_Policy::write_in_boxes( $meta );
 
 			if ( $count > $boxes ) {
 				return $changed;
